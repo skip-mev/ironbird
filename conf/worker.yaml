@@ -1,0 +1,9 @@
+builder:
+  build_kit_address: "tcp://localhost:1234"
+  registry:
+    url: ghcr.io
+    fqdn: ghcr.io/skip-mev
+    username: Zygimantass
+
+ssh_auth:
+  key_path: "./ironbird.pem"
