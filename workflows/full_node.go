@@ -1,7 +1,9 @@
-package pipeline
+package workflows
 
 import (
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/fullnode"
+	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/builder"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/petri/core/v2/provider/digitalocean"
@@ -11,14 +13,10 @@ import (
 )
 
 // temporal dependency injection
-var githubActivities *GithubNotifierActivity
-var nodeActivities *NodeActivity
+var githubActivities *github.NotifierActivity
+var nodeActivities *fullnode.NodeActivity
 
 const FullNodeTaskQueue = "FULL_NODE_TASK_QUEUE"
-
-func stringPtr(s string) *string {
-	return &s
-}
 
 type FullNodeWorkflowOptions struct {
 	InstallationID int64
@@ -28,8 +26,8 @@ type FullNodeWorkflowOptions struct {
 	ChainConfig    types.ChainsConfig
 }
 
-func (o *FullNodeWorkflowOptions) GenerateCheckOptions(name, status, title, summary string, conclusion *string) CheckRunOptions {
-	return CheckRunOptions{
+func (o *FullNodeWorkflowOptions) GenerateCheckOptions(name, status, title, summary string, conclusion *string) github.CheckRunOptions {
+	return github.CheckRunOptions{
 		InstallationID: o.InstallationID,
 		Owner:          o.Owner,
 		Repo:           o.Repo,
@@ -110,7 +108,7 @@ func FullNodeWorkflow(ctx workflow.Context, opts FullNodeWorkflowOptions) (strin
 		return "", err
 	}
 
-	err = workflow.ExecuteActivity(ctx, nodeActivities.LaunchNode, NodeOptions{
+	err = workflow.ExecuteActivity(ctx, nodeActivities.LaunchNode, fullnode.NodeOptions{
 		Name:                    workflow.GetInfo(ctx).OriginalRunID,
 		Image:                   builtTag,
 		SnapshotURL:             opts.ChainConfig.SnapshotURL,

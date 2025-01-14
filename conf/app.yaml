@@ -11,15 +11,15 @@ chains:
       binary_name: "gaiad"
       home_dir: "/gaiad"
       gas_prices: "0.00025uatom"
-  - name: noble
-    snapshot_url: http://10.110.0.2:8000/noble.tar
-    version: v8.0.3
-    dependencies:
-      skip-mev/ironbird-cometbft: cometbft/cometbft
-    image:
-      dockerfile: "./hack/noble.Dockerfile"
-      gid: "1025"
-      uid: "1025"
-      binary_name: "gaiad"
-      home_dir: "/gaiad"
-      gas_prices: "0.00025uatom"
+#  - name: noble
+#    snapshot_url: http://10.110.0.2:8000/noble.tar
+#    version: v8.0.3
+#    dependencies:
+#      skip-mev/ironbird-cometbft: cometbft/cometbft
+#    image:
+#      dockerfile: "./hack/noble.Dockerfile"
+#      gid: "1025"
+#      uid: "1025"
+#      binary_name: "gaiad"
+#      home_dir: "/gaiad"
+#      gas_prices: "0.00025uatom"

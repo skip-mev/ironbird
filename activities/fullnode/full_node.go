@@ -1,4 +1,4 @@
-package pipeline
+package fullnode
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 )
 
 type NodeActivity struct {
-	ProviderCreator func(ctx context.Context, logger *zap.Logger, name string) (provider.Provider, error)
+	ProviderCreator func(ctx context.Context, logger *zap.Logger, name string) (provider.ProviderI, error)
 }
 
 type NodeOptions struct {
@@ -39,7 +39,7 @@ func (n *NodeActivity) configureNode(ctx context.Context, opts NodeOptions, nn p
 
 	snapshotCommand := fmt.Sprintf("wget -O - %s | tar -x -C %s", opts.SnapshotURL, opts.HomeDir)
 
-	if _, _, exitCode, err := nn.GetTask().RunCommand(ctx, []string{"sh", "-c", snapshotCommand}); err != nil || exitCode != 0 {
+	if _, _, exitCode, err := nn.RunCommand(ctx, []string{"sh", "-c", snapshotCommand}); err != nil || exitCode != 0 {
 		return fmt.Errorf("failed to download and extract snapshot (exit code=%d): %w", exitCode, err)
 	}
 
@@ -90,28 +90,25 @@ func (n *NodeActivity) LaunchNode(ctx context.Context, opts NodeOptions) (string
 	}
 
 	c := &chain.Chain{
-		Config: petritypes.ChainConfig{
-			Image: provider.ImageDefinition{
-				Image: opts.Image,
-				UID:   opts.UID,
-				GID:   opts.GID,
-			},
-			BinaryName: opts.BinaryName, HomeDir: opts.HomeDir,
-			GasPrices: opts.GasPrices,
-			NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-				definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
-				return definition
+		State: chain.State{
+			Config: petritypes.ChainConfig{
+				Image: provider.ImageDefinition{
+					Image: opts.Image,
+					UID:   opts.UID,
+					GID:   opts.GID,
+				},
+				BinaryName: opts.BinaryName, HomeDir: opts.HomeDir,
+				GasPrices: opts.GasPrices,
 			},
 		},
 	}
 
-	nn, err := node.CreateNode(ctx, zap.NewNop(), petritypes.NodeConfig{
+	nn, err := node.CreateNode(ctx, zap.NewNop(), p, petritypes.NodeConfig{
 		Name:        fmt.Sprintf("%s-node", opts.Name),
 		Index:       0,
 		IsValidator: false,
-		Chain:       c,
-		Provider:    p,
-	})
+		ChainConfig: c.State.Config,
+	}, petritypes.NodeOptions{})
 
 	if err != nil {
 		return "", err
@@ -119,17 +116,15 @@ func (n *NodeActivity) LaunchNode(ctx context.Context, opts NodeOptions) (string
 
 	nn = nn.(*node.Node)
 
-	fmt.Println(nn.GetIP(ctx))
-
 	if err := n.configureNode(ctx, opts, nn); err != nil {
 		return "", err
 	}
 
-	if err := nn.GetTask().Start(ctx, false); err != nil {
+	if err := nn.Start(ctx); err != nil {
 		return "", err
 	}
 
-	return nn.GetTask().ID, nil
+	return "", nil
 }
 
 func getGenesisFile(chain string) ([]byte, error) {

@@ -1,4 +1,4 @@
-package pipeline
+package github
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"github.com/palantir/go-githubapp/githubapp"
 )
 
-type GithubNotifierActivity struct {
+type NotifierActivity struct {
 	GithubClient githubapp.ClientCreator
 }
 
@@ -20,9 +20,10 @@ type CheckRunOptions struct {
 	Conclusion     *string
 	Title          *string
 	Summary        *string
+	Text           string
 }
 
-func (s *GithubNotifierActivity) CreateCheck(ctx context.Context, opts CheckRunOptions) (int64, error) {
+func (s *NotifierActivity) CreateCheck(ctx context.Context, opts CheckRunOptions) (int64, error) {
 	client, err := s.GithubClient.NewInstallationClient(opts.InstallationID)
 	if err != nil {
 		return -1, err
@@ -52,7 +53,7 @@ func (s *GithubNotifierActivity) CreateCheck(ctx context.Context, opts CheckRunO
 	return checkRun.GetID(), nil
 }
 
-func (s *GithubNotifierActivity) UpdateCheck(ctx context.Context, id int64, opts CheckRunOptions) (int64, error) {
+func (s *NotifierActivity) UpdateCheck(ctx context.Context, id int64, opts CheckRunOptions) (int64, error) {
 	client, err := s.GithubClient.NewInstallationClient(opts.InstallationID)
 	if err != nil {
 		return -1, err
@@ -64,6 +65,7 @@ func (s *GithubNotifierActivity) UpdateCheck(ctx context.Context, id int64, opts
 		output = &github.CheckRunOutput{
 			Title:   opts.Title,
 			Summary: opts.Summary,
+			Text:    &opts.Text,
 		}
 	}
 

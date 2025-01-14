@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/palantir/go-githubapp/githubapp"
-	"github.com/skip-mev/ironbird/pipeline"
 	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/workflows"
 	temporalclient "go.temporal.io/sdk/client"
 	"net/http"
 )
@@ -61,29 +61,48 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) handleOpenedPullRequest(ctx context.Context, pr *ValidatedPullRequest) error {
-	for _, chain := range a.cfg.Chains {
-		id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, pr.Owner, pr.Repo, pr.Number)
+	chain := a.cfg.Chains[0]
+	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, pr.Owner, pr.Repo, pr.Number)
 
-		if _, ok := chain.Dependencies[fmt.Sprintf("%s/%s", pr.Owner, pr.Repo)]; !ok {
-			continue
-		}
+	_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
+		ID:        id,
+		TaskQueue: workflows.TestnetTaskQueue,
+	}, workflows.TestnetWorkflow, workflows.TestnetWorkflowOptions{
+		InstallationID: pr.InstallationID,
+		Owner:          pr.Owner,
+		Repo:           pr.Repo,
+		SHA:            pr.HeadSHA,
+		ChainConfig:    chain,
+	})
 
-		_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
-			ID:        id,
-			TaskQueue: pipeline.FullNodeTaskQueue,
-		}, pipeline.FullNodeWorkflow, pipeline.FullNodeWorkflowOptions{
-			InstallationID: pr.InstallationID,
-			Owner:          pr.Owner,
-			Repo:           pr.Repo,
-			SHA:            pr.HeadSHA,
-			ChainConfig:    chain,
-		})
-
-		if err != nil {
-			fmt.Println("failed to execute workflow", err)
-			continue
-		}
+	if err != nil {
+		fmt.Println("failed to execute workflow", err)
+		return err
 	}
+
+	//for _, chain := range a.cfg.Chains {
+	//	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, pr.Owner, pr.Repo, pr.Number)
+	//
+	//	if _, ok := chain.Dependencies[fmt.Sprintf("%s/%s", pr.Owner, pr.Repo)]; !ok {
+	//		continue
+	//	}
+
+	//_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
+	//	ID:        id,
+	//	TaskQueue: workflows.FullNodeTaskQueue,
+	//}, workflows.FullNodeWorkflow, workflows.FullNodeWorkflowOptions{
+	//	InstallationID: pr.InstallationID,
+	//	Owner:          pr.Owner,
+	//	Repo:           pr.Repo,
+	//	SHA:            pr.HeadSHA,
+	//	ChainConfig:    chain,
+	//})
+
+	//	if err != nil {
+	//		fmt.Println("failed to execute workflow", err)
+	//		continue
+	//	}
+	//}
 
 	return nil
 }
