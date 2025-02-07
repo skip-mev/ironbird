@@ -31,6 +31,7 @@ type Activity struct {
 	TailscaleServer      *activities.TailscaleServer
 	AwsConfig            *aws.Config
 	ScreenshotBucketName string
+	DOPToken             string
 }
 
 func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (PackagedState, error) {
@@ -39,7 +40,7 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	p, err := digitalocean.RestoreProvider(
 		ctx,
 		opts.ProviderState,
-		"<DOP_TOKEN>",
+		a.DOPToken,
 		digitalocean.WithLogger(logger),
 		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
