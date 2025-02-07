@@ -46,6 +46,7 @@ type Node struct {
 
 type Activity struct {
 	TailscaleServer *activities.TailscaleServer
+	DOToken         string
 }
 
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
@@ -54,7 +55,7 @@ func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (str
 	p, err := digitalocean.NewProvider(
 		ctx,
 		opts.Name,
-		"<DO_TOKEN>",
+		a.DOToken,
 		digitalocean.WithLogger(logger),
 		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
@@ -73,7 +74,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 	p, err := digitalocean.RestoreProvider(
 		ctx,
 		opts.ProviderState,
-		"<DO_TOKEN>",
+		a.DOToken,
 		digitalocean.WithLogger(logger),
 		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
@@ -92,7 +93,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 	p, err := digitalocean.RestoreProvider(
 		ctx,
 		opts.ProviderState,
-		"<DO_TOKEN>",
+		a.DOToken,
 		digitalocean.WithLogger(logger),
 		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
@@ -209,7 +210,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 	p, err := digitalocean.RestoreProvider(
 		ctx,
 		opts.ProviderState,
-		"<DO_TOKEN>",
+		a.DOToken,
 		digitalocean.WithLogger(logger),
 		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
