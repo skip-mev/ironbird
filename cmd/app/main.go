@@ -9,7 +9,9 @@ import (
 
 func main() {
 	ctx := context.Background()
-	temporalClient, err := client.Dial(client.Options{})
+	temporalClient, err := client.Dial(client.Options{
+		HostPort: "127.0.0.1:7233",
+	})
 
 	if err != nil {
 		panic(err)

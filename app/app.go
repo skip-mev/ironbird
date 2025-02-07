@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/workflows"
+	"github.com/skip-mev/ironbird/workflows/testnet"
 	temporalclient "go.temporal.io/sdk/client"
 	"net/http"
 )
@@ -66,8 +66,8 @@ func (a *App) handleOpenedPullRequest(ctx context.Context, pr *ValidatedPullRequ
 
 	_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
 		ID:        id,
-		TaskQueue: workflows.TestnetTaskQueue,
-	}, workflows.TestnetWorkflow, workflows.TestnetWorkflowOptions{
+		TaskQueue: testnet.TaskQueue,
+	}, testnet.Workflow, testnet.WorkflowOptions{
 		InstallationID: pr.InstallationID,
 		Owner:          pr.Owner,
 		Repo:           pr.Repo,

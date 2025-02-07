@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/skip-mev/petri/core/v2/provider"
-	"github.com/skip-mev/petri/core/v2/provider/docker"
-	"github.com/skip-mev/petri/core/v2/types"
-	"github.com/skip-mev/petri/cosmos/v2/chain"
-	"github.com/skip-mev/petri/cosmos/v2/node"
+	"github.com/skip-mev/ironbird/activities"
+	"github.com/skip-mev/petri/core/v3/provider"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/petri/core/v3/types"
+	"github.com/skip-mev/petri/cosmos/v3/chain"
+	"github.com/skip-mev/petri/cosmos/v3/node"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"
 	"net/http"
@@ -37,17 +38,26 @@ type PackagedState struct {
 }
 
 type Node struct {
-	Name string
-	Rpc  string
-	Lcd  string
+	Name    string
+	Rpc     string
+	Lcd     string
+	Metrics string
 }
 
 type Activity struct {
+	TailscaleServer *activities.TailscaleServer
 }
 
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
-	p, err := docker.CreateProvider(ctx, logger, opts.Name)
+
+	p, err := digitalocean.NewProvider(
+		ctx,
+		opts.Name,
+		"<DO_TOKEN>",
+		digitalocean.WithLogger(logger),
+		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
+	)
 
 	if err != nil {
 		return "", err
@@ -60,7 +70,13 @@ func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (str
 
 func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
-	p, err := docker.RestoreProvider(ctx, logger, opts.ProviderState)
+	p, err := digitalocean.RestoreProvider(
+		ctx,
+		opts.ProviderState,
+		"<DO_TOKEN>",
+		digitalocean.WithLogger(logger),
+		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
+	)
 
 	if err != nil {
 		return "", err
@@ -73,7 +89,13 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := docker.RestoreProvider(ctx, logger, opts.ProviderState)
+	p, err := digitalocean.RestoreProvider(
+		ctx,
+		opts.ProviderState,
+		"<DO_TOKEN>",
+		digitalocean.WithLogger(logger),
+		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
+	)
 
 	if err != nil {
 		return PackagedState{}, err
@@ -103,6 +125,12 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		},
 		types.ChainOptions{
 			NodeCreator: node.CreateNode,
+			NodeOptions: types.NodeOptions{
+				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+					definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
+					return definition
+				},
+			},
 			WalletConfig: types.WalletConfig{
 				SigningAlgorithm: "secp256k1",
 				Bech32Prefix:     "cosmos",
@@ -155,10 +183,16 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 			return PackagedState{}, err
 		}
 
+		metricsIp, err := validator.GetIP(ctx)
+		if err != nil {
+			return PackagedState{}, err
+		}
+
 		testnetNodes = append(testnetNodes, Node{
-			Name: validator.GetDefinition().Name,
-			Rpc:  fmt.Sprintf("http://%s", cometIp),
-			Lcd:  fmt.Sprintf("http://%s", cosmosIp),
+			Name:    validator.GetDefinition().Name,
+			Rpc:     fmt.Sprintf("http://%s", cometIp),
+			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
+			Metrics: fmt.Sprintf("%s:26660", metricsIp),
 		})
 	}
 
@@ -172,7 +206,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := docker.RestoreProvider(ctx, logger, opts.ProviderState)
+	p, err := digitalocean.RestoreProvider(
+		ctx,
+		opts.ProviderState,
+		"<DO_TOKEN>",
+		digitalocean.WithLogger(logger),
+		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
+	)
 
 	if err != nil {
 		return "", err
