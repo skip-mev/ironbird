@@ -132,12 +132,14 @@ func main() {
 
 	testnetActivity := testnetactivity.Activity{
 		TailscaleServer: tailscaleServer,
+		DOToken:         cfg.DigitalOcean.Token,
 	}
 
 	observabilityActivity := observability.Activity{
 		TailscaleServer:      tailscaleServer,
 		AwsConfig:            &awsConfig,
 		ScreenshotBucketName: "ironbird-demo-screenshots",
+		DOToken:              cfg.DigitalOcean.Token,
 	}
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
 
