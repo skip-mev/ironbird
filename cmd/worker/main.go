@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/skip-mev/ironbird/activities"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"golang.org/x/oauth2/clientcredentials"
 	"strings"
 	"tailscale.com/client/tailscale"
@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/builder"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
@@ -124,19 +124,26 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	tailscaleServer := &activities.TailscaleServer{
-		Server:      &ts,
-		NodeAuthkey: "tskey-client-kQLqHQSaEA11CNTRL-Ng7ZgVhjtghcfd8j6r8xmhreMwRpZhWw?ephemeral=true&preauthorized=true",
+	tsLocalClient, err := ts.LocalClient()
+
+	if err != nil {
+		panic(err)
+	}
+
+	tailscaleSettings := digitalocean.TailscaleSettings{
+		AuthKey:     "tskey-client-kQLqHQSaEA11CNTRL-Ng7ZgVhjtghcfd8j6r8xmhreMwRpZhWw?ephemeral=true&preauthorized=true",
 		Tags:        []string{"ironbird-nodes"},
+		Server:      &ts,
+		LocalClient: tsLocalClient,
 	}
 
 	testnetActivity := testnetactivity.Activity{
-		TailscaleServer: tailscaleServer,
-		DOToken:         cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		DOToken:           cfg.DigitalOcean.Token,
 	}
 
 	observabilityActivity := observability.Activity{
-		TailscaleServer:      tailscaleServer,
+		TailscaleSettings:    tailscaleSettings,
 		AwsConfig:            &awsConfig,
 		ScreenshotBucketName: "ironbird-demo-screenshots",
 		DOToken:              cfg.DigitalOcean.Token,
