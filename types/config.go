@@ -10,9 +10,9 @@ import (
 
 type TailscaleConfig struct {
 	ServerOauthSecret string
-	ServerTags        []string `yaml:"tags"`
+	ServerTags        []string `yaml:"server_tags"`
 	NodeAuthKey       string
-	NodeTags          []string `yaml:"tags"`
+	NodeTags          []string `yaml:"node_tags"`
 }
 
 type AppConfig struct {
