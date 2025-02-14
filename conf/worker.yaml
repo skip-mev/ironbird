@@ -5,5 +5,11 @@ builder:
     fqdn: ghcr.io/skip-mev
     username: Zygimantass
 
+tailscale:
+  node_tags:
+    - ironbird-nodes
+  server_tags:
+    - ironbird
+
 ssh_auth:
   key_path: "./ironbird.pem"

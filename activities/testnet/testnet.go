@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/skip-mev/ironbird/activities"
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/core/v3/types"
@@ -45,8 +44,8 @@ type Node struct {
 }
 
 type Activity struct {
-	TailscaleServer *activities.TailscaleServer
-	DOToken         string
+	DOToken           string
+	TailscaleSettings digitalocean.TailscaleSettings
 }
 
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
@@ -56,8 +55,8 @@ func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (str
 		ctx,
 		opts.Name,
 		a.DOToken,
+		a.TailscaleSettings,
 		digitalocean.WithLogger(logger),
-		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
 
 	if err != nil {
@@ -75,8 +74,8 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 		ctx,
 		opts.ProviderState,
 		a.DOToken,
+		a.TailscaleSettings,
 		digitalocean.WithLogger(logger),
-		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
 
 	if err != nil {
@@ -94,8 +93,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		ctx,
 		opts.ProviderState,
 		a.DOToken,
+		a.TailscaleSettings,
 		digitalocean.WithLogger(logger),
-		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
 
 	if err != nil {
@@ -211,8 +210,8 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 		ctx,
 		opts.ProviderState,
 		a.DOToken,
+		a.TailscaleSettings,
 		digitalocean.WithLogger(logger),
-		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
 
 	if err != nil {
