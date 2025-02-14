@@ -8,12 +8,20 @@ import (
 	"os"
 )
 
+type TailscaleConfig struct {
+	ServerOauthSecret string
+	ServerTags        []string `yaml:"tags"`
+	NodeAuthKey       string
+	NodeTags          []string `yaml:"tags"`
+}
+
 type AppConfig struct {
 	Github githubapp.Config
 	Chains []ChainsConfig `yaml:"chains"`
 }
 
 type WorkerConfig struct {
+	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	SSHAuth      SSHAuthConfig      `yaml:"ssh_auth"`
@@ -92,6 +100,9 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	}
 
 	config.DigitalOcean.Token = os.Getenv("DIGITALOCEAN_TOKEN")
+
+	config.Tailscale.NodeAuthKey = os.Getenv("TS_NODE_AUTH_KEY")
+	config.Tailscale.ServerOauthSecret = os.Getenv("TS_SERVER_OAUTH_SECRET")
 
 	return config, nil
 }
