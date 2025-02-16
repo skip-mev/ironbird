@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/skip-mev/ironbird/activities"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"go.uber.org/zap"
@@ -28,7 +27,7 @@ type PackagedState struct {
 }
 
 type Activity struct {
-	TailscaleServer      *activities.TailscaleServer
+	TailscaleSettings    digitalocean.TailscaleSettings
 	AwsConfig            *aws.Config
 	ScreenshotBucketName string
 	DOToken              string
@@ -41,8 +40,8 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 		ctx,
 		opts.ProviderState,
 		a.DOToken,
+		a.TailscaleSettings,
 		digitalocean.WithLogger(logger),
-		digitalocean.WithTailscale(a.TailscaleServer.Server, a.TailscaleServer.NodeAuthkey, a.TailscaleServer.Tags),
 	)
 
 	if err != nil {

@@ -2,7 +2,7 @@ package testnet
 
 import (
 	"fmt"
-	"github.com/skip-mev/ironbird/builder"
+	"github.com/skip-mev/ironbird/activities/builder"
 	"go.temporal.io/sdk/workflow"
 	"os"
 )

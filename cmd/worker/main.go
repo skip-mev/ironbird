@@ -3,19 +3,15 @@ package main
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/skip-mev/ironbird/activities"
-	"golang.org/x/oauth2/clientcredentials"
-	"strings"
-	"tailscale.com/client/tailscale"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"tailscale.com/tsnet"
 	"time"
 
 	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/builder"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
@@ -23,38 +19,9 @@ import (
 	"log"
 )
 
-func getAuthkey(ctx context.Context) (string, error) {
-	baseURL := "https://api.tailscale.com"
-
-	credentials := clientcredentials.Config{
-		ClientSecret: "tskey-client-ke9ha9iyrm11CNTRL-Ky8rd9KZ5737w5yw36xA23HDqPBtA2hG",
-		TokenURL:     baseURL + "/api/v2/oauth/token",
-	}
-
-	tsClient := tailscale.NewClient("-", nil)
-	tailscale.I_Acknowledge_This_API_Is_Unstable = true
-	tsClient.UserAgent = "tailscale-cli"
-	tsClient.HTTPClient = credentials.Client(ctx)
-	tsClient.BaseURL = baseURL
-
-	caps := tailscale.KeyCapabilities{
-		Devices: tailscale.KeyDeviceCapabilities{
-			Create: tailscale.KeyDeviceCreateCapabilities{
-				Reusable:      false,
-				Ephemeral:     true,
-				Preauthorized: true,
-				Tags:          strings.Split("tag:ironbird", ","),
-			},
-		},
-	}
-	authkey, _, err := tsClient.CreateKey(ctx, caps)
-	if err != nil {
-		return "", err
-	}
-	return authkey, nil
-}
-
 func main() {
+	ctx := context.Background()
+
 	cfg, err := types.ParseWorkerConfig("./conf/worker.yaml")
 
 	if err != nil {
@@ -79,7 +46,7 @@ func main() {
 
 	defer c.Close()
 
-	awsConfig, err := config.LoadDefaultConfig(context.Background())
+	awsConfig, err := config.LoadDefaultConfig(ctx)
 
 	if err != nil {
 		log.Fatalln(err)
@@ -87,14 +54,14 @@ func main() {
 
 	builderActivity := builder.Activity{BuilderConfig: cfg.Builder}
 
-	authkey, err := getAuthkey(context.Background())
+	authKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, cfg.Tailscale.ServerOauthSecret, cfg.Tailscale.ServerTags)
 
 	if err != nil {
 		panic(err)
 	}
 
 	ts := tsnet.Server{
-		AuthKey:   authkey,
+		AuthKey:   authKey,
 		Ephemeral: true,
 		Hostname:  "ironbird-tests",
 	}
@@ -115,8 +82,6 @@ func main() {
 			panic(err)
 		}
 
-		spew.Dump(status)
-
 		if status.BackendState == "Running" {
 			break
 		}
@@ -124,19 +89,26 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	tailscaleServer := &activities.TailscaleServer{
+	tsLocalClient, err := ts.LocalClient()
+
+	if err != nil {
+		panic(err)
+	}
+
+	tailscaleSettings := digitalocean.TailscaleSettings{
+		AuthKey:     cfg.Tailscale.NodeAuthKey,
+		Tags:        cfg.Tailscale.NodeTags,
 		Server:      &ts,
-		NodeAuthkey: "tskey-client-kQLqHQSaEA11CNTRL-Ng7ZgVhjtghcfd8j6r8xmhreMwRpZhWw?ephemeral=true&preauthorized=true",
-		Tags:        []string{"ironbird-nodes"},
+		LocalClient: tsLocalClient,
 	}
 
 	testnetActivity := testnetactivity.Activity{
-		TailscaleServer: tailscaleServer,
-		DOToken:         cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		DOToken:           cfg.DigitalOcean.Token,
 	}
 
 	observabilityActivity := observability.Activity{
-		TailscaleServer:      tailscaleServer,
+		TailscaleSettings:    tailscaleSettings,
 		AwsConfig:            &awsConfig,
 		ScreenshotBucketName: "ironbird-demo-screenshots",
 		DOToken:              cfg.DigitalOcean.Token,
