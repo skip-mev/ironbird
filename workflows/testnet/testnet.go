@@ -45,12 +45,13 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	testnetOptions := testnet.TestnetOptions{
-		Name:       runName,
-		Image:      builtTag,
-		UID:        opts.ChainConfig.Image.UID,
-		GID:        opts.ChainConfig.Image.GID,
-		BinaryName: opts.ChainConfig.Image.BinaryName,
-		HomeDir:    opts.ChainConfig.Image.HomeDir,
+		Name:        runName,
+		Image:       builtTag,
+		UID:         opts.ChainConfig.Image.UID,
+		GID:         opts.ChainConfig.Image.GID,
+		BinaryName:  opts.ChainConfig.Image.BinaryName,
+		HomeDir:     opts.ChainConfig.Image.HomeDir,
+		BlockMaxGas: opts.ChainConfig.BlockMaxGas,
 		ProviderSpecificOptions: map[string]string{
 			"region":   "ams3",
 			"image_id": "177032231",

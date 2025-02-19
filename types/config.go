@@ -56,6 +56,7 @@ type ChainsConfig struct {
 	Dependencies map[string]string `yaml:"dependencies"`
 	Image        ImageConfig       `yaml:"image"`
 	Version      string            `yaml:"version"`
+	BlockMaxGas  string            `yaml:"block_max_gas"`
 }
 
 type ImageConfig struct {
