@@ -22,6 +22,7 @@ type TestnetOptions struct {
 	BinaryName              string
 	HomeDir                 string
 	ProviderSpecificOptions map[string]string
+	BlockMaxGas             string
 
 	ValidatorCount uint64
 	NodeCount      uint64
@@ -125,6 +126,12 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		},
 		types.ChainOptions{
 			NodeCreator: node.CreateNode,
+			ModifyGenesis: chain.ModifyGenesis([]chain.GenesisKV{
+				{
+					Key:   "consensus_params.block.max_gas",
+					Value: opts.BlockMaxGas,
+				},
+			}),
 			NodeOptions: types.NodeOptions{
 				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
 					definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
