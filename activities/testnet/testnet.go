@@ -3,15 +3,16 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/core/v3/types"
-	"github.com/skip-mev/petri/cosmos/v3/chain"
+	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 type TestnetOptions struct {
@@ -22,7 +23,7 @@ type TestnetOptions struct {
 	BinaryName              string
 	HomeDir                 string
 	ProviderSpecificOptions map[string]string
-	BlockMaxGas             string
+	GenesisModifications    []petrichain.GenesisKV
 
 	ValidatorCount uint64
 	NodeCount      uint64
@@ -102,7 +103,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		return PackagedState{}, err
 	}
 
-	chain, err := chain.CreateChain(
+	chain, err := petrichain.CreateChain(
 		ctx,
 		logger,
 		p,
@@ -126,12 +127,6 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		},
 		types.ChainOptions{
 			NodeCreator: node.CreateNode,
-			ModifyGenesis: chain.ModifyGenesis([]chain.GenesisKV{
-				{
-					Key:   "consensus_params.block.max_gas",
-					Value: opts.BlockMaxGas,
-				},
-			}),
 			NodeOptions: types.NodeOptions{
 				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
 					definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
@@ -153,7 +148,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 	}
 
 	err = chain.Init(ctx, types.ChainOptions{
-		NodeCreator: node.CreateNode,
+		ModifyGenesis: petrichain.ModifyGenesis(opts.GenesisModifications),
+		NodeCreator:   node.CreateNode,
 		WalletConfig: types.WalletConfig{
 			SigningAlgorithm: "secp256k1",
 			Bech32Prefix:     "cosmos",
@@ -225,7 +221,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 		return "", err
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode)
+	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode)
 
 	if err != nil {
 		return "", err

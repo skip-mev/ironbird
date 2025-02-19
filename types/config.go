@@ -3,9 +3,11 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/palantir/go-githubapp/githubapp"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"github.com/palantir/go-githubapp/githubapp"
+	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	"gopkg.in/yaml.v3"
 )
 
 type TailscaleConfig struct {
@@ -51,12 +53,12 @@ type SSHAuthConfig struct {
 }
 
 type ChainsConfig struct {
-	Name         string            `yaml:"name"`
-	SnapshotURL  string            `yaml:"snapshot_url"`
-	Dependencies map[string]string `yaml:"dependencies"`
-	Image        ImageConfig       `yaml:"image"`
-	Version      string            `yaml:"version"`
-	BlockMaxGas  string            `yaml:"block_max_gas"`
+	Name                 string                 `yaml:"name"`
+	SnapshotURL          string                 `yaml:"snapshot_url"`
+	Dependencies         map[string]string      `yaml:"dependencies"`
+	Image                ImageConfig            `yaml:"image"`
+	Version              string                 `yaml:"version"`
+	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 }
 
 type ImageConfig struct {
