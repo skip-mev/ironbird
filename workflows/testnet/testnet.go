@@ -3,6 +3,8 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/observability"
@@ -11,7 +13,6 @@ import (
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
-	"time"
 )
 
 var testnetActivities *testnet.Activity
@@ -45,19 +46,19 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	testnetOptions := testnet.TestnetOptions{
-		Name:        runName,
-		Image:       builtTag,
-		UID:         opts.ChainConfig.Image.UID,
-		GID:         opts.ChainConfig.Image.GID,
-		BinaryName:  opts.ChainConfig.Image.BinaryName,
-		HomeDir:     opts.ChainConfig.Image.HomeDir,
-		BlockMaxGas: opts.ChainConfig.BlockMaxGas,
+		Name:                 runName,
+		Image:                builtTag,
+		UID:                  opts.ChainConfig.Image.UID,
+		GID:                  opts.ChainConfig.Image.GID,
+		BinaryName:           opts.ChainConfig.Image.BinaryName,
+		HomeDir:              opts.ChainConfig.Image.HomeDir,
+		GenesisModifications: opts.ChainConfig.GenesisModifications,
 		ProviderSpecificOptions: map[string]string{
 			"region":   "ams3",
 			"image_id": "177032231",
 			"size":     "s-1vcpu-1gb",
 		},
-		ValidatorCount: 4,
+		ValidatorCount: 1,
 		NodeCount:      0,
 	}
 
