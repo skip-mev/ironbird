@@ -58,7 +58,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			"image_id": "177032231",
 			"size":     "s-1vcpu-1gb",
 		},
-		ValidatorCount: 1,
+		ValidatorCount: 4,
 		NodeCount:      0,
 	}
 
