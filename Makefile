@@ -4,6 +4,9 @@ temporal-reset:
 do-reset:
 	doctl compute droplet list | grep petri-droplet | cut -d' ' -f1 | xargs -I{} doctl compute droplet delete -f {} && doctl compute firewall list | grep petri | cut -d' ' -f1 | xargs -I{} doctl compute firewall delete -f {} && doctl compute ssh-key list | grep petri | cut -d' ' -f1 | xargs -I{} doctl compute ssh-key delete -f {}
 
+test-workflow:
+	temporal workflow start --task-queue TESTNET_TASK_QUEUE --name Workflow --input-file hack/workflow.json
+
 reset: do-reset temporal-reset
 
-.PHONY: reset temporal-reset do-reset
+.PHONY: reset temporal-reset do-reset test-workflow

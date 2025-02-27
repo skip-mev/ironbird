@@ -1,13 +1,10 @@
 package testnet
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -20,8 +17,8 @@ var observabilityActivities *observability.Activity
 
 func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
+
 	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, opts.SHA[:6])
-	start := workflow.Now(ctx)
 	options := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 5,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -30,9 +27,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	ctx = workflow.WithActivityOptions(ctx, options)
-	output := ""
 
-	checkId, err := createInitialCheck(ctx, opts, name)
+	report, err := NewReport(
+		ctx,
+		name,
+		"Launching testnet",
+		"",
+		&opts,
+	)
 
 	if err != nil {
 		return "", err
@@ -53,7 +55,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		HomeDir:    opts.ChainConfig.Image.HomeDir,
 		ProviderSpecificOptions: map[string]string{
 			"region":   "ams3",
-			"image_id": "177032231",
+			"image_id": "177869680",
 			"size":     "s-1vcpu-1gb",
 		},
 		ValidatorCount: 4,
@@ -84,7 +86,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	testnetOptions.ChainState = chainState.ChainState
 	testnetOptions.ProviderState = chainState.ProviderState
 
-	if err := appendNodeTable(chainState.Nodes, &output); err != nil {
+	if err := report.SetNodes(ctx, chainState.Nodes); err != nil {
 		return "", err
 	}
 
@@ -109,27 +111,22 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	testnetOptions.ProviderState = observabilityPackagedState.ProviderState
 
-	output += fmt.Sprintf("## Observability\n- [Grafana](%s)\n", observabilityPackagedState.ExternalGrafanaURL)
-
-	if err = monitorTestnet(ctx, opts, testnetOptions, checkId, name, &output, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := report.SetObservabilityURL(ctx, observabilityPackagedState.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
-	if err = updateCheck(ctx, checkId, opts.GenerateCheckOptions(
-		name,
-		"completed",
-		"The testnet has successfully baked in",
-		fmt.Sprintf("The bake in period took %s", workflow.Now(ctx).Sub(start).String()),
-		output,
-		util.StringPtr("success"),
-	)); err != nil {
+	if err := monitorTestnet(ctx, testnetOptions, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+		return "", err
+	}
+
+	if err := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); err != nil {
 		return "", err
 	}
 
 	return "", err
 }
 
-func monitorTestnet(ctx workflow.Context, opts WorkflowOptions, testnetOptions testnet.TestnetOptions, checkId int64, name string, output *string, grafanaUrl string) error {
+func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, report *Report, grafanaUrl string) error {
 	for i := 0; i < 360; i++ {
 		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {
 			return err
@@ -158,46 +155,16 @@ func monitorTestnet(ctx workflow.Context, opts WorkflowOptions, testnetOptions t
 			return err
 		}
 
-		*output += fmt.Sprintf("### Screenshot - %d\n ![](%s)\n", i, screenShotUrl)
-
-		if err = updateCheck(ctx, checkId, opts.GenerateCheckOptions(
-			name,
-			"in_progress",
-			fmt.Sprintf("Monitoring the testnet - %d", i),
-			fmt.Sprintf("Monitoring the testnet - %d", i),
-			*output,
-			nil,
-		)); err != nil {
+		if err := report.SetScreenshots(ctx, map[string]string{
+			"Average block latency": screenShotUrl,
+		}); err != nil {
 			return err
 		}
 
+		if err := report.SetStatus(ctx, "in_progress", "Monitoring the testnet", fmt.Sprintf("Monitoring the testnet - %d", i)); err != nil {
+			return err
+		}
 	}
 
-	return nil
-}
-
-func appendNodeTable(nodes []testnet.Node, output *string) error {
-	if output == nil {
-		return fmt.Errorf("output cannot be nil")
-	}
-
-	var buf bytes.Buffer
-
-	rows := [][]string{}
-
-	for _, n := range nodes {
-		rows = append(rows, []string{n.Name, n.Rpc, n.Lcd})
-	}
-
-	err := markdown.NewMarkdown(&buf).Table(markdown.TableSet{
-		Header: []string{"Name", "RPC", "LCD"},
-		Rows:   rows,
-	}).Build()
-
-	if err != nil {
-		return nil
-	}
-
-	*output += fmt.Sprintf("## Nodes\n%s\n", buf.String())
 	return nil
 }
