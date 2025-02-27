@@ -2,16 +2,16 @@ module github.com/skip-mev/ironbird
 
 go 1.23.2
 
-replace github.com/skip-mev/petri/core/v3 => ../petri/core
-
-replace github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
+replace (
+	github.com/skip-mev/petri/core/v3 => ../petri/core
+	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
+)
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.1
 	github.com/cosmos/cosmos-sdk v0.50.10
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/docker/cli v27.4.0-rc.2+incompatible
 	github.com/google/go-github/v66 v66.0.0
 	github.com/moby/buildkit v0.18.0
@@ -22,7 +22,6 @@ require (
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/oauth2 v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	tailscale.com v1.78.3
 )
@@ -95,6 +94,7 @@ require (
 	github.com/cosmos/ics23/go v0.11.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.13.3 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dblohm7/wingoes v0.0.0-20240119213807-a09d6be7affa // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
@@ -270,6 +270,7 @@ require (
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.26.0 // indirect

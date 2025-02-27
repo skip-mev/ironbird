@@ -50,6 +50,16 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 }
 
+var (
+	CosmosWalletConfig = types.WalletConfig{
+		SigningAlgorithm: "secp256k1",
+		Bech32Prefix:     "cosmos",
+		HDPath:           hd.CreateHDPath(118, 0, 0),
+		DerivationFn:     hd.Secp256k1.Derive(),
+		GenerationFn:     hd.Secp256k1.Generate(),
+	}
+)
+
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
 
@@ -133,13 +143,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 					return definition
 				},
 			},
-			WalletConfig: types.WalletConfig{
-				SigningAlgorithm: "secp256k1",
-				Bech32Prefix:     "cosmos",
-				HDPath:           hd.CreateHDPath(118, 0, 0),
-				DerivationFn:     hd.Secp256k1.Derive(),
-				GenerationFn:     hd.Secp256k1.Generate(),
-			},
+			WalletConfig: CosmosWalletConfig,
 		},
 	)
 
@@ -150,13 +154,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 	err = chain.Init(ctx, types.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(opts.GenesisModifications),
 		NodeCreator:   node.CreateNode,
-		WalletConfig: types.WalletConfig{
-			SigningAlgorithm: "secp256k1",
-			Bech32Prefix:     "cosmos",
-			HDPath:           hd.CreateHDPath(118, 0, 0),
-			DerivationFn:     hd.Secp256k1.Derive(),
-			GenerationFn:     hd.Secp256k1.Generate(),
-		},
+		WalletConfig:  CosmosWalletConfig,
 	})
 
 	if err != nil {
@@ -221,7 +219,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 		return "", err
 	}
 
-	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode)
+	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode, CosmosWalletConfig)
 
 	if err != nil {
 		return "", err

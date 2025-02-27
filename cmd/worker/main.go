@@ -2,21 +2,24 @@ package main
 
 import (
 	"context"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"tailscale.com/tsnet"
-	"time"
+
+	"log"
 
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
-	"log"
 )
 
 func main() {
@@ -113,6 +116,12 @@ func main() {
 		ScreenshotBucketName: "ironbird-demo-screenshots",
 		DOToken:              cfg.DigitalOcean.Token,
 	}
+
+	loadTestActivity := loadtest.Activity{
+		DOToken:           cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+	}
+
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
@@ -124,6 +133,7 @@ func main() {
 	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
 	w.RegisterActivity(observabilityActivity.GrabGraphScreenshot)
 	w.RegisterActivity(observabilityActivity.UploadScreenshot)
+	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	w.RegisterActivity(notifier.UpdateCheck)
 	w.RegisterActivity(notifier.CreateCheck)
