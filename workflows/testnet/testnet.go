@@ -3,6 +3,7 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"github.com/skip-mev/petri/core/v3/monitoring"
 	"time"
 
 	"github.com/nao1215/markdown"
@@ -91,28 +92,28 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	// var observabilityPackagedState observability.PackagedState
-	// var metricsIps []string
+	var observabilityPackagedState observability.PackagedState
+	var metricsIps []string
 
-	// for _, node := range chainState.Nodes {
-	// 	metricsIps = append(metricsIps, node.Metrics)
-	// }
+	for _, node := range chainState.Nodes {
+		metricsIps = append(metricsIps, node.Metrics)
+	}
 
-	// if err := workflow.ExecuteActivity(
-	// 	ctx,
-	// 	observabilityActivities.LaunchObservabilityStack,
-	// 	observability.Options{
-	// 		PrometheusTargets:      metricsIps,
-	// 		ProviderState:          testnetOptions.ProviderState,
-	// 		ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
-	// 	},
-	// ).Get(ctx, &observabilityPackagedState); err != nil {
-	// 	return "", err
-	// }
+	if err := workflow.ExecuteActivity(
+		ctx,
+		observabilityActivities.LaunchObservabilityStack,
+		observability.Options{
+			PrometheusTargets:      metricsIps,
+			ProviderState:          testnetOptions.ProviderState,
+			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
+		},
+	).Get(ctx, &observabilityPackagedState); err != nil {
+		return "", err
+	}
 
-	// testnetOptions.ProviderState = observabilityPackagedState.ProviderState
+	testnetOptions.ProviderState = observabilityPackagedState.ProviderState
 
-	// output += fmt.Sprintf("## Observability\n- [Grafana](%s)\n", observabilityPackagedState.ExternalGrafanaURL)
+	output += fmt.Sprintf("## Observability\n- [Grafana](%s)\n", observabilityPackagedState.ExternalGrafanaURL)
 
 	// Start load test in background if configuration is provided
 	var loadTestDoneChan workflow.Channel
@@ -147,9 +148,9 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		})
 	}
 
-	// if err = monitorTestnet(ctx, opts, testnetOptions, checkId, name, &output, observabilityPackagedState.ExternalGrafanaURL); err != nil {
-	// 	return "", err
-	// }
+	if err = monitorTestnet(ctx, opts, testnetOptions, checkId, name, &output, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+		return "", err
+	}
 
 	if opts.LoadTestConfig != nil {
 		var loadTestState loadtest.PackagedState
@@ -175,67 +176,67 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	return "", err
 }
 
-// func monitorTestnet(ctx workflow.Context, opts WorkflowOptions, testnetOptions testnet.TestnetOptions, checkId int64, name string, output *string, grafanaUrl string) error {
-// 	// Calculate number of iterations (each iteration is 10 seconds)
-// 	iterations := 360 // default to 1 hour (360 * 10 seconds)
-// 	if opts.LoadTestConfig != nil {
-// 		duration, err := time.ParseDuration(opts.LoadTestConfig.Runtime)
-// 		if err != nil {
-// 			return fmt.Errorf("failed to parse load test runtime: %w", err)
-// 		}
-// 		// Add 1 minute buffer and convert to iterations
-// 		duration = duration + 2*time.Minute
-// 		iterations = int(duration.Seconds() / 10)
-// 		if iterations < 360 { // ensure we run for at least the default time
-// 			iterations = 360
-// 		}
-// 	}
+func monitorTestnet(ctx workflow.Context, opts WorkflowOptions, testnetOptions testnet.TestnetOptions, checkId int64, name string, output *string, grafanaUrl string) error {
+	// Calculate number of iterations (each iteration is 10 seconds)
+	iterations := 360 // default to 1 hour (360 * 10 seconds)
+	if opts.LoadTestConfig != nil {
+		duration, err := time.ParseDuration(opts.LoadTestConfig.Runtime)
+		if err != nil {
+			return fmt.Errorf("failed to parse load test runtime: %w", err)
+		}
+		// Add 1 minute buffer and convert to iterations
+		duration = duration + 2*time.Minute
+		iterations = int(duration.Seconds() / 10)
+		if iterations < 360 { // ensure we run for at least the default time
+			iterations = 360
+		}
+	}
 
-// 	for i := 0; i < iterations; i++ {
-// 		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {
-// 			return err
-// 		}
+	for i := 0; i < iterations; i++ {
+		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {
+			return err
+		}
 
-// 		var status string
-// 		// TODO: metrics checks
-// 		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &status)
+		var status string
+		// TODO: metrics checks
+		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &status)
 
-// 		if err != nil {
-// 			return err
-// 		}
+		if err != nil {
+			return err
+		}
 
-// 		var screenshot []byte
-// 		err = workflow.ExecuteActivity(ctx, observabilityActivities.GrabGraphScreenshot, grafanaUrl, monitoring.DefaultDashboardUID, "comet-performance", "18", "now-5m").Get(ctx, &screenshot)
+		var screenshot []byte
+		err = workflow.ExecuteActivity(ctx, observabilityActivities.GrabGraphScreenshot, grafanaUrl, monitoring.DefaultDashboardUID, "comet-performance", "18", "now-5m").Get(ctx, &screenshot)
 
-// 		if err != nil {
-// 			return err
-// 		}
+		if err != nil {
+			return err
+		}
 
-// 		var screenShotUrl string
+		var screenShotUrl string
 
-// 		err = workflow.ExecuteActivity(ctx, observabilityActivities.UploadScreenshot, testnetOptions.Name, fmt.Sprintf("testnet-%d", time.Now().Unix()), screenshot).Get(ctx, &screenShotUrl)
+		err = workflow.ExecuteActivity(ctx, observabilityActivities.UploadScreenshot, testnetOptions.Name, fmt.Sprintf("testnet-%d", time.Now().Unix()), screenshot).Get(ctx, &screenShotUrl)
 
-// 		if err != nil {
-// 			return err
-// 		}
+		if err != nil {
+			return err
+		}
 
-// 		*output += fmt.Sprintf("### Screenshot - %d\n ![](%s)\n", i, screenShotUrl)
+		*output += fmt.Sprintf("### Screenshot - %d\n ![](%s)\n", i, screenShotUrl)
 
-// 		if err = updateCheck(ctx, checkId, opts.GenerateCheckOptions(
-// 			name,
-// 			"in_progress",
-// 			fmt.Sprintf("Monitoring the testnet - %d", i),
-// 			fmt.Sprintf("Monitoring the testnet - %d", i),
-// 			*output,
-// 			nil,
-// 		)); err != nil {
-// 			return err
-// 		}
+		if err = updateCheck(ctx, checkId, opts.GenerateCheckOptions(
+			name,
+			"in_progress",
+			fmt.Sprintf("Monitoring the testnet - %d", i),
+			fmt.Sprintf("Monitoring the testnet - %d", i),
+			*output,
+			nil,
+		)); err != nil {
+			return err
+		}
 
-// 	}
+	}
 
-// 	return nil
-// }
+	return nil
+}
 
 func appendNodeTable(nodes []testnet.Node, output *string) error {
 	if output == nil {
