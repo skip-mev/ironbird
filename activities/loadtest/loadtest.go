@@ -222,8 +222,8 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 			"image_id": "177032231",
 			"size":     "s-1vcpu-1gb",
 		},
-		Command: []string{"/catalyst/loadtest.yml"},
-		DataDir: "/catalyst",
+		Command: []string{"/tmp/catalyst/loadtest.yml"},
+		DataDir: "/tmp/catalyst",
 	})
 
 	if err != nil {
