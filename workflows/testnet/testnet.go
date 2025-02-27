@@ -135,7 +135,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				workflow.WithStartToCloseTimeout(ctx, duration),
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
-				opts.ChainConfig,
 				opts.LoadTestConfig,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {

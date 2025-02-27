@@ -4,9 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path"
-	"path/filepath"
 	"time"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
@@ -17,12 +14,6 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/node"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-)
-
-const (
-	LoadTestConfigFileName = "loadtest.yml"
-	CatalystResultDir      = "/tmp/catalyst"
-	LoadTestResultPrefix   = "load_test_"
 )
 
 type MsgType string
@@ -194,7 +185,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	return yaml.Marshal(&config)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, chainID string, loadTestConfig *LoadTestConfig, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestConfig *LoadTestConfig, providerState []byte) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
 	p, err := digitalocean.RestoreProvider(
@@ -260,34 +251,11 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, chainID s
 				continue
 			}
 
-			fmt.Println("CATALYST TASK STATUS", status)
 			if status != provider.TASK_STOPPED {
 				continue
 			}
 
-			if err := task.DownloadDir(ctx, CatalystResultDir, CatalystResultDir); err != nil {
-				return PackagedState{}, fmt.Errorf("failed to download results: %w", err)
-			}
-
-			entries, err := os.ReadDir(CatalystResultDir)
-			if err != nil {
-				return PackagedState{}, fmt.Errorf("failed to read results directory: %w", err)
-			}
-
-			var resultFile string
-			for _, entry := range entries {
-				fmt.Println("ENTRIES length", len(entries))
-				if !entry.IsDir() && path.Base(entry.Name())[:len(LoadTestResultPrefix)] == LoadTestResultPrefix {
-					resultFile = filepath.Join(CatalystResultDir, entry.Name())
-					break
-				}
-			}
-
-			if resultFile == "" {
-				return PackagedState{}, fmt.Errorf("task completed but no result file found in %s", CatalystResultDir)
-			}
-
-			resultBytes, err := os.ReadFile(resultFile)
+			resultBytes, err := task.ReadFile(ctx, "load_test.json")
 			if err != nil {
 				return PackagedState{}, fmt.Errorf("failed to read result file: %w", err)
 			}
