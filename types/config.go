@@ -51,11 +51,13 @@ type SSHAuthConfig struct {
 }
 
 type ChainsConfig struct {
-	Name         string            `yaml:"name"`
-	SnapshotURL  string            `yaml:"snapshot_url"`
-	Dependencies map[string]string `yaml:"dependencies"`
-	Image        ImageConfig       `yaml:"image"`
-	Version      string            `yaml:"version"`
+	Name            string            `yaml:"name"`
+	SnapshotURL     string            `yaml:"snapshot_url"`
+	Dependencies    map[string]string `yaml:"dependencies"`
+	Image           ImageConfig       `yaml:"image"`
+	Version         string            `yaml:"version"`
+	NumOfNodes      uint64            `yaml:"num_of_nodes"`
+	NumOfValidators uint64            `yaml:"num_of_validators"`
 }
 
 type ImageConfig struct {
