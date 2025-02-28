@@ -39,5 +39,7 @@
         "Type": "MultiMsgsend"
       }
     ]
-  }
+  },
+  "NumOfNodes": 0,
+  "NumOfValidators": 4
 }
