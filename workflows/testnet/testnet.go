@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"go.uber.org/zap"
 )
 
 var testnetActivities *testnet.Activity
@@ -121,21 +120,36 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	// Start load test in background if configuration is provided
-	var loadTestDoneChan workflow.Channel
-	var loadTestErr error
 	if opts.LoadTestConfig != nil {
-		loadTestDoneChan = workflow.NewChannel(ctx)
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			duration, err := time.ParseDuration(opts.LoadTestConfig.Runtime)
 			if err != nil {
-				loadTestErr = err
-				loadTestDoneChan.Send(ctx, struct{}{})
+				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Failed to begin load test: "+err.Error(), "", nil)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
 				return
 			}
 
 			// Add 5 minute buffer to the duration
 			duration = duration + 5*time.Minute
+
+			configStr := fmt.Sprintf(
+				"- Runtime: %s\n"+
+					"- Block Gas Limit Target: %.2f%%\n"+
+					"- Number of Blocks: %d\n"+
+					"- Message Types: %v\n",
+				opts.LoadTestConfig.Runtime,
+				opts.LoadTestConfig.BlockGasLimitTarget*100,
+				opts.LoadTestConfig.NumOfBlocks,
+				opts.LoadTestConfig.Msgs)
+
+			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
+			if err != nil {
+				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(err))
+				return
+			}
 
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(
@@ -145,45 +159,49 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				opts.LoadTestConfig,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {
-				loadTestErr = err
-				loadTestDoneChan.Send(ctx, loadtest.PackagedState{})
+				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), configStr, nil)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
 				return
 			}
 
-			loadTestDoneChan.Send(ctx, state)
+			if state.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", state.Result.Error))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, configStr, &state.Result)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+			} else {
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", configStr, &state.Result)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+			}
 		})
 	}
 
-	if err := monitorTestnet(ctx, testnetOptions, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := monitorTestnet(ctx, testnetOptions, opts.LoadTestConfig, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
 		return "", err
-	}
-
-	if opts.LoadTestConfig != nil {
-		var loadTestState loadtest.PackagedState
-		loadTestDoneChan.Receive(ctx, &loadTestState)
-		if loadTestErr != nil {
-			output += fmt.Sprintf("## Load Test\nLoad test failed with error: %s\n", loadTestErr)
-		} else {
-			output += loadTestState.Result.FormatResults()
-		}
 	}
 
 	if err := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); err != nil {
 		return "", err
 	}
 
-	return "", err
+	return "", nil
 }
 
-func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, report *Report, grafanaUrl string) error {
+func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, loadTestConfig *LoadTestConfig, report *Report, grafanaUrl string) error {
 	// Calculate number of iterations (each iteration is 10 seconds)
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
-	if opts.LoadTestConfig != nil {
-		duration, err := time.ParseDuration(opts.LoadTestConfig.Runtime)
+	if loadTestConfig != nil {
+		duration, err := time.ParseDuration(loadTestConfig.Runtime)
 		if err != nil {
 			return fmt.Errorf("failed to parse load test runtime: %w", err)
 		}
-		// Add 1 minute buffer and convert to iterations
+		// Add 2 minute buffer and convert to iterations
 		duration = duration + 2*time.Minute
 		iterations = int(duration.Seconds() / 10)
 		if iterations < 360 { // ensure we run for at least the default time
