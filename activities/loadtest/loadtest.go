@@ -127,7 +127,7 @@ type Node struct {
 }
 
 type Message struct {
-	Type   int     `yaml:"type"`
+	Type   string  `yaml:"type"`
 	Weight float64 `yaml:"weight"`
 }
 

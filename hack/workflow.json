@@ -32,11 +32,11 @@
     "Msgs": [
       {
         "Weight": 0.5,
-        "Type": 0
+        "Type": "Msgsend"
       },
       {
         "Weight": 0.5,
-        "Type": 1
+        "Type": "MultiMsgsend"
       }
     ]
   }
