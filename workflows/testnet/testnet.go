@@ -2,13 +2,15 @@ package testnet
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
-	"time"
 )
 
 var testnetActivities *testnet.Activity
@@ -47,12 +49,13 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	testnetOptions := testnet.TestnetOptions{
-		Name:       runName,
-		Image:      builtTag,
-		UID:        opts.ChainConfig.Image.UID,
-		GID:        opts.ChainConfig.Image.GID,
-		BinaryName: opts.ChainConfig.Image.BinaryName,
-		HomeDir:    opts.ChainConfig.Image.HomeDir,
+		Name:                 runName,
+		Image:                builtTag,
+		UID:                  opts.ChainConfig.Image.UID,
+		GID:                  opts.ChainConfig.Image.GID,
+		BinaryName:           opts.ChainConfig.Image.BinaryName,
+		HomeDir:              opts.ChainConfig.Image.HomeDir,
+		GenesisModifications: opts.ChainConfig.GenesisModifications,
 		ProviderSpecificOptions: map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",

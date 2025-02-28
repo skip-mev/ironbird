@@ -3,9 +3,11 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/palantir/go-githubapp/githubapp"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"github.com/palantir/go-githubapp/githubapp"
+	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	"gopkg.in/yaml.v3"
 )
 
 type TailscaleConfig struct {
@@ -56,6 +58,7 @@ type ChainsConfig struct {
 	Dependencies    map[string]string `yaml:"dependencies"`
 	Image           ImageConfig       `yaml:"image"`
 	Version         string            `yaml:"version"`
+  GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes      uint64            `yaml:"num_of_nodes"`
 	NumOfValidators uint64            `yaml:"num_of_validators"`
 }
