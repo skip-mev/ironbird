@@ -21,7 +21,7 @@ jobs:
             { image: 'app', file: 'app.Dockerfile' },
             { image: 'worker', file: 'worker.Dockerfile' },
           ]
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
