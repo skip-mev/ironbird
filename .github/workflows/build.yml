@@ -7,6 +7,11 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch: # this will kick off a dev deployment
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     strategy:
