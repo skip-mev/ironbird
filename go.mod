@@ -2,11 +2,6 @@ module github.com/skip-mev/ironbird
 
 go 1.23.2
 
-replace (
-	github.com/skip-mev/petri/core/v3 => ../petri/core
-	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
-)
-
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
@@ -17,11 +12,12 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
-	github.com/skip-mev/petri/core/v3 v3.0.0
-	github.com/skip-mev/petri/cosmos/v3 v3.0.0
+	github.com/skip-mev/petri/core/v3 v3.0.1-0.20250302120959-a4a1e02ff141
+	github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250302120959-a4a1e02ff141
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
 	go.uber.org/zap v1.27.0
+	golang.org/x/oauth2 v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	tailscale.com v1.78.3
 )
@@ -270,7 +266,6 @@ require (
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.26.0 // indirect

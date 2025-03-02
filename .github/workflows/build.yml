@@ -1,0 +1,86 @@
+name: Build images
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch: # this will kick off a dev deployment
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        builds:
+          [
+            { image: 'app', file: 'app.Dockerfile' },
+            { image: 'worker', file: 'worker.Dockerfile' },
+          ]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      registry_url: 494494944992.dkr.ecr.us-east-2.amazonaws.com/skip-mev/ironbird-${{ matrix.builds.image }}
+      repo_name: skip-mev/ironbird-${{ matrix.builds.image }}
+    steps:
+      - name: Check out the repo
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+      - name: Check out the PR commit head
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: depot/setup-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::494494944992:role/GithubImagePusher
+          role-session-name: ${{ github.job }}-${{ github.run_id }}
+          aws-region: us-east-2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Create ECR repository if it does not exist
+        run: |
+          aws ecr describe-repositories --region us-east-2 --repository-names $repo_name || aws ecr create-repository --repository-name $repo_name --region us-east-2
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        env:
+          DOCKER_METADATA_PR_HEAD_SHA: true
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ env.registry_url }}
+          tags: |
+            type=sha,priority=900,prefix=
+            type=semver,priority=1000,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch
+            type=ref,event=pr
+      - uses: cloudposse/github-action-matrix-outputs-write@v1
+        id: out
+        with:
+          matrix-step-name: github-action-matrix-outputs-read
+          matrix-key: ${{ matrix.builds.image }}
+          outputs: |-
+            version: "${{ fromJSON(steps.meta.outputs.json).tags[0] }}"
+            tag: "${{ steps.meta.outputs.version }}"
+      - name: Build and push
+        uses: depot/build-push-action@v1
+        with:
+          context: .
+          file: './${{ matrix.builds.file }}'
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          project: 'rpx95khdpz'
+          push: true
+
