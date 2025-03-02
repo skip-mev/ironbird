@@ -41,7 +41,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::494494944992:role/GithubImagePusher
-          role-session-name: ${{ github.workflow }}-${{ github.run_id }}
+          role-session-name: ${{ github.job }}-${{ github.run_id }}
           aws-region: us-east-2
       - name: Create ECR repository if it does not exist
         run: |
