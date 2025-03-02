@@ -78,6 +78,6 @@ jobs:
           file: './${{ matrix.builds.file }}'
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          project: '06dnhndwwg'
+          project: 'rpx95khdpz'
           push: true
 
