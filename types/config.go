@@ -26,7 +26,6 @@ type WorkerConfig struct {
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
-	SSHAuth      SSHAuthConfig      `yaml:"ssh_auth"`
 	Github       githubapp.Config
 }
 
@@ -45,11 +44,6 @@ type RegistryConfig struct {
 	Password string
 	URL      string `yaml:"url"`
 	FQDN     string `yaml:"fqdn"`
-}
-
-type SSHAuthConfig struct {
-	KeyPath    string `yaml:"key_path"`
-	PrivateKey string
 }
 
 type ChainsConfig struct {
@@ -84,17 +78,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 
 	config.Builder.Registry.Password = os.Getenv("REGISTRY_TOKEN")
 
-	sshKey, err := os.ReadFile(config.SSHAuth.KeyPath)
-
-	if err != nil {
-		return WorkerConfig{}, fmt.Errorf("failed to read ssh key: %w", err)
-	}
-
-	if len(sshKey) == 0 {
-		return WorkerConfig{}, fmt.Errorf("ssh key cannot be empty")
-	}
-
-	config.SSHAuth.PrivateKey = string(sshKey)
 	config.Github.SetValuesFromEnv("")
 	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
 		config.Github.App.PrivateKey = string(decodedGithubKey)
