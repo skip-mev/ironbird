@@ -31,7 +31,8 @@ type WorkerConfig struct {
 }
 
 type TemporalConfig struct {
-	Host string `yaml:"host"`
+	Host      string `yaml:"host"`
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 type DigitalOceanConfig struct {

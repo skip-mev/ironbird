@@ -47,7 +47,8 @@ func main() {
 	notifier := github.NotifierActivity{GithubClient: cc}
 
 	c, err := client.Dial(client.Options{
-		HostPort: cfg.Temporal.Host,
+		HostPort:  cfg.Temporal.Host,
+		Namespace: cfg.Temporal.Namespace,
 	})
 
 	if err != nil {
