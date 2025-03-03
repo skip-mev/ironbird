@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -22,10 +23,16 @@ import (
 	"go.temporal.io/sdk/worker"
 )
 
+var (
+	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
+)
+
 func main() {
 	ctx := context.Background()
 
-	cfg, err := types.ParseWorkerConfig("./conf/worker.yaml")
+	flag.Parse()
+
+	cfg, err := types.ParseWorkerConfig(*configFlag)
 
 	if err != nil {
 		panic(err)
@@ -40,7 +47,7 @@ func main() {
 	notifier := github.NotifierActivity{GithubClient: cc}
 
 	c, err := client.Dial(client.Options{
-		HostPort: "127.0.0.1:7233",
+		HostPort: cfg.Temporal.Host,
 	})
 
 	if err != nil {
