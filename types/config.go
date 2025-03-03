@@ -23,10 +23,15 @@ type AppConfig struct {
 }
 
 type WorkerConfig struct {
+	Temporal     TemporalConfig     `yaml:temporal`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+}
+
+type TemporalConfig struct {
+	Host string `yaml:"host"`
 }
 
 type DigitalOceanConfig struct {
