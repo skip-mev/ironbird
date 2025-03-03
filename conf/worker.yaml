@@ -10,6 +10,3 @@ tailscale:
     - ironbird-nodes
   server_tags:
     - ironbird
-
-ssh_auth:
-  key_path: "./ironbird.pem"
