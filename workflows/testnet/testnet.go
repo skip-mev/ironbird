@@ -120,6 +120,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
+	var loadTestRuntime time.Duration
 	if opts.LoadTestConfig != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			if err != nil {
@@ -145,9 +146,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
+			// assume 2 sec block times
+			loadTestRuntime = time.Duration(opts.LoadTestConfig.NumOfBlocks*2) * time.Second
+			// buffer for docker image pull + droplet spin up
+			loadTestRuntime += 10 * time.Minute
+
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(
-				workflow.WithStartToCloseTimeout(ctx, 30*time.Minute),
+				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
 				opts.LoadTestConfig,
@@ -176,7 +182,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		})
 	}
 
-	if err := monitorTestnet(ctx, testnetOptions, opts.LoadTestConfig, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, observabilityPackagedState.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
@@ -187,9 +193,16 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	return "", nil
 }
 
-func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, loadTestConfig *LoadTestConfig, report *Report, grafanaUrl string) error {
+func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, report *Report, loadTestRuntime time.Duration, grafanaUrl string) error {
 	// Calculate number of iterations (each iteration is 10 seconds)
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
+
+	// Check if loadTestRuntime is longer than the default 1 hour
+	defaultDuration := time.Hour
+	if loadTestRuntime > defaultDuration {
+		// Calculate iterations based on loadTestRuntime (each iteration is 10 seconds)
+		iterations = int(loadTestRuntime.Seconds() / 10)
+	}
 
 	for i := 0; i < iterations; i++ {
 		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {
