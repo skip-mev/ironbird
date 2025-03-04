@@ -20,7 +20,6 @@ type WorkflowOptions struct {
 
 type LoadTestConfig struct {
 	BlockGasLimitTarget float64
-	Runtime             string
 	NumOfBlocks         int
 	Msgs                []loadtest.Message
 }

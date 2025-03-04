@@ -27,7 +27,6 @@
   },
   "LoadTestConfig": {
     "BlockGasLimitTarget": 0.3,
-    "Runtime": "5m",
     "NumOfBlocks": 10,
     "Msgs": [
       {

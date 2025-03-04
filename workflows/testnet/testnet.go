@@ -63,7 +63,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			"image_id": "177869680",
 			"size":     "s-1vcpu-1gb",
 		},
-		ValidatorCount: 1,
+		ValidatorCount: 4,
 		NodeCount:      0,
 	}
 
@@ -122,7 +122,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	if opts.LoadTestConfig != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			duration, err := time.ParseDuration(opts.LoadTestConfig.Runtime)
 			if err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
 				updateErr := report.UpdateLoadTest(ctx, "❌ Failed to begin load test: "+err.Error(), "", nil)
@@ -132,15 +131,10 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			// Add 5 minute buffer to the duration
-			duration = duration + 5*time.Minute
-
 			configStr := fmt.Sprintf(
-				"- Runtime: %s\n"+
-					"- Block Gas Limit Target: %.2f%%\n"+
+				"- Block Gas Limit Target: %.2f%%\n"+
 					"- Number of Blocks: %d\n"+
 					"- Message Types: %v\n",
-				opts.LoadTestConfig.Runtime,
 				opts.LoadTestConfig.BlockGasLimitTarget*100,
 				opts.LoadTestConfig.NumOfBlocks,
 				opts.LoadTestConfig.Msgs)
@@ -153,7 +147,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(
-				workflow.WithStartToCloseTimeout(ctx, duration),
+				workflow.WithStartToCloseTimeout(ctx, 30*time.Minute),
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
 				opts.LoadTestConfig,
@@ -196,18 +190,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, loadTestConfig *LoadTestConfig, report *Report, grafanaUrl string) error {
 	// Calculate number of iterations (each iteration is 10 seconds)
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
-	if loadTestConfig != nil {
-		duration, err := time.ParseDuration(loadTestConfig.Runtime)
-		if err != nil {
-			return fmt.Errorf("failed to parse load test runtime: %w", err)
-		}
-		// Add 2 minute buffer and convert to iterations
-		duration = duration + 2*time.Minute
-		iterations = int(duration.Seconds() / 10)
-		if iterations < 360 { // ensure we run for at least the default time
-			iterations = 360
-		}
-	}
 
 	for i := 0; i < iterations; i++ {
 		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {

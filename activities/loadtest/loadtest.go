@@ -112,7 +112,6 @@ type PackagedState struct {
 type LoadTestConfig struct {
 	ChainID             string    `yaml:"chain_id"`
 	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target"`
-	Runtime             string    `yaml:"runtime"`
 	NumOfBlocks         int       `yaml:"num_of_blocks"`
 	NodesAddresses      []Node    `yaml:"nodes_addresses"`
 	Mnemonics           []string  `yaml:"mnemonics"`
@@ -172,7 +171,6 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	config := LoadTestConfig{
 		ChainID:             chainID,
 		BlockGasLimitTarget: loadTestConfig.BlockGasLimitTarget,
-		Runtime:             loadTestConfig.Runtime,
 		NumOfBlocks:         loadTestConfig.NumOfBlocks,
 		NodesAddresses:      nodes,
 		Mnemonics:           mnemonics,
@@ -234,6 +232,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 		return PackagedState{}, fmt.Errorf("failed to write config file to task: %w", err)
 	}
 
+	logger.Info("Starting load test")
 	if err := task.Start(ctx); err != nil {
 		return PackagedState{}, err
 	}
