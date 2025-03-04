@@ -4,25 +4,27 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/github"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+	"go.uber.org/zap"
 )
 
 var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var observabilityActivities *observability.Activity
+var loadTestActivities *loadtest.Activity
 
 func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
 
 	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, opts.SHA[:6])
 	options := workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute * 5,
+		StartToCloseTimeout: time.Minute * 30,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},
@@ -118,7 +120,63 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	if err := monitorTestnet(ctx, testnetOptions, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if opts.LoadTestConfig != nil {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			if err != nil {
+				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Failed to begin load test: "+err.Error(), "", nil)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+				return
+			}
+
+			configStr := fmt.Sprintf(
+				"- Block Gas Limit Target: %.2f%%\n"+
+					"- Number of Blocks: %d\n"+
+					"- Message Types: %v\n",
+				opts.LoadTestConfig.BlockGasLimitTarget*100,
+				opts.LoadTestConfig.NumOfBlocks,
+				opts.LoadTestConfig.Msgs)
+
+			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
+			if err != nil {
+				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(err))
+				return
+			}
+
+			var state loadtest.PackagedState
+			if err := workflow.ExecuteActivity(
+				workflow.WithStartToCloseTimeout(ctx, 30*time.Minute),
+				loadTestActivities.RunLoadTest,
+				testnetOptions.ChainState,
+				opts.LoadTestConfig,
+				testnetOptions.ProviderState,
+			).Get(ctx, &state); err != nil {
+				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), configStr, nil)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+				return
+			}
+
+			if state.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", state.Result.Error))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, configStr, &state.Result)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+			} else {
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", configStr, &state.Result)
+				if updateErr != nil {
+					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+				}
+			}
+		})
+	}
+
+	if err := monitorTestnet(ctx, testnetOptions, opts.LoadTestConfig, report, observabilityPackagedState.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
@@ -126,11 +184,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	return "", err
+	return "", nil
 }
 
-func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, report *Report, grafanaUrl string) error {
-	for i := 0; i < 360; i++ {
+func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, loadTestConfig *LoadTestConfig, report *Report, grafanaUrl string) error {
+	// Calculate number of iterations (each iteration is 10 seconds)
+	iterations := 360 // default to 1 hour (360 * 10 seconds)
+
+	for i := 0; i < iterations; i++ {
 		if err := workflow.Sleep(ctx, 10*time.Second); err != nil {
 			return err
 		}
