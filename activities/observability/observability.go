@@ -120,8 +120,26 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	}, nil
 }
 
-func (*Activity) GrabGraphScreenshot(ctx context.Context, grafanaUrl, dashboardId, dashboardName, panelId, from string) ([]byte, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/render/d-solo/%s/%s?orgId=1&panelId=%s&from=%s&to=now", grafanaUrl, dashboardId, dashboardName, panelId, from))
+func (a *Activity) GrabGraphScreenshot(ctx context.Context, grafanaUrl, dashboardId, dashboardName, panelId, from string) ([]byte, error) {
+	httpClient := http.Client{
+		Transport: &http.Transport{
+			// Set to true to prevent GZIP-bomb DoS attacks
+			DisableCompression: true,
+			DialContext:        a.TailscaleSettings.Server.Dial,
+			Proxy:              http.ProxyFromEnvironment,
+		},
+	}
+
+	resp, err := httpClient.Get(
+		fmt.Sprintf(
+			"%s/render/d-solo/%s/%s?orgId=1&panelId=%s&from=%s&to=now",
+			grafanaUrl,
+			dashboardId,
+			dashboardName,
+			panelId,
+			from,
+		),
+	)
 
 	if err != nil {
 		return nil, err
