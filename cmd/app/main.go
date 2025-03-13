@@ -12,6 +12,7 @@ var (
 )
 
 func main() {
+	flag.Parse()
 	ctx := context.Background()
 
 	cfg, err := types.ParseAppConfig(*configFlag)
