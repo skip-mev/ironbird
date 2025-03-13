@@ -63,7 +63,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
 
 	authKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, cfg.Tailscale.ServerOauthSecret, cfg.Tailscale.ServerTags)
 
@@ -121,7 +121,7 @@ func main() {
 	observabilityActivity := observability.Activity{
 		TailscaleSettings:    tailscaleSettings,
 		AwsConfig:            &awsConfig,
-		ScreenshotBucketName: "ironbird-demo-screenshots",
+		ScreenshotBucketName: cfg.ScreenshotBucketName,
 		DOToken:              cfg.DigitalOcean.Token,
 	}
 

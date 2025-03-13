@@ -29,6 +29,8 @@ type WorkerConfig struct {
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+
+	ScreenshotBucketName string `yaml:"screenshot_bucket_name"`
 }
 
 type TemporalConfig struct {
@@ -47,10 +49,11 @@ type BuilderConfig struct {
 }
 
 type RegistryConfig struct {
-	Username string `yaml:"username"`
-	Password string
-	URL      string `yaml:"url"`
-	FQDN     string `yaml:"fqdn"`
+	// e.g. <account_id>.dkr.ecr.<region>.amazonaws.com
+	URL string `yaml:"url"`
+
+	// e.g. skip-mev/ironbird
+	ImageName string `yaml:"image_name"`
 }
 
 type ChainsConfig struct {
@@ -82,8 +85,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	if err := yaml.Unmarshal(file, &config); err != nil {
 		return WorkerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-
-	config.Builder.Registry.Password = os.Getenv("REGISTRY_TOKEN")
 
 	config.Github.SetValuesFromEnv("")
 	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
