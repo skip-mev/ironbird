@@ -19,11 +19,22 @@ type App struct {
 	cfg            types.AppConfig
 }
 
-func NewApp(cfg types.AppConfig, temporalClient temporalclient.Client) (*App, error) {
+func NewApp(cfg types.AppConfig) (*App, error) {
 	app := &App{
-		temporalClient: temporalClient,
-		cfg:            cfg,
+		cfg: cfg,
 	}
+
+	temporalClient, err := temporalclient.Dial(temporalclient.Options{
+		HostPort:  cfg.Temporal.Host,
+		Namespace: cfg.Temporal.Namespace,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	app.temporalClient = temporalClient
+
 	cc, err := githubapp.NewDefaultCachingClientCreator(
 		cfg.Github,
 	)
