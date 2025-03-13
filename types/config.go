@@ -18,12 +18,13 @@ type TailscaleConfig struct {
 }
 
 type AppConfig struct {
-	Github githubapp.Config
-	Chains []ChainsConfig `yaml:"chains"`
+	Github   githubapp.Config
+	Chains   []ChainsConfig `yaml:"chains"`
+	Temporal TemporalConfig `yaml:"temporal"`
 }
 
 type WorkerConfig struct {
-	Temporal     TemporalConfig     `yaml:temporal`
+	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
