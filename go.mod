@@ -7,14 +7,15 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.26.6
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.32.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.48.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7
 	github.com/cosmos/cosmos-sdk v0.50.10
 	github.com/docker/cli v27.4.0-rc.2+incompatible
 	github.com/google/go-github/v66 v66.0.0
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
-	github.com/skip-mev/petri/core/v3 v3.0.1-0.20250302120959-a4a1e02ff141
-	github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250302120959-a4a1e02ff141
+	github.com/skip-mev/petri/core/v3 v3.0.1-0.20250313171817-f2d2de810fe0
+	github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250313171817-f2d2de810fe0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
 	go.uber.org/zap v1.27.0
@@ -54,7 +55,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.44.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.18.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.21.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.26.7 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.1-0.20220910012023-760eaf8b6816 // indirect

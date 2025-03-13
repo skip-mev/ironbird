@@ -706,10 +706,10 @@ github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPx
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
-github.com/skip-mev/petri/core/v3 v3.0.1-0.20250302120959-a4a1e02ff141 h1:HlBLqY6tjwlIVlGY8CBONc+OP7x2nPXJ/AtIdSLrxIQ=
-github.com/skip-mev/petri/core/v3 v3.0.1-0.20250302120959-a4a1e02ff141/go.mod h1:cR8B4lK58DOEdY2avYs95aAkRpDbPKX+a3hiSjJR+lY=
-github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250302120959-a4a1e02ff141 h1:5iUL8T3jyqeHIpwE6fUW5D8oEAZA1dn1w1Z4y2m8Z2I=
-github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250302120959-a4a1e02ff141/go.mod h1:djbKhtKlwkZgvXVkIq3R7oYj3MilaThRU+RrwVIcAEo=
+github.com/skip-mev/petri/core/v3 v3.0.1-0.20250313171817-f2d2de810fe0 h1:2YnIFbiixd4pAKpfVGsGsObBiN5eFthOv36jMA122zU=
+github.com/skip-mev/petri/core/v3 v3.0.1-0.20250313171817-f2d2de810fe0/go.mod h1:cR8B4lK58DOEdY2avYs95aAkRpDbPKX+a3hiSjJR+lY=
+github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250313171817-f2d2de810fe0 h1:jU1ubZ4fK+K2LG/Tf5qH25LLKiO2QwQxkJebb3dr9hs=
+github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250313171817-f2d2de810fe0/go.mod h1:djbKhtKlwkZgvXVkIq3R7oYj3MilaThRU+RrwVIcAEo=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
 github.com/sourcegraph/conc v0.3.0/go.mod h1:Sdozi7LEKbFPqYX2/J+iBAM6HpqSLTASQIKqDmF7Mt0=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
