@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/workflows/testnet"
 	temporalclient "go.temporal.io/sdk/client"
 )
 
@@ -17,6 +17,8 @@ type App struct {
 	server         *http.Server
 	temporalClient temporalclient.Client
 	cfg            types.AppConfig
+
+	commands map[string]func(context.Context, *ValidatedComment, string) error
 }
 
 func NewApp(cfg types.AppConfig) (*App, error) {
@@ -54,6 +56,11 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 		Addr:    ":3000",
 	}
 
+	app.commands = make(map[string]func(context.Context, *ValidatedComment, string) error)
+	app.commands["start"] = app.commandStart
+	app.commands["chains"] = app.commandChains
+	app.commands["loadtests"] = app.commandLoadTests
+
 	return app, nil
 }
 
@@ -73,50 +80,7 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func (a *App) handleOpenedPullRequest(ctx context.Context, pr *ValidatedPullRequest) error {
-	chain := a.cfg.Chains[0]
-	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, pr.Owner, pr.Repo, pr.Number)
-
-	_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
-		ID:        id,
-		TaskQueue: testnet.TaskQueue,
-	}, testnet.Workflow, testnet.WorkflowOptions{
-		InstallationID: pr.InstallationID,
-		Owner:          pr.Owner,
-		Repo:           pr.Repo,
-		SHA:            pr.HeadSHA,
-		ChainConfig:    chain,
-	})
-
-	if err != nil {
-		fmt.Println("failed to execute workflow", err)
-		return err
-	}
-
-	//for _, chain := range a.cfg.Chains {
-	//	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, pr.Owner, pr.Repo, pr.Number)
-	//
-	//	if _, ok := chain.Dependencies[fmt.Sprintf("%s/%s", pr.Owner, pr.Repo)]; !ok {
-	//		continue
-	//	}
-
-	//_, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
-	//	ID:        id,
-	//	TaskQueue: workflows.FullNodeTaskQueue,
-	//}, workflows.FullNodeWorkflow, workflows.FullNodeWorkflowOptions{
-	//	InstallationID: pr.InstallationID,
-	//	Owner:          pr.Owner,
-	//	Repo:           pr.Repo,
-	//	SHA:            pr.HeadSHA,
-	//	ChainConfig:    chain,
-	//})
-
-	//	if err != nil {
-	//		fmt.Println("failed to execute workflow", err)
-	//		continue
-	//	}
-	//}
-
-	return nil
+	return a.SendInitialComment(ctx, pr)
 }
 
 func (a *App) handleClosedPullRequest(ctx context.Context, pr *ValidatedPullRequest) error {
@@ -144,23 +108,51 @@ func (a *App) handlePullRequest(ctx context.Context, eventType, deliveryID strin
 	switch validatedPullRequest.Action {
 	case "opened":
 		return a.handleOpenedPullRequest(ctx, validatedPullRequest)
+	case "reopened":
+		return a.handleOpenedPullRequest(ctx, validatedPullRequest)
+	case "closed":
+		return a.handleClosedPullRequest(ctx, validatedPullRequest)
+	}
+
+	return nil
+}
+
+func (a *App) handleComment(ctx context.Context, eventType, deliveryID string, payload []byte) error {
+	validatedComment, err := validateComment(eventType, deliveryID, payload)
+
+	if err != nil {
+		return err
+	}
+
+	if validatedComment.Action != "created" {
+		return nil
+	}
+
+	if strings.HasPrefix(validatedComment.Body, "/ironbird") {
+		return a.HandleCommand(ctx, validatedComment, validatedComment.Body)
 	}
 
 	return nil
 }
 
 func (a *App) Handle(ctx context.Context, eventType, deliveryID string, payload []byte) error {
+	var err error
 	switch eventType {
 	case "pull_request":
-		return a.handlePullRequest(ctx, eventType, deliveryID, payload)
+		err = a.handlePullRequest(ctx, eventType, deliveryID, payload)
+	case "issue_comment":
+		err = a.handleComment(ctx, eventType, deliveryID, payload)
 	}
 
-	return nil
+	fmt.Printf("handled %s with err %w\n", eventType, err)
+
+	return err
 }
 
 func (a *App) Handles() []string {
 	return []string{
 		"installation",
 		"pull_request",
+		"issue_comment",
 	}
 }

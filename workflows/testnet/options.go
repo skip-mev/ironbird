@@ -2,7 +2,6 @@ package testnet
 
 import (
 	"github.com/skip-mev/ironbird/activities/github"
-	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/util"
 )
@@ -15,13 +14,7 @@ type WorkflowOptions struct {
 	Repo           string
 	SHA            string
 	ChainConfig    types.ChainsConfig
-	LoadTestConfig *LoadTestConfig
-}
-
-type LoadTestConfig struct {
-	BlockGasLimitTarget float64
-	NumOfBlocks         int
-	Msgs                []loadtest.Message
+	LoadTestConfig *types.LoadTestConfig
 }
 
 func (o *WorkflowOptions) GenerateCheckOptions(name, status, title, summary, text string, conclusion *string) github.CheckRunOptions {

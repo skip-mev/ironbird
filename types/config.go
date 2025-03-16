@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"os"
 
 	"github.com/palantir/go-githubapp/githubapp"
@@ -17,10 +18,19 @@ type TailscaleConfig struct {
 	NodeTags          []string `yaml:"node_tags"`
 }
 
+type LoadTestConfig struct {
+	Name                string             `yaml:"name"`
+	Description         string             `yaml:"description"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target"`
+	NumOfBlocks         int                `yaml:"num_of_blocks"`
+	Msgs                []loadtest.Message `yaml:"msgs"`
+}
+
 type AppConfig struct {
-	Github   githubapp.Config
-	Chains   []ChainsConfig `yaml:"chains"`
-	Temporal TemporalConfig `yaml:"temporal"`
+	Github    githubapp.Config
+	Chains    map[string]ChainsConfig   `yaml:"chains"`
+	Temporal  TemporalConfig            `yaml:"temporal"`
+	LoadTests map[string]LoadTestConfig `yaml:"load_tests"`
 }
 
 type WorkerConfig struct {

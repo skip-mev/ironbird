@@ -75,3 +75,71 @@ func validatePullRequest(eventType, deliveryID string, payload []byte) (*Validat
 		Action:         event.GetAction(),
 	}, nil
 }
+
+type ValidatedComment struct {
+	InstallationID int64
+	DeliveryID     string
+	Owner          string
+	Repo           string
+	Body           string
+	IssueNumber    int
+
+	IsOnPullRequest bool
+
+	Action string
+}
+
+func validateComment(eventType, deliveryID string, payload []byte) (*ValidatedComment, error) {
+	if eventType != "issue_comment" {
+		return nil, fmt.Errorf("event type %s is not a comment", eventType)
+	}
+
+	var event github2.IssueCommentEvent
+
+	if err := json.Unmarshal(payload, &event); err != nil {
+		return nil, err
+	}
+
+	installation := event.GetInstallation()
+
+	if installation == nil {
+		return nil, fmt.Errorf("installation id for %s is nil", deliveryID)
+	}
+
+	installationID := installation.GetID()
+
+	repo := event.GetRepo()
+
+	if repo == nil {
+		return nil, fmt.Errorf("repo for %s is nil", deliveryID)
+	}
+
+	owner := repo.GetOwner()
+
+	if owner == nil {
+		return nil, fmt.Errorf("owner for %s is nil", deliveryID)
+	}
+
+	comment := event.GetComment()
+	if comment == nil {
+		return nil, fmt.Errorf("comment for %s is nil", deliveryID)
+	}
+
+	issue := event.GetIssue()
+	if issue == nil {
+		return nil, fmt.Errorf("issue for %s is nil", deliveryID)
+	}
+
+	issueNumber := issue.GetNumber()
+
+	return &ValidatedComment{
+		InstallationID:  installationID,
+		DeliveryID:      deliveryID,
+		Owner:           owner.GetLogin(),
+		Repo:            repo.GetName(),
+		Action:          event.GetAction(),
+		Body:            comment.GetBody(),
+		IsOnPullRequest: issue.IsPullRequest(),
+		IssueNumber:     issueNumber,
+	}, nil
+}
