@@ -20,7 +20,13 @@ var observabilityActivities *observability.Activity
 var loadTestActivities *loadtest.Activity
 
 func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
-	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
+	name := opts.ChainConfig.Name
+
+	if opts.LoadTestConfig != nil {
+		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestConfig.Name)
+	}
+
+	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 
 	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, opts.SHA[:6])
 	options := workflow.ActivityOptions{
@@ -34,7 +40,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	report, err := NewReport(
 		ctx,
-		name,
+		checkName,
 		"Launching testnet",
 		"",
 		&opts,
