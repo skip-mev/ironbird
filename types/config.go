@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"os"
 
 	"github.com/palantir/go-githubapp/githubapp"
@@ -17,10 +18,19 @@ type TailscaleConfig struct {
 	NodeTags          []string `yaml:"node_tags"`
 }
 
+type LoadTestConfig struct {
+	Name                string             `yaml:"name"`
+	Description         string             `yaml:"description"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target"`
+	NumOfBlocks         int                `yaml:"num_of_blocks"`
+	Msgs                []loadtest.Message `yaml:"msgs"`
+}
+
 type AppConfig struct {
-	Github   githubapp.Config
-	Chains   []ChainsConfig `yaml:"chains"`
-	Temporal TemporalConfig `yaml:"temporal"`
+	Github    githubapp.Config
+	Chains    map[string]ChainsConfig   `yaml:"chains"`
+	Temporal  TemporalConfig            `yaml:"temporal"`
+	LoadTests map[string]LoadTestConfig `yaml:"load_tests"`
 }
 
 type WorkerConfig struct {
@@ -29,6 +39,8 @@ type WorkerConfig struct {
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+
+	ScreenshotBucketName string `yaml:"screenshot_bucket_name"`
 }
 
 type TemporalConfig struct {
@@ -47,10 +59,11 @@ type BuilderConfig struct {
 }
 
 type RegistryConfig struct {
-	Username string `yaml:"username"`
-	Password string
-	URL      string `yaml:"url"`
-	FQDN     string `yaml:"fqdn"`
+	// e.g. <account_id>.dkr.ecr.<region>.amazonaws.com
+	URL string `yaml:"url"`
+
+	// e.g. skip-mev/ironbird
+	ImageName string `yaml:"image_name"`
 }
 
 type ChainsConfig struct {
@@ -82,8 +95,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	if err := yaml.Unmarshal(file, &config); err != nil {
 		return WorkerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
-
-	config.Builder.Registry.Password = os.Getenv("REGISTRY_TOKEN")
 
 	config.Github.SetValuesFromEnv("")
 	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {

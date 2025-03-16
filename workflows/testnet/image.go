@@ -14,7 +14,7 @@ func generateReplace(dependencies map[string]string, owner, repo, tag string) []
 }
 
 func generateTag(chain, version, owner, repo, sha string) string {
-	return fmt.Sprintf("ironbird:%s%s-%s%s-%s", chain, version, owner, repo, sha)
+	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
 }
 
 func buildImage(ctx workflow.Context, opts WorkflowOptions) (string, error) {

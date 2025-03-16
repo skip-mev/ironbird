@@ -1,5 +1,6 @@
 chains:
-  - name: cosmos
+  cosmos:
+    name: cosmos
     version: v21.0.1
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
@@ -10,3 +11,15 @@ chains:
       binary_name: "gaiad"
       home_dir: "/gaiad"
       gas_prices: "0.00025uatom"
+
+load_tests:
+  normal:
+    name: normal
+    description: "Runs a half-half mix of MsgSend and MsgMultiSend transactions at half block gas limit for 100 blocks"
+    block_gas_limit_target: 0.5
+    num_of_blocks: 100
+    msgs:
+      - weight: 0.5
+        type: MsgSend
+      - weight: 0.5
+        type: MsgMultiSend
