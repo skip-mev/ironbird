@@ -2,34 +2,32 @@ package main
 
 import (
 	"context"
+	"flag"
 	"github.com/skip-mev/ironbird/app"
 	"github.com/skip-mev/ironbird/types"
-	"go.temporal.io/sdk/client"
+)
+
+var (
+	configFlag = flag.String("config", "./conf/app.yaml", "Path to the app configuration file")
 )
 
 func main() {
+	flag.Parse()
 	ctx := context.Background()
-	temporalClient, err := client.Dial(client.Options{
-		HostPort: "127.0.0.1:7233",
-	})
+
+	cfg, err := types.ParseAppConfig(*configFlag)
 
 	if err != nil {
 		panic(err)
 	}
 
-	defer temporalClient.Close()
-
-	cfg, err := types.ParseAppConfig("./conf/app.yaml")
+	app, err := app.NewApp(cfg)
 
 	if err != nil {
 		panic(err)
 	}
 
-	app, err := app.NewApp(cfg, temporalClient)
-
-	if err != nil {
+	if err := app.Start(ctx); err != nil {
 		panic(err)
 	}
-
-	app.Start(ctx)
 }
