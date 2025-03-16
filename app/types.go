@@ -7,17 +7,14 @@ import (
 	"strings"
 )
 
-type ValidatedPullRequest struct {
-	InstallationID int64
-	DeliveryID     string
-	Number         int
-	HeadSHA        string
-	Owner          string
-	Repo           string
-	Action         string
+type PullRequest struct {
+	Issue
+	DeliveryID string
+	HeadSHA    string
+	Action     string
 }
 
-func validatePullRequest(eventType, deliveryID string, payload []byte) (*ValidatedPullRequest, error) {
+func parsePullRequestEvent(eventType, deliveryID string, payload []byte) (*PullRequest, error) {
 	if eventType != "pull_request" {
 		return nil, fmt.Errorf("event type %s is not a pull request", eventType)
 	}
@@ -66,32 +63,39 @@ func validatePullRequest(eventType, deliveryID string, payload []byte) (*Validat
 
 	sha := head.GetSHA()
 
-	return &ValidatedPullRequest{
-		InstallationID: installationID,
-		DeliveryID:     deliveryID,
-		Number:         *pullRequest.Number,
-		Owner:          owner.GetLogin(),
-		Repo:           repo.GetName(),
-		HeadSHA:        sha,
-		Action:         event.GetAction(),
+	return &PullRequest{
+		DeliveryID: deliveryID,
+		Issue: Issue{
+			InstallationID: installationID,
+			IsPullRequest:  true,
+			Number:         *pullRequest.Number,
+			Owner:          owner.GetLogin(),
+			Repo:           repo.GetName(),
+		},
+		HeadSHA: sha,
+		Action:  event.GetAction(),
 	}, nil
 }
 
-type ValidatedComment struct {
+type Issue struct {
 	InstallationID int64
-	DeliveryID     string
-	Owner          string
-	Repo           string
-	Body           string
-	Sender         string
-	IssueNumber    int
 
-	IsOnPullRequest bool
+	Owner         string
+	Repo          string
+	Number        int
+	IsPullRequest bool
+}
+
+type Comment struct {
+	Issue
+	DeliveryID string
+	Sender     string
+	Body       string
 
 	Action string
 }
 
-func validateComment(eventType, deliveryID string, payload []byte) (*ValidatedComment, error) {
+func parseComment(eventType, deliveryID string, payload []byte) (*Comment, error) {
 	if eventType != "issue_comment" {
 		return nil, fmt.Errorf("event type %s is not a comment", eventType)
 	}
@@ -140,15 +144,17 @@ func validateComment(eventType, deliveryID string, payload []byte) (*ValidatedCo
 		return nil, fmt.Errorf("sender for %s is nil", deliveryID)
 	}
 
-	return &ValidatedComment{
-		InstallationID:  installationID,
-		DeliveryID:      deliveryID,
-		Owner:           owner.GetLogin(),
-		Repo:            repo.GetName(),
-		Action:          event.GetAction(),
-		Sender:          sender.GetLogin(),
-		Body:            strings.TrimSpace(comment.GetBody()),
-		IsOnPullRequest: issue.IsPullRequest(),
-		IssueNumber:     issueNumber,
+	return &Comment{
+		DeliveryID: deliveryID,
+		Issue: Issue{
+			InstallationID: installationID,
+			Number:         issueNumber,
+			Owner:          owner.GetLogin(),
+			Repo:           repo.GetName(),
+			IsPullRequest:  issue.IsPullRequest(),
+		},
+		Action: event.GetAction(),
+		Sender: sender.GetLogin(),
+		Body:   strings.TrimSpace(comment.GetBody()),
 	}, nil
 }

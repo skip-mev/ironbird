@@ -87,11 +87,11 @@ func (a *App) Start(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) handleOpenedPullRequest(ctx context.Context, pr *ValidatedPullRequest) error {
+func (a *App) handleOpenedPullRequest(ctx context.Context, pr *PullRequest) error {
 	return a.SendInitialComment(ctx, pr)
 }
 
-func (a *App) handleClosedPullRequest(ctx context.Context, pr *ValidatedPullRequest) error {
+func (a *App) handleClosedPullRequest(ctx context.Context, pr *PullRequest) error {
 	id := fmt.Sprintf("%s/%s/pr-%d", pr.Owner, pr.Repo, pr.Number)
 	workflow := a.temporalClient.GetWorkflow(ctx, id, "")
 
@@ -107,37 +107,37 @@ func (a *App) handleClosedPullRequest(ctx context.Context, pr *ValidatedPullRequ
 }
 
 func (a *App) handlePullRequest(ctx context.Context, eventType, deliveryID string, payload []byte) error {
-	validatedPullRequest, err := validatePullRequest(eventType, deliveryID, payload)
+	pullRequest, err := parsePullRequestEvent(eventType, deliveryID, payload)
 
 	if err != nil {
 		return err
 	}
 
-	switch validatedPullRequest.Action {
+	switch pullRequest.Action {
 	case "opened":
-		return a.handleOpenedPullRequest(ctx, validatedPullRequest)
+		return a.handleOpenedPullRequest(ctx, pullRequest)
 	case "reopened":
-		return a.handleOpenedPullRequest(ctx, validatedPullRequest)
+		return a.handleOpenedPullRequest(ctx, pullRequest)
 	case "closed":
-		return a.handleClosedPullRequest(ctx, validatedPullRequest)
+		return a.handleClosedPullRequest(ctx, pullRequest)
 	}
 
 	return nil
 }
 
 func (a *App) handleComment(ctx context.Context, eventType, deliveryID string, payload []byte) error {
-	validatedComment, err := validateComment(eventType, deliveryID, payload)
+	comment, err := parseComment(eventType, deliveryID, payload)
 
 	if err != nil {
 		return err
 	}
 
-	if validatedComment.Action != "created" {
+	if comment.Action != "created" {
 		return nil
 	}
 
-	if strings.HasPrefix(validatedComment.Body, "/ironbird") {
-		return a.HandleCommand(ctx, validatedComment, validatedComment.Body)
+	if strings.HasPrefix(comment.Body, "/ironbird") {
+		return a.HandleCommand(ctx, comment, comment.Body)
 	}
 
 	return nil
@@ -152,7 +152,7 @@ func (a *App) Handle(ctx context.Context, eventType, deliveryID string, payload 
 		err = a.handleComment(ctx, eventType, deliveryID, payload)
 	}
 
-	fmt.Printf("handled %s with err %w\n", eventType, err)
+	fmt.Printf("handled %s with err %v\n", eventType, err)
 
 	return err
 }

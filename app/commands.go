@@ -15,7 +15,7 @@ import (
 var SubcommandRegex = regexp.MustCompile(`/ironbird ([^\s]*).*`)
 var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)`)
 
-type CommandFunc func(context.Context, *ValidatedComment, string) error
+type CommandFunc func(context.Context, *Comment, string) error
 type Command struct {
 	Usage       string
 	Description string
@@ -64,39 +64,23 @@ func (a *App) generatedFailedCommandComment(command string, err error) (string, 
 	return mdOut.String(), nil
 }
 
-func (a *App) SendInitialComment(ctx context.Context, pr *ValidatedPullRequest) error {
-	c, err := a.cc.NewInstallationClient(pr.InstallationID)
-
-	if err != nil {
-		return err
-	}
-
+func (a *App) SendInitialComment(ctx context.Context, pr *PullRequest) error {
 	commentBody, err := a.generateInitialComment()
 
 	if err != nil {
 		return err
 	}
 
-	_, _, err = c.Issues.CreateComment(ctx, pr.Owner, pr.Repo, pr.Number, &github.IssueComment{
-		Body: &commentBody,
-	})
-
-	if err != nil {
+	if _, err := a.CreateComment(ctx, pr.Issue, commentBody); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a *App) handleFailedCommand(ctx context.Context, comment *ValidatedComment, command string, commandErr error) error {
+func (a *App) handleFailedCommand(ctx context.Context, comment *Comment, command string, commandErr error) error {
 	if commandErr == nil {
 		return fmt.Errorf("failed command cannot have a nil commandErr")
-	}
-
-	client, err := a.cc.NewInstallationClient(comment.InstallationID)
-
-	if err != nil {
-		return err
 	}
 
 	failedCommandCommentBody, err := a.generatedFailedCommandComment(command, commandErr)
@@ -105,14 +89,14 @@ func (a *App) handleFailedCommand(ctx context.Context, comment *ValidatedComment
 		return err
 	}
 
-	_, _, err = client.Issues.CreateComment(ctx, comment.Owner, comment.Repo, comment.IssueNumber, &github.IssueComment{
-		Body: &failedCommandCommentBody,
-	})
+	if _, err := a.CreateComment(ctx, comment.Issue, failedCommandCommentBody); err != nil {
+		return err
+	}
 
 	return err
 }
 
-func (a *App) HandleCommand(ctx context.Context, comment *ValidatedComment, command string) error {
+func (a *App) HandleCommand(ctx context.Context, comment *Comment, command string) error {
 	subcommandName := SubcommandRegex.FindAllStringSubmatch(command, -1)
 
 	if len(subcommandName) != 1 {
@@ -134,8 +118,8 @@ func (a *App) HandleCommand(ctx context.Context, comment *ValidatedComment, comm
 	return nil
 }
 
-func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, command string) error {
-	if !comment.IsOnPullRequest {
+func (a *App) commandStart(ctx context.Context, comment *Comment, command string) error {
+	if !comment.Issue.IsPullRequest {
 		return fmt.Errorf("command can only be run on pull requests")
 	}
 
@@ -144,7 +128,7 @@ func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, comma
 		return err
 	}
 
-	isMember, _, err := client.Organizations.IsMember(ctx, comment.Owner, comment.Sender)
+	isMember, _, err := client.Organizations.IsMember(ctx, comment.Issue.Owner, comment.Sender)
 
 	if err != nil {
 		return err
@@ -154,7 +138,7 @@ func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, comma
 		return fmt.Errorf("user %s is not a member of the organization", comment.Sender)
 	}
 
-	pr, _, err := client.PullRequests.Get(ctx, comment.Owner, comment.Repo, comment.IssueNumber)
+	pr, _, err := client.PullRequests.Get(ctx, comment.Issue.Owner, comment.Issue.Repo, comment.Issue.Number)
 
 	if err != nil {
 		return err
@@ -171,6 +155,7 @@ func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, comma
 	if pr.GetHead().SHA == nil {
 		return fmt.Errorf("no head sha found")
 	}
+
 	args := StartRegex.FindAllStringSubmatch(command, -1)
 
 	if len(args) != 1 {
@@ -192,15 +177,15 @@ func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, comma
 		return fmt.Errorf("unknown load test %s", loadTestName)
 	}
 
-	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, comment.Owner, comment.Repo, comment.IssueNumber)
+	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, comment.Issue.Owner, comment.Issue.Repo, comment.Issue.Number)
 
 	_, err = a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
 		ID:        id,
 		TaskQueue: testnet.TaskQueue,
 	}, testnet.Workflow, testnet.WorkflowOptions{
 		InstallationID: comment.InstallationID,
-		Owner:          comment.Owner,
-		Repo:           comment.Repo,
+		Owner:          comment.Issue.Owner,
+		Repo:           comment.Issue.Repo,
 		SHA:            *pr.Head.SHA,
 		ChainConfig:    chain,
 		LoadTestConfig: &loadTest,
@@ -214,7 +199,7 @@ func (a *App) commandStart(ctx context.Context, comment *ValidatedComment, comma
 	return nil
 }
 
-func (a *App) commandChains(ctx context.Context, comment *ValidatedComment, _ string) error {
+func (a *App) commandChains(ctx context.Context, comment *Comment, _ string) error {
 	client, err := a.cc.NewInstallationClient(comment.InstallationID)
 
 	if err != nil {
@@ -237,7 +222,7 @@ func (a *App) commandChains(ctx context.Context, comment *ValidatedComment, _ st
 		return err
 	}
 
-	_, _, err = client.Issues.CreateComment(ctx, comment.Owner, comment.Repo, comment.IssueNumber, &github.IssueComment{
+	_, _, err = client.Issues.CreateComment(ctx, comment.Issue.Owner, comment.Issue.Repo, comment.Issue.Number, &github.IssueComment{
 		Body: util.StringPtr(mdOut.String()),
 	})
 
@@ -248,13 +233,7 @@ func (a *App) commandChains(ctx context.Context, comment *ValidatedComment, _ st
 	return nil
 }
 
-func (a *App) commandLoadTests(ctx context.Context, comment *ValidatedComment, command string) error {
-	client, err := a.cc.NewInstallationClient(comment.InstallationID)
-
-	if err != nil {
-		return err
-	}
-
+func (a *App) commandLoadTests(ctx context.Context, comment *Comment, _ string) error {
 	var mdOut bytes.Buffer
 
 	md := markdown.NewMarkdown(&mdOut)
@@ -271,9 +250,9 @@ func (a *App) commandLoadTests(ctx context.Context, comment *ValidatedComment, c
 		return err
 	}
 
-	_, _, err = client.Issues.CreateComment(ctx, comment.Owner, comment.Repo, comment.IssueNumber, &github.IssueComment{
-		Body: util.StringPtr(mdOut.String()),
-	})
+	if _, err := a.CreateComment(ctx, comment.Issue, mdOut.String()); err != nil {
+		return err
+	}
 
 	return nil
 }
