@@ -7,7 +7,7 @@ import (
 
 	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/testnet"
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 	"go.temporal.io/sdk/workflow"
 )
@@ -22,7 +22,7 @@ type Report struct {
 	summary         string
 	conclusion      string
 
-	nodes            []testnet.Node
+	nodes            []testnettypes.Node
 	observabilityURL string
 	screenshots      map[string]string
 	loadTestResults  *loadtest.LoadTestResult
@@ -125,7 +125,7 @@ func (r *Report) SetScreenshots(ctx workflow.Context, screenshots map[string]str
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) SetNodes(ctx workflow.Context, nodes []testnet.Node) error {
+func (r *Report) SetNodes(ctx workflow.Context, nodes []testnettypes.Node) error {
 	r.nodes = nodes
 	return r.UpdateCheck(ctx)
 }
