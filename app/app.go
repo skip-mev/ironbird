@@ -18,7 +18,7 @@ type App struct {
 	temporalClient temporalclient.Client
 	cfg            types.AppConfig
 
-	commands map[string]func(context.Context, *ValidatedComment, string) error
+	commands map[string]Command
 }
 
 func NewApp(cfg types.AppConfig) (*App, error) {
@@ -56,10 +56,18 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 		Addr:    ":3000",
 	}
 
-	app.commands = make(map[string]func(context.Context, *ValidatedComment, string) error)
-	app.commands["start"] = app.commandStart
-	app.commands["chains"] = app.commandChains
-	app.commands["loadtests"] = app.commandLoadTests
+	app.commands = make(map[string]Command)
+	app.commands["start"] = Command{
+		Description: "",
+		Usage:       "/ironbird start <chain> <loadtest>",
+		Func:        app.commandStart,
+	}
+	app.commands["chains"] = Command{
+		Func: app.commandChains,
+	}
+	app.commands["loadtests"] = Command{
+		Func: app.commandLoadTests,
+	}
 
 	return app, nil
 }

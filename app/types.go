@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	github2 "github.com/google/go-github/v66/github"
+	"strings"
 )
 
 type ValidatedPullRequest struct {
@@ -82,6 +83,7 @@ type ValidatedComment struct {
 	Owner          string
 	Repo           string
 	Body           string
+	Sender         string
 	IssueNumber    int
 
 	IsOnPullRequest bool
@@ -132,13 +134,20 @@ func validateComment(eventType, deliveryID string, payload []byte) (*ValidatedCo
 
 	issueNumber := issue.GetNumber()
 
+	sender := event.GetSender()
+
+	if sender == nil {
+		return nil, fmt.Errorf("sender for %s is nil", deliveryID)
+	}
+
 	return &ValidatedComment{
 		InstallationID:  installationID,
 		DeliveryID:      deliveryID,
 		Owner:           owner.GetLogin(),
 		Repo:            repo.GetName(),
 		Action:          event.GetAction(),
-		Body:            comment.GetBody(),
+		Sender:          sender.GetLogin(),
+		Body:            strings.TrimSpace(comment.GetBody()),
 		IsOnPullRequest: issue.IsPullRequest(),
 		IssueNumber:     issueNumber,
 	}, nil
