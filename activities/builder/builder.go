@@ -2,7 +2,13 @@ package builder
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecrpublic"
+	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecrpublic/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/docker/cli/cli/config/configfile"
 	configtypes "github.com/docker/cli/cli/config/types"
 	"github.com/moby/buildkit/client"
@@ -12,13 +18,98 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
+	"strings"
 )
 
 type Activity struct {
 	BuilderConfig types.BuilderConfig
+	AwsConfig     *aws.Config
+}
+
+func (a *Activity) getAuthenticationToken(ctx context.Context) (string, string, error) {
+	ecrClient := ecrpublic.NewFromConfig(*a.AwsConfig, func(options *ecrpublic.Options) {
+		// ecrpublic only works in us-east-1
+		options.Region = "us-east-1"
+	})
+
+	token, err := ecrClient.GetAuthorizationToken(ctx, &ecrpublic.GetAuthorizationTokenInput{})
+
+	if err != nil {
+		return "", "", err
+	}
+
+	if token.AuthorizationData.AuthorizationToken == nil {
+		return "", "", fmt.Errorf("no authorization token found")
+	}
+
+	decodedToken, err := base64.StdEncoding.DecodeString(*token.AuthorizationData.AuthorizationToken)
+
+	if err != nil {
+		return "", "", fmt.Errorf("failed to decode token: %w", err)
+	}
+
+	// username:string
+	parts := strings.Split(string(decodedToken), ":")
+
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid token format")
+	}
+
+	return parts[0], parts[1], nil
+}
+
+func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
+	stsClient := sts.NewFromConfig(*a.AwsConfig)
+	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+
+	if err != nil {
+		return fmt.Errorf("failed to fetch STS identity: %w", err)
+	}
+
+	ecrClient := ecrpublic.NewFromConfig(*a.AwsConfig, func(options *ecrpublic.Options) {
+		// ecrpublic only works in us-east-1
+		options.Region = "us-east-1"
+	})
+
+	repositories, err := ecrClient.DescribeRepositories(ctx, &ecrpublic.DescribeRepositoriesInput{
+		RepositoryNames: []string{
+			a.BuilderConfig.Registry.ImageName,
+		},
+		RegistryId: stsIdentity.Account,
+	})
+
+	var notFoundErr *ecrtypes.RepositoryNotFoundException
+
+	if err != nil && !errors.As(err, &notFoundErr) {
+		return err
+	}
+
+	if repositories != nil && len(repositories.Repositories) != 0 {
+		return nil
+	}
+
+	_, err = ecrClient.CreateRepository(ctx, &ecrpublic.CreateRepositoryInput{
+		RepositoryName: aws.String(a.BuilderConfig.Registry.ImageName),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[string][]byte, buildArgs map[string]string) (string, error) {
+	if err := a.createRepositoryIfNotExists(ctx); err != nil {
+		return "", err
+	}
+
+	username, password, err := a.getAuthenticationToken(ctx)
+
+	if err != nil {
+		return "", err
+	}
+
 	bkClient, err := client.New(ctx, a.BuilderConfig.BuildKitAddress)
 
 	if err != nil {
@@ -34,8 +125,8 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	authProvider := authprovider.NewDockerAuthProvider(&configfile.ConfigFile{
 		AuthConfigs: map[string]configtypes.AuthConfig{
 			a.BuilderConfig.Registry.URL: {
-				Username: a.BuilderConfig.Registry.Username,
-				Password: a.BuilderConfig.Registry.Password,
+				Username: username,
+				Password: password,
 			},
 		},
 	}, map[string]*authprovider.AuthTLSConfig{})
@@ -49,7 +140,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 		frontendAttrs[fmt.Sprintf("build-arg:%s", k)] = v
 	}
 
-	fqdnTag := fmt.Sprintf("%s/%s", a.BuilderConfig.Registry.FQDN, tag)
+	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, tag)
 
 	solveOpt := client.SolveOpt{
 		Frontend:      "dockerfile.v0",

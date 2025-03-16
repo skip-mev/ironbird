@@ -3,7 +3,6 @@ package testnet
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -225,19 +224,15 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 		return "", err
 	}
 
-	addr, err := chain.GetValidators()[0].GetExternalAddress(ctx, "26657")
+	tmClient, err := chain.GetValidators()[0].GetTMClient(ctx)
 
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := http.Get("http://" + addr + "/status")
+	_, err = tmClient.Status(ctx)
 
 	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != 200 {
 		return "", err
 	}
 
