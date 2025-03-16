@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/go-github/v66/github"
 	"github.com/nao1215/markdown"
+	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/ironbird/workflows/testnet"
 	temporalclient "go.temporal.io/sdk/client"
@@ -27,7 +28,7 @@ func (a *App) generateInitialComment() (string, error) {
 	var mdOut bytes.Buffer
 
 	detailsMd := markdown.NewMarkdown(&detailsOut)
-	detailsMd = detailsMd.PlainText("To use Ironbird, you can use the following commands:")
+	detailsMd = detailsMd.PlainText("To use Ironbird, you can use the following commands:").LF()
 
 	var commandEntries []string
 
@@ -54,8 +55,43 @@ func (a *App) generatedFailedCommandComment(command string, err error) (string, 
 	var mdOut bytes.Buffer
 
 	md := markdown.NewMarkdown(&mdOut)
-	md = md.PlainText(fmt.Sprintf("Ironbird failed to run command `%s`:", command))
+	md = md.PlainText(fmt.Sprintf("Ironbird failed to run command `%s`:", command)).LF()
 	md = md.CodeBlocks("", err.Error())
+
+	if err := md.Build(); err != nil {
+		return "", err
+	}
+
+	return mdOut.String(), nil
+}
+
+func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTestConfig types.LoadTestConfig, workflowId, runId string) (string, error) {
+	var mdOut bytes.Buffer
+	var chainDetails bytes.Buffer
+	var loadTestDetails bytes.Buffer
+
+	chainMd := markdown.NewMarkdown(&chainDetails)
+	chainMd = chainMd.LF().PlainText(fmt.Sprintf("Chain: `%s`", chainConfig.Name)).LF()
+	chainMd = chainMd.PlainText(fmt.Sprintf("Version: `%s`", chainConfig.Version)).LF()
+	chainMd = chainMd.PlainText(fmt.Sprintf("Workflow ID: `%s`", workflowId)).LF()
+	chainMd = chainMd.PlainText(fmt.Sprintf("Run ID: `%s`", runId)).LF()
+
+	if err := chainMd.Build(); err != nil {
+		return "", err
+	}
+
+	loadTestMd := markdown.NewMarkdown(&loadTestDetails)
+	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test: `%s`", loadTestConfig.Name)).LF()
+	loadTestMd = loadTestMd.PlainText(fmt.Sprintf("Description: `%s`", loadTestConfig.Description)).LF()
+
+	if err := loadTestMd.Build(); err != nil {
+		return "", err
+	}
+
+	md := markdown.NewMarkdown(&mdOut)
+	md = md.PlainText(fmt.Sprintf("Ironbird has started a testnet for chain `%s` using loadtest `%s`", chainConfig.Name, loadTestConfig.Name)).LF()
+	md = md.Details("Chain details", chainDetails.String())
+	md = md.Details("Load test details", loadTestDetails.String())
 
 	if err := md.Build(); err != nil {
 		return "", err
@@ -179,7 +215,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 
 	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, comment.Issue.Owner, comment.Issue.Repo, comment.Issue.Number)
 
-	_, err = a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
+	workflow, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
 		ID:        id,
 		TaskQueue: testnet.TaskQueue,
 	}, testnet.Workflow, testnet.WorkflowOptions{
@@ -193,6 +229,16 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 
 	if err != nil {
 		fmt.Println("failed to execute workflow", err)
+		return err
+	}
+
+	commentBody, err := a.generateStartedTestComment(chain, loadTest, workflow.GetID(), workflow.GetRunID())
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := a.CreateComment(ctx, comment.Issue, commentBody); err != nil {
 		return err
 	}
 
