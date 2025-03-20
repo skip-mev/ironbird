@@ -11,6 +11,8 @@ chains:
       binary_name: "gaiad"
       home_dir: "/gaiad"
       gas_prices: "0.00025uatom"
+    num_of_validators: 6
+    num_of_nodes: 0
 
 load_tests:
   normal:
@@ -22,4 +24,13 @@ load_tests:
       - weight: 0.5
         type: MsgSend
       - weight: 0.5
+        type: MsgMultiSend
+
+  full:
+    name: full
+    description: "Send MsgMultiSend transactions attempting to fill the block gas limit for 100 blocks"
+    block_gas_limit_target: 1
+    num_of_blocks: 100
+    msgs:
+      - weight: 1
         type: MsgMultiSend

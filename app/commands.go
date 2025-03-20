@@ -4,17 +4,19 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
+
 	"github.com/google/go-github/v66/github"
 	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/types"
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
-	"github.com/skip-mev/ironbird/workflows/testnet"
+	testnet "github.com/skip-mev/ironbird/workflows/testnet"
 	temporalclient "go.temporal.io/sdk/client"
-	"regexp"
 )
 
 var SubcommandRegex = regexp.MustCompile(`/ironbird ([^\s]*).*`)
-var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)`)
+var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)(?:\s+--runner=([^\s]*))?`)
 
 type CommandFunc func(context.Context, *Comment, string) error
 type Command struct {
@@ -65,7 +67,7 @@ func (a *App) generatedFailedCommandComment(command string, err error) (string, 
 	return mdOut.String(), nil
 }
 
-func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTestConfig types.LoadTestConfig, workflowId, runId string) (string, error) {
+func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTestConfig types.LoadTestConfig, workflowId, runId string, runnerType testnettypes.RunnerType) (string, error) {
 	var mdOut bytes.Buffer
 	var chainDetails bytes.Buffer
 	var loadTestDetails bytes.Buffer
@@ -73,6 +75,7 @@ func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTes
 	chainMd := markdown.NewMarkdown(&chainDetails)
 	chainMd = chainMd.LF().PlainText(fmt.Sprintf("Chain: `%s`", chainConfig.Name)).LF()
 	chainMd = chainMd.PlainText(fmt.Sprintf("Version: `%s`", chainConfig.Version)).LF()
+	chainMd = chainMd.PlainText(fmt.Sprintf("Runner: `%s`", runnerType)).LF()
 	chainMd = chainMd.PlainText(fmt.Sprintf("Workflow ID: `%s`", workflowId)).LF()
 	chainMd = chainMd.PlainText(fmt.Sprintf("Run ID: `%s`", runId)).LF()
 
@@ -89,7 +92,7 @@ func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTes
 	}
 
 	md := markdown.NewMarkdown(&mdOut)
-	md = md.PlainText(fmt.Sprintf("Ironbird has started a testnet for chain `%s` using loadtest `%s`", chainConfig.Name, loadTestConfig.Name)).LF()
+	md = md.PlainText(fmt.Sprintf("Ironbird has started a testnet for chain `%s` using loadtest `%s` with runner `%s`", chainConfig.Name, loadTestConfig.Name, runnerType)).LF()
 	md = md.Details("Chain details", chainDetails.String())
 	md = md.Details("Load test details", loadTestDetails.String())
 
@@ -201,6 +204,23 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	chainName := args[0][1]
 	loadTestName := args[0][2]
 
+	// Set default runner type to DigitalOcean if not specified
+	runnerType := testnettypes.DigitalOcean
+
+	if len(args[0]) > 3 && args[0][3] != "" {
+		runnerArg := args[0][3]
+
+		switch testnettypes.RunnerType(runnerArg) {
+		case testnettypes.Docker:
+			runnerType = testnettypes.Docker
+		case testnettypes.DigitalOcean:
+			runnerType = testnettypes.DigitalOcean
+		default:
+			return fmt.Errorf("unknown runner type '%s'. Valid options are: %s, %s",
+				runnerArg, testnettypes.Docker, testnettypes.DigitalOcean)
+		}
+	}
+
 	chain, ok := a.cfg.Chains[chainName]
 
 	if !ok {
@@ -225,6 +245,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		SHA:            *pr.Head.SHA,
 		ChainConfig:    chain,
 		LoadTestConfig: &loadTest,
+		RunnerType:     runnerType,
 	})
 
 	if err != nil {
@@ -232,7 +253,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		return err
 	}
 
-	commentBody, err := a.generateStartedTestComment(chain, loadTest, workflow.GetID(), workflow.GetRunID())
+	commentBody, err := a.generateStartedTestComment(chain, loadTest, workflow.GetID(), workflow.GetRunID(), runnerType)
 
 	if err != nil {
 		return err

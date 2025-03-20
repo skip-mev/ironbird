@@ -74,8 +74,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		HomeDir:              opts.ChainConfig.Image.HomeDir,
 		GenesisModifications: opts.ChainConfig.GenesisModifications,
 		RunnerType:           string(opts.RunnerType),
-		ValidatorCount:       opts.ChainConfig.NumOfValidators,
-		NodeCount:            opts.ChainConfig.NumOfValidators,
+		NumOfValidators:      opts.ChainConfig.NumOfValidators,
+		NumOfNodes:           opts.ChainConfig.NumOfNodes,
 	}
 
 	if opts.RunnerType == testnettypes.DigitalOcean {

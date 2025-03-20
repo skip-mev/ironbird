@@ -28,8 +28,8 @@ type TestnetOptions struct {
 	GenesisModifications    []petrichain.GenesisKV
 	RunnerType              string
 
-	ValidatorCount uint64
-	NodeCount      uint64
+	NumOfValidators uint64
+	NumOfNodes      uint64
 
 	ProviderState []byte
 	ChainState    []byte
@@ -158,8 +158,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		types.ChainConfig{
 			Denom:         "stake",
 			Decimals:      6,
-			NumValidators: int(opts.ValidatorCount),
-			NumNodes:      int(opts.NodeCount),
+			NumValidators: int(opts.NumOfValidators),
+			NumNodes:      int(opts.NumOfNodes),
 			BinaryName:    opts.BinaryName,
 			Image: provider.ImageDefinition{
 				Image: opts.Image,
