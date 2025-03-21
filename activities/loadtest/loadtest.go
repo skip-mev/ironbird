@@ -7,6 +7,9 @@ import (
 	"sync"
 	"time"
 
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+
 	"github.com/skip-mev/petri/core/v3/types"
 	"github.com/skip-mev/petri/core/v3/util"
 
@@ -166,7 +169,8 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	for i := 0; i < 100; i++ {
+	numberOfCustomWallets := 100
+	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -190,7 +194,6 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
 	if err != nil {
 		logger.Fatal("failed to recover faucet wallet key", zap.Error(err))
-		//return nil, err
 	}
 	time.Sleep(1 * time.Second)
 
@@ -241,16 +244,28 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	return yaml.Marshal(&config)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestConfig *LoadTestConfig, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestConfig *LoadTestConfig,
+	runnerType string, providerState []byte) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		providerState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+	if runnerType == string(testnettypes.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			providerState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			providerState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
+
 	if err != nil {
 		return PackagedState{}, err
 	}
@@ -290,7 +305,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 		return PackagedState{}, fmt.Errorf("failed to write config file to task: %w", err)
 	}
 
-	logger.Info("Starting load test")
+	logger.Info("starting load test")
 	if err := task.Start(ctx); err != nil {
 		return PackagedState{}, err
 	}
