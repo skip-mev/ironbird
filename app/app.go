@@ -58,7 +58,7 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 
 	app.commands = make(map[string]Command)
 	app.commands["start"] = Command{
-		Description: "Launch a testnet with the specified chain and load test configuration. Optionally specify a runner type with --runner=Docker or --runner=DigitalOcean (default is DigitalOcean)",
+		Description: "Launch a testnet with the specified chain and load test configuration. Optionally specify a runner type with --runner=Docker or --runner=DigitalOcean (default is Docker)",
 		Usage:       "/ironbird start <chain> <loadtest> [--runner=<Docker|DigitalOcean>]",
 		Func:        app.commandStart,
 	}

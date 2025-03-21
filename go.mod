@@ -15,7 +15,7 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
-	github.com/skip-mev/petri/core/v3 v3.0.1
+	github.com/skip-mev/petri/core/v3 v3.0.2
 	github.com/skip-mev/petri/cosmos/v3 v3.0.2
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
