@@ -155,7 +155,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			// assume 2 sec block times
 			loadTestRuntime = time.Duration(opts.LoadTestConfig.NumOfBlocks*2) * time.Second
 			// buffer for docker image pull + droplet spin up
-			loadTestRuntime += 10 * time.Minute
+			loadTestRuntime += 20 * time.Minute
 
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(

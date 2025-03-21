@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/skip-mev/petri/core/v3/types"
+	"github.com/skip-mev/petri/core/v3/util"
+	"sync"
 	"time"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
@@ -156,8 +159,55 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	}
 
 	var mnemonics []string
-	for _, w := range chain.GetValidatorWallets() {
+	var wallets []types.WalletI
+	var walletsMutex sync.Mutex
+	var wg sync.WaitGroup
+
+	faucetWallet := chain.GetFaucetWallet()
+	node := chain.GetValidators()[0]
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			w, err := chain.CreateWallet(ctx, util.RandomString(5), testnet.CosmosWalletConfig)
+			if err != nil {
+				logger.Error("failed to create wallet", zap.Error(err))
+				return
+			}
+
+			walletsMutex.Lock()
+			wallets = append(wallets, w)
+			walletsMutex.Unlock()
+		}()
+	}
+
+	wg.Wait()
+
+	logger.Info("successfully created wallets ", zap.Int("count", len(wallets)))
+
+	chainConfig := chain.GetConfig()
+	for _, w := range wallets {
+		command := []string{
+			chain.GetConfig().BinaryName,
+			"tx", "bank", "send",
+			faucetWallet.FormattedAddress(),
+			w.FormattedAddress(),
+			"1000000000stake",
+			"--chain-id", chainConfig.ChainId,
+			"--keyring-backend", "test",
+			"--fees", "100stake",
+			"--yes",
+			"--home", chainConfig.HomeDir,
+		}
+
+		_, stderr, exitCode, err := node.RunCommand(ctx, command)
+		if err != nil || exitCode != 0 {
+			logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
+		}
+
 		mnemonics = append(mnemonics, w.Mnemonic())
+		time.Sleep(5 * time.Second)
 	}
 
 	var msgs []Message
