@@ -204,8 +204,8 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	chainName := args[0][1]
 	loadTestName := args[0][2]
 
-	// Set default runner type to DigitalOcean if not specified
-	runnerType := testnettypes.DigitalOcean
+	// Set default runner type to Docker if not specified
+	runnerType := testnettypes.Docker
 
 	if len(args[0]) > 3 && args[0][3] != "" {
 		runnerArg := args[0][3]
