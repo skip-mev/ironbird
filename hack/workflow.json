@@ -21,7 +21,7 @@
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
-        "value": "1330000"
+        "value": "75000000"
       }
     ]
   },

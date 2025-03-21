@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/petri/core/v3/types"
-	"github.com/skip-mev/petri/core/v3/util"
 	"sync"
 	"time"
+
+	"github.com/skip-mev/petri/core/v3/types"
+	"github.com/skip-mev/petri/core/v3/util"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
 
@@ -164,7 +165,6 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
-	node := chain.GetValidators()[0]
 
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
@@ -185,6 +185,14 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	wg.Wait()
 
 	logger.Info("successfully created wallets ", zap.Int("count", len(wallets)))
+
+	node := validators[len(validators)-1]
+	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
+	if err != nil {
+		logger.Fatal("failed to recover faucet wallet key", zap.Error(err))
+		//return nil, err
+	}
+	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
 	for _, w := range wallets {
@@ -207,7 +215,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		}
 
 		mnemonics = append(mnemonics, w.Mnemonic())
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 
 	var msgs []Message

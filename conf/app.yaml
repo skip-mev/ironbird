@@ -13,6 +13,9 @@ chains:
       gas_prices: "0.00025uatom"
     num_of_validators: 6
     num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus.params.block.max_gas
+        value: "75000000"
 
 load_tests:
   normal:
