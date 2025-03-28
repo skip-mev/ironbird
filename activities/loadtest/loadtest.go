@@ -11,7 +11,7 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
 	"github.com/skip-mev/petri/core/v3/types"
-	"github.com/skip-mev/petri/core/v3/util"
+	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
 
@@ -146,12 +146,14 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	validators := chain.GetValidators()
 	var nodes []Node
 	for _, v := range validators {
-		grpcAddr, err := v.GetExternalAddress(ctx, "9090")
+		grpcAddr, err := v.GetIP(ctx)
+		grpcAddr = grpcAddr + ":9090"
 		if err != nil {
 			return nil, err
 		}
 
-		rpcAddr, err := v.GetExternalAddress(ctx, "26657")
+		rpcAddr, err := v.GetIP(ctx)
+		rpcAddr = rpcAddr + ":26657"
 		if err != nil {
 			return nil, err
 		}
@@ -169,16 +171,17 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	numberOfCustomWallets := 100
+	numberOfCustomWallets := 75
 	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			w, err := chain.CreateWallet(ctx, util.RandomString(5), testnet.CosmosWalletConfig)
+			w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
 			if err != nil {
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
 			}
+			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
 
 			walletsMutex.Lock()
 			wallets = append(wallets, w)
@@ -207,7 +210,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			"1000000000stake",
 			"--chain-id", chainConfig.ChainId,
 			"--keyring-backend", "test",
-			"--fees", "100stake",
+			"--fees", "400000stake",
 			"--yes",
 			"--home", chainConfig.HomeDir,
 		}
@@ -217,8 +220,9 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
 		}
 
+		logger.Debug("load test wallet funded", zap.String("address", w.FormattedAddress()))
 		mnemonics = append(mnemonics, w.Mnemonic())
-		time.Sleep(1 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	var msgs []Message
@@ -244,8 +248,8 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	return yaml.Marshal(&config)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestConfig *LoadTestConfig,
-	runnerType string, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
+	loadTestConfig *LoadTestConfig, runnerType string, providerState []byte) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
@@ -295,6 +299,9 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir: "/tmp/catalyst",
+		Environment: map[string]string{
+			"DEV_LOGGING": "true",
+		},
 	})
 
 	if err != nil {
