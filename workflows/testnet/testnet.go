@@ -177,6 +177,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
 				opts.LoadTestConfig,
+				opts.RunnerType,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))

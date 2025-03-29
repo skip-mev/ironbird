@@ -201,29 +201,41 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
+
+	var walletAddresses []string
 	for _, w := range wallets {
-		command := []string{
-			chain.GetConfig().BinaryName,
-			"tx", "bank", "send",
-			faucetWallet.FormattedAddress(),
-			w.FormattedAddress(),
-			"1000000000stake",
-			"--chain-id", chainConfig.ChainId,
-			"--keyring-backend", "test",
-			"--fees", "400000stake",
-			"--yes",
-			"--home", chainConfig.HomeDir,
-		}
-
-		_, stderr, exitCode, err := node.RunCommand(ctx, command)
-		if err != nil || exitCode != 0 {
-			logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
-		}
-
-		logger.Debug("load test wallet funded", zap.String("address", w.FormattedAddress()))
+		walletAddresses = append(walletAddresses, w.FormattedAddress())
 		mnemonics = append(mnemonics, w.Mnemonic())
-		time.Sleep(5 * time.Second)
 	}
+
+	command := []string{
+		chain.GetConfig().BinaryName,
+		"tx", "bank", "multi-send",
+		faucetWallet.FormattedAddress(),
+	}
+
+	command = append(command, walletAddresses...)
+
+	command = append(command, []string{
+		"1000000000stake",
+		"--chain-id", chainConfig.ChainId,
+		"--keyring-backend", "test",
+		"--gas", "auto",
+		"--gas-prices", "2stake",
+		"--gas-adjustment", "1.5",
+		"--broadcast-mode", "sync",
+		"--yes",
+		"--home", chainConfig.HomeDir,
+	}...)
+
+	stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
+	logger.Debug("funding wallets", zap.String("stdout", stdout), zap.String("stderr", stderr), zap.Int("exit_code", exitCode))
+	if err != nil || exitCode != 0 {
+		logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
+	}
+
+	logger.Debug("load test wallets funded")
+	time.Sleep(5 * time.Second)
 
 	var msgs []Message
 	for _, msg := range loadTestConfig.Msgs {
@@ -288,7 +300,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "catalyst:latest",
 			UID:   "100",
 			GID:   "100",
 		},
@@ -342,6 +354,10 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 			var result LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
+			}
+
+			if err := task.Destroy(ctx); err != nil {
+				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)
 			}
 
 			newProviderState, err := p.SerializeProvider(ctx)
