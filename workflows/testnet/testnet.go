@@ -67,7 +67,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                "ghcr.io/cosmos/simapp:v0.47",
+		Image:                "ghcr.io/cosmos/simapp:v0.50",
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,
