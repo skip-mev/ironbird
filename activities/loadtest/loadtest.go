@@ -9,6 +9,11 @@ import (
 	"sync"
 	"time"
 
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+
+	petriutil "github.com/skip-mev/petri/core/v3/util"
+
 	"github.com/skip-mev/ironbird/activities/testnet"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -158,15 +163,16 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		})
 	}
 
+	numberOfCustomWallets := 100
 	var mnemonics []string
-	var wallets []types.WalletI
+	var addresses []string
 	var walletsMutex sync.Mutex
 	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
 	node := chain.GetValidators()[0]
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -177,38 +183,38 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			}
 
 			walletsMutex.Lock()
-			wallets = append(wallets, w)
+			mnemonics = append(mnemonics, w.Mnemonic())
+			addresses = append(addresses, w.FormattedAddress())
 			walletsMutex.Unlock()
 		}()
 	}
 
 	wg.Wait()
 
-	logger.Info("successfully created wallets ", zap.Int("count", len(wallets)))
+	logger.Info("successfully created wallets ", zap.Int("count", len(mnemonics)))
 
 	chainConfig := chain.GetConfig()
-	for _, w := range wallets {
-		command := []string{
-			chain.GetConfig().BinaryName,
-			"tx", "bank", "send",
-			faucetWallet.FormattedAddress(),
-			w.FormattedAddress(),
-			"1000000000stake",
-			"--chain-id", chainConfig.ChainId,
-			"--keyring-backend", "test",
-			"--fees", "100stake",
-			"--yes",
-			"--home", chainConfig.HomeDir,
-		}
-
-		_, stderr, exitCode, err := node.RunCommand(ctx, command)
-		if err != nil || exitCode != 0 {
-			logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
-		}
-
-		mnemonics = append(mnemonics, w.Mnemonic())
-		time.Sleep(5 * time.Second)
+	command := []string{
+		chain.GetConfig().BinaryName,
+		"tx", "bank", "multi-send",
+		faucetWallet.FormattedAddress(),
 	}
+
+	command = append(command, addresses...)
+	command = append(command, "1000000000stake",
+		"--chain-id", chainConfig.ChainId,
+		"--keyring-backend", "test",
+		"--fees", "3000stake",
+		"--gas", "auto",
+		"--yes",
+		"--home", chainConfig.HomeDir,
+	)
+
+	_, stderr, exitCode, err := node.RunCommand(ctx, command)
+	if err != nil || exitCode != 0 {
+		logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
+	}
+	time.Sleep(5 * time.Second)
 
 	var msgs []Message
 	for _, msg := range loadTestConfig.Msgs {

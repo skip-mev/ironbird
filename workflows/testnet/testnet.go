@@ -50,15 +50,15 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	builtTag, err := buildImage(ctx, opts)
-
-	if err != nil {
-		return "", err
-	}
+	//builtTag, err := buildImage(ctx, opts)
+	//
+	//if err != nil {
+	//	return "", err
+	//}
 
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                builtTag,
+		Image:                "ghcr.io/cosmos/simapp:v0.47",
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,
@@ -67,10 +67,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		ProviderSpecificOptions: map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",
-			"size":     "s-1vcpu-1gb",
+			"size":     "s-4vcpu-8gb",
 		},
-		ValidatorCount: 4,
-		NodeCount:      0,
 	}
 
 	var providerState string
@@ -152,10 +150,10 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			// assume 2 sec block times
+			// assume ~ 2 sec block times
 			loadTestRuntime = time.Duration(opts.LoadTestConfig.NumOfBlocks*2) * time.Second
-			// buffer for docker image pull + droplet spin up
-			loadTestRuntime += 20 * time.Minute
+			// buffer for load test run & wallets creating
+			loadTestRuntime += 30 * time.Minute
 
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(
@@ -163,6 +161,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
 				opts.LoadTestConfig,
+				opts.RunnerType,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
