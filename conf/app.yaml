@@ -13,6 +13,20 @@ chains:
       gas_prices: "0.00025uatom"
     num_of_validators: 6
     num_of_nodes: 0
+
+  simapp:
+    name: simapp
+    version: v21.0.1
+    dependencies:
+      skip-mev/ironbird-cometbft: cometbft/cometbft
+    image:
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/gaia"
+      gas_prices: "0.0005stake"
+    num_of_validators: 6
+    num_of_nodes: 0
     genesis_modifications:
       - key: consensus.params.block.max_gas
         value: "75000000"
