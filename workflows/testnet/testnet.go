@@ -83,7 +83,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			"region":   "ams3",
 			"image_id": "177869680",
 			"size":     "s-4vcpu-8gb",
-		}
+		},
 	}
 
 	var providerState string

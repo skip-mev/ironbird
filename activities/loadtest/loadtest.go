@@ -163,6 +163,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		})
 	}
 
+	numberOfCustomWallets := 100
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
