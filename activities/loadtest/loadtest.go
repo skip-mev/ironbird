@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/petri/core/v3/types"
-	"github.com/skip-mev/petri/core/v3/util"
 	"sync"
 	"time"
 
@@ -147,12 +145,14 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	validators := chain.GetValidators()
 	var nodes []Node
 	for _, v := range validators {
-		grpcAddr, err := v.GetExternalAddress(ctx, "9090")
+		grpcAddr, err := v.GetIP(ctx)
+		grpcAddr = grpcAddr + ":9090"
 		if err != nil {
 			return nil, err
 		}
 
-		rpcAddr, err := v.GetExternalAddress(ctx, "26657")
+		rpcAddr, err := v.GetIP(ctx)
+		rpcAddr = rpcAddr + ":26657"
 		if err != nil {
 			return nil, err
 		}
@@ -170,17 +170,18 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
-	node := chain.GetValidators()[0]
 
+	numberOfCustomWallets := 100
 	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			w, err := chain.CreateWallet(ctx, util.RandomString(5), testnet.CosmosWalletConfig)
+			w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
 			if err != nil {
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
 			}
+			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
 
 			walletsMutex.Lock()
 			mnemonics = append(mnemonics, w.Mnemonic())
@@ -192,6 +193,13 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	wg.Wait()
 
 	logger.Info("successfully created wallets ", zap.Int("count", len(mnemonics)))
+
+	node := validators[len(validators)-1]
+	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
+	if err != nil {
+		logger.Fatal("failed to recover faucet wallet key", zap.Error(err))
+	}
+	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
 	command := []string{
@@ -239,16 +247,28 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	return yaml.Marshal(&config)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestConfig *LoadTestConfig, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
+	loadTestConfig *LoadTestConfig, runnerType string, providerState []byte) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		providerState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+	if runnerType == string(testnettypes.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			providerState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			providerState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
+
 	if err != nil {
 		return PackagedState{}, err
 	}
@@ -278,6 +298,9 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir: "/tmp/catalyst",
+		Environment: map[string]string{
+			"DEV_LOGGING": "true",
+		},
 	})
 
 	if err != nil {
@@ -288,7 +311,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 		return PackagedState{}, fmt.Errorf("failed to write config file to task: %w", err)
 	}
 
-	logger.Info("Starting load test")
+	logger.Info("starting load test")
 	if err := task.Start(ctx); err != nil {
 		return PackagedState{}, err
 	}
@@ -318,6 +341,11 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte, loadTestC
 			var result LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
+			}
+			logger.Info("load test result", zap.Any("result", result))
+
+			if err := task.Destroy(ctx); err != nil {
+				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)
 			}
 
 			newProviderState, err := p.SerializeProvider(ctx)

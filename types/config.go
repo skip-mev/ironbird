@@ -73,6 +73,8 @@ type ChainsConfig struct {
 	Image                ImageConfig            `yaml:"image"`
 	Version              string                 `yaml:"version"`
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
+	NumOfNodes      uint64            `yaml:"num_of_nodes"`
+	NumOfValidators uint64            `yaml:"num_of_validators"`
 }
 
 type ImageConfig struct {

@@ -15,8 +15,8 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
-	github.com/skip-mev/petri/core/v3 v3.0.1-0.20250313171817-f2d2de810fe0
-	github.com/skip-mev/petri/cosmos/v3 v3.0.2-0.20250313171817-f2d2de810fe0
+	github.com/skip-mev/petri/core/v3 v3.0.2
+	github.com/skip-mev/petri/cosmos/v3 v3.0.2
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
 	go.uber.org/zap v1.27.0
@@ -93,6 +93,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
+	github.com/cilium/ipam v0.0.0-20230509084518-fd66eae7909b // indirect
 	github.com/ckaznocha/intrange v0.1.0 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect

@@ -8,6 +8,7 @@ import (
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -20,7 +21,15 @@ var observabilityActivities *observability.Activity
 var loadTestActivities *loadtest.Activity
 
 func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
-	name := opts.ChainConfig.Name
+	if err := opts.Validate(); err != nil {
+		return "", temporal.NewApplicationErrorWithOptions(
+			"invalid workflow options",
+			err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true},
+		)
+	}
+
+	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
 
 	if opts.LoadTestConfig != nil {
 		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestConfig.Name)
@@ -58,13 +67,19 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                "ghcr.io/cosmos/simapp:v0.47",
+		Image:                "ghcr.io/cosmos/simapp:v0.50",
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,
 		HomeDir:              opts.ChainConfig.Image.HomeDir,
 		GenesisModifications: opts.ChainConfig.GenesisModifications,
-		ProviderSpecificOptions: map[string]string{
+		RunnerType:           string(opts.RunnerType),
+		NumOfValidators:      opts.ChainConfig.NumOfValidators,
+		NumOfNodes:           opts.ChainConfig.NumOfNodes,
+	}
+
+	if opts.RunnerType == testnettypes.DigitalOcean {
+		testnetOptions.ProviderSpecificOptions = map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",
 			"size":     "s-4vcpu-8gb",
@@ -113,6 +128,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			PrometheusTargets:      metricsIps,
 			ProviderState:          testnetOptions.ProviderState,
 			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
+			RunnerType:             string(opts.RunnerType),
 		},
 	).Get(ctx, &observabilityPackagedState); err != nil {
 		return "", err
