@@ -171,7 +171,6 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	numberOfCustomWallets := 100
 	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
