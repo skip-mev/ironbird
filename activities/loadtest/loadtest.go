@@ -293,7 +293,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		ProviderSpecificConfig: map[string]string{
 			"region":   "ams3",
 			"image_id": "177032231",
-			"size":     "s-4vcpu-4gb",
+			"size":     "s-4vcpu-8gb",
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir: "/tmp/catalyst",
