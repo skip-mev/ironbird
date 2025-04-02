@@ -286,7 +286,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:latest",
 			UID:   "100",
 			GID:   "100",
 		},
@@ -341,6 +341,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
 			}
+			logger.Info("load test result", zap.Any("result", result))
 
 			if err := task.Destroy(ctx); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)
