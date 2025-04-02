@@ -65,9 +65,10 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	//	return "", err
 	//}
 
+	image := "ghcr.io/cosmos/simapp:v0.50"
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                "ghcr.io/cosmos/simapp:v0.50",
+		Image:                image,
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,
@@ -219,7 +220,7 @@ func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions,
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
 
 	// Check if loadTestRuntime is longer than the default 1 hour
-	defaultDuration := time.Hour
+	defaultDuration := time.Second * 10 * time.Duration(iterations)
 	if loadTestRuntime > defaultDuration {
 		// Calculate iterations based on loadTestRuntime (each iteration is 10 seconds)
 		iterations = int(loadTestRuntime.Seconds() / 10)

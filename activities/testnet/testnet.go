@@ -56,6 +56,11 @@ var (
 	}
 )
 
+const (
+	cosmosDenom    = "stake"
+	cosmosDecimals = 6
+)
+
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
 
@@ -156,8 +161,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		logger,
 		p,
 		types.ChainConfig{
-			Denom:         "stake",
-			Decimals:      6,
+			Denom:         cosmosDenom,
+			Decimals:      cosmosDecimals,
 			NumValidators: int(opts.NumOfValidators),
 			NumNodes:      int(opts.NumOfNodes),
 			BinaryName:    opts.BinaryName,
