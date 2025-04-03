@@ -16,7 +16,7 @@ chains:
 
   simapp:
     name: simapp
-    version: v0.53.0-rc2
+    version: v0.50.13
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
     image:

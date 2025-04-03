@@ -59,16 +59,15 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	//builtTag, err := buildImage(ctx, opts)
-	//
-	//if err != nil {
-	//	return "", err
-	//}
+	builtTag, err := buildImage(ctx, opts)
 
-	image := "ghcr.io/cosmos/simapp:v0.50"
+	if err != nil {
+		return "", err
+	}
+
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                image,
+		Image:                builtTag,
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,

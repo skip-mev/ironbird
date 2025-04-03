@@ -22,7 +22,7 @@ RUN apk add --no-cache build-base jq
 RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot
 ARG IMG_TAG
-COPY --from=simd-builder  /src/app/build/simd /usr/local/bin/
+COPY --from=simd-builder  /src/app/build/simd /usr/bin/simd
 EXPOSE 26656 26657 1317 9090 26660
 USER nonroot
 
