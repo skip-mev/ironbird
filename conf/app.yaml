@@ -16,14 +16,15 @@ chains:
 
   simapp:
     name: simapp
-    version: v21.0.1
+    version: v0.53.0-rc2
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
     image:
+      dockerfile: "./hack/simapp.Dockerfile"
       gid: "1000"
       uid: "1000"
       binary_name: "/usr/bin/simd"
-      home_dir: "/gaia"
+      home_dir: "/simd"
       gas_prices: "0.0005stake"
     num_of_validators: 6
     num_of_nodes: 0
