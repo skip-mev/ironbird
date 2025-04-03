@@ -85,8 +85,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			"image_id": "177869680",
 			"size":     "s-4vcpu-8gb",
 		}
-		ValidatorCount: opts.ChainConfig.NumOfValidators,
-		NodeCount:      opts.ChainConfig.NumOfValidators,
 	}
 
 	var providerState string
