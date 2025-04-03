@@ -3,11 +3,13 @@ package testnet
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	"github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+
 	"github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
@@ -24,9 +26,10 @@ type TestnetOptions struct {
 	HomeDir                 string
 	ProviderSpecificOptions map[string]string
 	GenesisModifications    []petrichain.GenesisKV
+	RunnerType              string
 
-	ValidatorCount uint64
-	NodeCount      uint64
+	NumOfValidators uint64
+	NumOfNodes      uint64
 
 	ProviderState []byte
 	ChainState    []byte
@@ -35,14 +38,7 @@ type TestnetOptions struct {
 type PackagedState struct {
 	ProviderState []byte
 	ChainState    []byte
-	Nodes         []Node
-}
-
-type Node struct {
-	Name    string
-	Rpc     string
-	Lcd     string
-	Metrics string
+	Nodes         []testnet.Node
 }
 
 type Activity struct {
@@ -50,16 +46,42 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 }
 
+var (
+	CosmosWalletConfig = types.WalletConfig{
+		SigningAlgorithm: "secp256k1",
+		Bech32Prefix:     "cosmos",
+		HDPath:           hd.CreateHDPath(118, 0, 0),
+		DerivationFn:     hd.Secp256k1.Derive(),
+		GenerationFn:     hd.Secp256k1.Generate(),
+	}
+)
+
+const (
+	cosmosDenom    = "stake"
+	cosmosDecimals = 6
+)
+
 func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.NewProvider(
-		ctx,
-		opts.Name,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+
+	if opts.RunnerType == string(testnet.Docker) {
+		p, err = docker.CreateProvider(
+			ctx,
+			logger,
+			opts.Name,
+		)
+	} else {
+		p, err = digitalocean.NewProvider(
+			ctx,
+			opts.Name,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
 
 	if err != nil {
 		return "", err
@@ -72,13 +94,25 @@ func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (str
 
 func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		opts.ProviderState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+
+	var p provider.ProviderI
+	var err error
+
+	if opts.RunnerType == string(testnet.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			opts.ProviderState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			opts.ProviderState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
 
 	if err != nil {
 		return "", err
@@ -91,16 +125,35 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		opts.ProviderState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+
+	if opts.RunnerType == string(testnet.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			opts.ProviderState)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			opts.ProviderState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
 
 	if err != nil {
 		return PackagedState{}, err
+	}
+
+	nodeOptions := types.NodeOptions{}
+
+	if opts.RunnerType == string(testnet.DigitalOcean) {
+		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+			definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
+			return definition
+		}
 	}
 
 	chain, err := petrichain.CreateChain(
@@ -108,10 +161,10 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		logger,
 		p,
 		types.ChainConfig{
-			Denom:         "stake",
-			Decimals:      6,
-			NumValidators: int(opts.ValidatorCount),
-			NumNodes:      int(opts.NodeCount),
+			Denom:         cosmosDenom,
+			Decimals:      cosmosDecimals,
+			NumValidators: int(opts.NumOfValidators),
+			NumNodes:      int(opts.NumOfNodes),
 			BinaryName:    opts.BinaryName,
 			Image: provider.ImageDefinition{
 				Image: opts.Image,
@@ -133,13 +186,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 					return definition
 				},
 			},
-			WalletConfig: types.WalletConfig{
-				SigningAlgorithm: "secp256k1",
-				Bech32Prefix:     "cosmos",
-				HDPath:           hd.CreateHDPath(118, 0, 0),
-				DerivationFn:     hd.Secp256k1.Derive(),
-				GenerationFn:     hd.Secp256k1.Generate(),
-			},
+			WalletConfig: CosmosWalletConfig,
 		},
 	)
 
@@ -150,13 +197,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 	err = chain.Init(ctx, types.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(opts.GenesisModifications),
 		NodeCreator:   node.CreateNode,
-		WalletConfig: types.WalletConfig{
-			SigningAlgorithm: "secp256k1",
-			Bech32Prefix:     "cosmos",
-			HDPath:           hd.CreateHDPath(118, 0, 0),
-			DerivationFn:     hd.Secp256k1.Derive(),
-			GenerationFn:     hd.Secp256k1.Generate(),
-		},
+		WalletConfig:  CosmosWalletConfig,
 	})
 
 	if err != nil {
@@ -173,7 +214,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 		return PackagedState{}, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	var testnetNodes []Node
+	var testnetNodes []testnet.Node
 
 	for _, validator := range chain.GetValidators() {
 		cosmosIp, err := validator.GetExternalAddress(ctx, "1317")
@@ -191,7 +232,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 			return PackagedState{}, err
 		}
 
-		testnetNodes = append(testnetNodes, Node{
+		testnetNodes = append(testnetNodes, testnet.Node{
 			Name:    validator.GetDefinition().Name,
 			Rpc:     fmt.Sprintf("http://%s", cometIp),
 			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
@@ -209,37 +250,44 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (Pack
 func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (string, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		opts.ProviderState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+
+	if opts.RunnerType == string(testnet.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			opts.ProviderState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			opts.ProviderState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
 
 	if err != nil {
 		return "", err
 	}
 
-	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode)
+	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode, CosmosWalletConfig)
 
 	if err != nil {
 		return "", err
 	}
 
-	addr, err := chain.GetValidators()[0].GetExternalAddress(ctx, "26657")
+	tmClient, err := chain.GetValidators()[0].GetTMClient(ctx)
 
 	if err != nil {
 		return "", err
 	}
 
-	resp, err := http.Get("http://" + addr + "/status")
+	_, err = tmClient.Status(ctx)
 
 	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != 200 {
 		return "", err
 	}
 

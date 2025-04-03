@@ -2,27 +2,37 @@ package main
 
 import (
 	"context"
+	"flag"
+	"time"
+
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"tailscale.com/tsnet"
-	"time"
+
+	"log"
 
 	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
-	"log"
+)
+
+var (
+	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
 )
 
 func main() {
 	ctx := context.Background()
 
-	cfg, err := types.ParseWorkerConfig("./conf/worker.yaml")
+	flag.Parse()
+
+	cfg, err := types.ParseWorkerConfig(*configFlag)
 
 	if err != nil {
 		panic(err)
@@ -37,7 +47,8 @@ func main() {
 	notifier := github.NotifierActivity{GithubClient: cc}
 
 	c, err := client.Dial(client.Options{
-		HostPort: "127.0.0.1:7233",
+		HostPort:  cfg.Temporal.Host,
+		Namespace: cfg.Temporal.Namespace,
 	})
 
 	if err != nil {
@@ -52,7 +63,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
 
 	authKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, cfg.Tailscale.ServerOauthSecret, cfg.Tailscale.ServerTags)
 
@@ -110,9 +121,15 @@ func main() {
 	observabilityActivity := observability.Activity{
 		TailscaleSettings:    tailscaleSettings,
 		AwsConfig:            &awsConfig,
-		ScreenshotBucketName: "ironbird-demo-screenshots",
+		ScreenshotBucketName: cfg.ScreenshotBucketName,
 		DOToken:              cfg.DigitalOcean.Token,
 	}
+
+	loadTestActivity := loadtest.Activity{
+		DOToken:           cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+	}
+
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
@@ -124,6 +141,7 @@ func main() {
 	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
 	w.RegisterActivity(observabilityActivity.GrabGraphScreenshot)
 	w.RegisterActivity(observabilityActivity.UploadScreenshot)
+	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	w.RegisterActivity(notifier.UpdateCheck)
 	w.RegisterActivity(notifier.CreateCheck)

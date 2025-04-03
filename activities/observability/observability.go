@@ -4,18 +4,25 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
+
+	"go.uber.org/zap"
+
+	"github.com/skip-mev/ironbird/types/testnet"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/skip-mev/petri/core/v3/monitoring"
+	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"go.uber.org/zap"
-	"net/http"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
 )
 
 type Options struct {
 	ProviderState          []byte
 	ProviderSpecificConfig map[string]string
 	PrometheusTargets      []string
+	RunnerType             string
 }
 
 type PackagedState struct {
@@ -36,22 +43,38 @@ type Activity struct {
 func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := digitalocean.RestoreProvider(
-		ctx,
-		opts.ProviderState,
-		a.DOToken,
-		a.TailscaleSettings,
-		digitalocean.WithLogger(logger),
-	)
+	var p provider.ProviderI
+	var err error
+
+	if opts.RunnerType == string(testnet.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			opts.ProviderState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			opts.ProviderState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
 
 	if err != nil {
 		return PackagedState{}, err
 	}
 
-	prometheusTask, err := monitoring.SetupPrometheusTask(ctx, logger, p, monitoring.PrometheusOptions{
-		Targets:                opts.PrometheusTargets,
-		ProviderSpecificConfig: opts.ProviderSpecificConfig,
-	})
+	prometheusOptions := monitoring.PrometheusOptions{
+		Targets: opts.PrometheusTargets,
+	}
+
+	if opts.RunnerType == string(testnet.DigitalOcean) {
+		prometheusOptions.ProviderSpecificConfig = opts.ProviderSpecificConfig
+	}
+
+	prometheusTask, err := monitoring.SetupPrometheusTask(ctx, logger, p, prometheusOptions)
 
 	if err != nil {
 		return PackagedState{}, err
@@ -67,11 +90,16 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 		return PackagedState{}, err
 	}
 
-	grafanaTask, err := monitoring.SetupGrafanaTask(ctx, logger, p, monitoring.GrafanaOptions{
-		PrometheusURL:          fmt.Sprintf("http://%s:9090", prometheusIp),
-		DashboardJSON:          monitoring.DefaultDashboardJSON,
-		ProviderSpecificConfig: opts.ProviderSpecificConfig,
-	})
+	grafanaOptions := monitoring.GrafanaOptions{
+		PrometheusURL: fmt.Sprintf("http://%s:9090", prometheusIp),
+		DashboardJSON: monitoring.DefaultDashboardJSON,
+	}
+
+	if opts.RunnerType == string(testnet.DigitalOcean) {
+		grafanaOptions.ProviderSpecificConfig = opts.ProviderSpecificConfig
+	}
+
+	grafanaTask, err := monitoring.SetupGrafanaTask(ctx, logger, p, grafanaOptions)
 
 	if err != nil {
 		return PackagedState{}, err
@@ -120,8 +148,26 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	}, nil
 }
 
-func (*Activity) GrabGraphScreenshot(ctx context.Context, grafanaUrl, dashboardId, dashboardName, panelId, from string) ([]byte, error) {
-	resp, err := http.Get(fmt.Sprintf("%s/render/d-solo/%s/%s?orgId=1&panelId=%s&from=%s&to=now", grafanaUrl, dashboardId, dashboardName, panelId, from))
+func (a *Activity) GrabGraphScreenshot(ctx context.Context, grafanaUrl, dashboardId, dashboardName, panelId, from string) ([]byte, error) {
+	httpClient := http.Client{
+		Transport: &http.Transport{
+			// Set to true to prevent GZIP-bomb DoS attacks
+			DisableCompression: true,
+			DialContext:        a.TailscaleSettings.Server.Dial,
+			Proxy:              http.ProxyFromEnvironment,
+		},
+	}
+
+	resp, err := httpClient.Get(
+		fmt.Sprintf(
+			"%s/render/d-solo/%s/%s?orgId=1&panelId=%s&from=%s&to=now",
+			grafanaUrl,
+			dashboardId,
+			dashboardName,
+			panelId,
+			from,
+		),
+	)
 
 	if err != nil {
 		return nil, err

@@ -1,8 +1,11 @@
 package testnet
 
 import (
+	"fmt"
+
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 )
 
@@ -14,6 +17,8 @@ type WorkflowOptions struct {
 	Repo           string
 	SHA            string
 	ChainConfig    types.ChainsConfig
+	RunnerType     testnet.RunnerType
+	LoadTestConfig *types.LoadTestConfig
 }
 
 func (o *WorkflowOptions) GenerateCheckOptions(name, status, title, summary, text string, conclusion *string) github.CheckRunOptions {
@@ -29,4 +34,40 @@ func (o *WorkflowOptions) GenerateCheckOptions(name, status, title, summary, tex
 		Text:           text,
 		Conclusion:     conclusion,
 	}
+}
+
+func (o *WorkflowOptions) Validate() error {
+	if o.InstallationID == 0 {
+		return fmt.Errorf("installationID is required")
+	}
+
+	if o.Owner == "" {
+		return fmt.Errorf("owner is required")
+	}
+
+	if o.Repo == "" {
+		return fmt.Errorf("repo is required")
+	}
+
+	if o.SHA == "" {
+		return fmt.Errorf("SHA is required")
+	}
+
+	if o.ChainConfig.Name == "" {
+		return fmt.Errorf("chain name is required")
+	}
+
+	if o.ChainConfig.Image.BinaryName == "" {
+		return fmt.Errorf("binary name is required")
+	}
+
+	if o.ChainConfig.Image.HomeDir == "" {
+		return fmt.Errorf("home directory is required")
+	}
+
+	if o.RunnerType != testnet.DigitalOcean && o.RunnerType != testnet.Docker {
+		return fmt.Errorf("runner type must be one of: %s, %s", testnet.DigitalOcean, testnet.Docker)
+	}
+
+	return nil
 }

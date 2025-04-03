@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/loadtest"
 	"os"
 
 	"github.com/palantir/go-githubapp/githubapp"
@@ -17,17 +18,34 @@ type TailscaleConfig struct {
 	NodeTags          []string `yaml:"node_tags"`
 }
 
+type LoadTestConfig struct {
+	Name                string             `yaml:"name"`
+	Description         string             `yaml:"description"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target"`
+	NumOfBlocks         int                `yaml:"num_of_blocks"`
+	Msgs                []loadtest.Message `yaml:"msgs"`
+}
+
 type AppConfig struct {
-	Github githubapp.Config
-	Chains []ChainsConfig `yaml:"chains"`
+	Github    githubapp.Config
+	Chains    map[string]ChainsConfig   `yaml:"chains"`
+	Temporal  TemporalConfig            `yaml:"temporal"`
+	LoadTests map[string]LoadTestConfig `yaml:"load_tests"`
 }
 
 type WorkerConfig struct {
+	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
-	SSHAuth      SSHAuthConfig      `yaml:"ssh_auth"`
 	Github       githubapp.Config
+
+	ScreenshotBucketName string `yaml:"screenshot_bucket_name"`
+}
+
+type TemporalConfig struct {
+	Host      string `yaml:"host"`
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 type DigitalOceanConfig struct {
@@ -41,24 +59,20 @@ type BuilderConfig struct {
 }
 
 type RegistryConfig struct {
-	Username string `yaml:"username"`
-	Password string
-	URL      string `yaml:"url"`
-	FQDN     string `yaml:"fqdn"`
-}
+	// e.g. <account_id>.dkr.ecr.<region>.amazonaws.com
+	URL string `yaml:"url"`
 
-type SSHAuthConfig struct {
-	KeyPath    string `yaml:"key_path"`
-	PrivateKey string
+	// e.g. skip-mev/ironbird
+	ImageName string `yaml:"image_name"`
 }
 
 type ChainsConfig struct {
-	Name            string            `yaml:"name"`
-	SnapshotURL     string            `yaml:"snapshot_url"`
-	Dependencies    map[string]string `yaml:"dependencies"`
-	Image           ImageConfig       `yaml:"image"`
-	Version         string            `yaml:"version"`
-  GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
+	Name                 string                 `yaml:"name"`
+	SnapshotURL          string                 `yaml:"snapshot_url"`
+	Dependencies         map[string]string      `yaml:"dependencies"`
+	Image                ImageConfig            `yaml:"image"`
+	Version              string                 `yaml:"version"`
+	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes      uint64            `yaml:"num_of_nodes"`
 	NumOfValidators uint64            `yaml:"num_of_validators"`
 }
@@ -84,19 +98,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 		return WorkerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	config.Builder.Registry.Password = os.Getenv("REGISTRY_TOKEN")
-
-	sshKey, err := os.ReadFile(config.SSHAuth.KeyPath)
-
-	if err != nil {
-		return WorkerConfig{}, fmt.Errorf("failed to read ssh key: %w", err)
-	}
-
-	if len(sshKey) == 0 {
-		return WorkerConfig{}, fmt.Errorf("ssh key cannot be empty")
-	}
-
-	config.SSHAuth.PrivateKey = string(sshKey)
 	config.Github.SetValuesFromEnv("")
 	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
 		config.Github.App.PrivateKey = string(decodedGithubKey)

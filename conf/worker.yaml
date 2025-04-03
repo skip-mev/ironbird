@@ -1,9 +1,8 @@
 builder:
   build_kit_address: "tcp://localhost:1234"
   registry:
-    url: ghcr.io
-    fqdn: ghcr.io/skip-mev
-    username: Zygimantass
+    url: "public.ecr.aws"
+    image_name: "n7v2p5f8/skip-mev/ironbird-local"
 
 tailscale:
   node_tags:
@@ -11,5 +10,4 @@ tailscale:
   server_tags:
     - ironbird
 
-ssh_auth:
-  key_path: "./ironbird.pem"
+screenshot_bucket_name: "ironbird-demo-screenshots"

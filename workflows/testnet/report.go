@@ -3,11 +3,13 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/nao1215/markdown"
-	"github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/activities/loadtest"
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 	"go.temporal.io/sdk/workflow"
-	"time"
 )
 
 type Report struct {
@@ -20,9 +22,12 @@ type Report struct {
 	summary         string
 	conclusion      string
 
-	nodes            []testnet.Node
+	nodes            []testnettypes.Node
 	observabilityURL string
 	screenshots      map[string]string
+	loadTestResults  *loadtest.LoadTestResult
+	loadTestStatus   string
+	loadTestConfig   string
 }
 
 func NewReport(ctx workflow.Context, name, title, summary string, opts *WorkflowOptions) (*Report, error) {
@@ -120,13 +125,20 @@ func (r *Report) SetScreenshots(ctx workflow.Context, screenshots map[string]str
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) SetNodes(ctx workflow.Context, nodes []testnet.Node) error {
+func (r *Report) SetNodes(ctx workflow.Context, nodes []testnettypes.Node) error {
 	r.nodes = nodes
 	return r.UpdateCheck(ctx)
 }
 
 func (r *Report) SetObservabilityURL(ctx workflow.Context, url string) error {
 	r.observabilityURL = url
+	return r.UpdateCheck(ctx)
+}
+
+func (r *Report) UpdateLoadTest(ctx workflow.Context, status string, config string, results *loadtest.LoadTestResult) error {
+	r.loadTestStatus = status
+	r.loadTestConfig = config
+	r.loadTestResults = results
 	return r.UpdateCheck(ctx)
 }
 
@@ -156,6 +168,132 @@ func (r *Report) addScreenshotsToMarkdown(md *markdown.Markdown) {
 	}
 }
 
+func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
+	if r.loadTestStatus == "" && r.loadTestResults == nil {
+		return
+	}
+
+	md.HorizontalRule()
+	md.H1("Load Test")
+
+	// Show status and config first
+	if r.loadTestStatus != "" {
+		md.H2("Status")
+		md.PlainText(r.loadTestStatus)
+		if r.loadTestConfig != "" {
+			md.H2("Configuration")
+			md.PlainText(r.loadTestConfig)
+		}
+	}
+
+	// If we have results and no error, show them
+	if r.loadTestResults != nil && r.loadTestResults.Error == "" {
+		// Overall stats
+		md.H2("🎯 Overall Statistics")
+		rows := [][]string{
+			{"Total Transactions", fmt.Sprintf("%d", r.loadTestResults.Overall.TotalTransactions)},
+			{"Successful Transactions", fmt.Sprintf("%d", r.loadTestResults.Overall.SuccessfulTransactions)},
+			{"Failed Transactions", fmt.Sprintf("%d", r.loadTestResults.Overall.FailedTransactions)},
+			{"Average Gas Per Transaction", fmt.Sprintf("%d", r.loadTestResults.Overall.AvgGasPerTransaction)},
+			{"Average Block Gas Utilization", fmt.Sprintf("%.2f%%", r.loadTestResults.Overall.AvgBlockGasUtilization*100)},
+			{"Runtime", r.loadTestResults.Overall.Runtime.String()},
+			{"Blocks Processed", fmt.Sprintf("%d", r.loadTestResults.Overall.BlocksProcessed)},
+		}
+		md.Table(markdown.TableSet{
+			Header: []string{"Metric", "Value"},
+			Rows:   rows,
+		})
+
+		// Message type stats
+		md.H2("📊 Message Type Statistics")
+		for msgType, stats := range r.loadTestResults.ByMessage {
+			md.H3(string(msgType))
+			rows := [][]string{
+				{"Total Transactions", fmt.Sprintf("%d", stats.Transactions.Total)},
+				{"Successful Transactions", fmt.Sprintf("%d", stats.Transactions.Successful)},
+				{"Failed Transactions", fmt.Sprintf("%d", stats.Transactions.Failed)},
+				{"Average Gas", fmt.Sprintf("%d", stats.Gas.Average)},
+				{"Min Gas", fmt.Sprintf("%d", stats.Gas.Min)},
+				{"Max Gas", fmt.Sprintf("%d", stats.Gas.Max)},
+				{"Total Gas", fmt.Sprintf("%d", stats.Gas.Total)},
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Metric", "Value"},
+				Rows:   rows,
+			})
+
+			if len(stats.Errors.BroadcastErrors) > 0 {
+				md.H4("Errors")
+				for errType, count := range stats.Errors.ErrorCounts {
+					md.PlainText(fmt.Sprintf("- %s: %d occurrences\n", errType, count))
+				}
+			}
+		}
+
+		// Node stats
+		md.H2("🖥️ Node Statistics")
+		for nodeAddr, stats := range r.loadTestResults.ByNode {
+			md.H3(nodeAddr)
+			rows := [][]string{
+				{"Total Transactions", fmt.Sprintf("%d", stats.TransactionStats.Total)},
+				{"Successful Transactions", fmt.Sprintf("%d", stats.TransactionStats.Successful)},
+				{"Failed Transactions", fmt.Sprintf("%d", stats.TransactionStats.Failed)},
+				{"Average Gas", fmt.Sprintf("%d", stats.GasStats.Average)},
+				{"Min Gas", fmt.Sprintf("%d", stats.GasStats.Min)},
+				{"Max Gas", fmt.Sprintf("%d", stats.GasStats.Max)},
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Metric", "Value"},
+				Rows:   rows,
+			})
+
+			md.H4("Message Distribution")
+			var msgRows [][]string
+			for msgType, count := range stats.MessageCounts {
+				msgRows = append(msgRows, []string{string(msgType), fmt.Sprintf("%d", count)})
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Message Type", "Count"},
+				Rows:   msgRows,
+			})
+		}
+
+		// Block stats
+		md.H2("📦 Block Statistics Summary")
+		if len(r.loadTestResults.ByBlock) > 0 {
+			var totalGasUtilization float64
+			var maxGasUtilization float64
+			minGasUtilization := r.loadTestResults.ByBlock[0].GasUtilization
+			var maxGasBlock int64
+			var minGasBlock int64
+
+			for _, block := range r.loadTestResults.ByBlock {
+				totalGasUtilization += block.GasUtilization
+				if block.GasUtilization > maxGasUtilization {
+					maxGasUtilization = block.GasUtilization
+					maxGasBlock = block.BlockHeight
+				}
+				if block.GasUtilization < minGasUtilization {
+					minGasUtilization = block.GasUtilization
+					minGasBlock = block.BlockHeight
+				}
+			}
+
+			avgGasUtilization := totalGasUtilization / float64(len(r.loadTestResults.ByBlock))
+			rows := [][]string{
+				{"Total Blocks", fmt.Sprintf("%d", len(r.loadTestResults.ByBlock))},
+				{"Average Gas Utilization", fmt.Sprintf("%.2f%%", avgGasUtilization*100)},
+				{"Min Gas Utilization", fmt.Sprintf("%.2f%% (Block %d)", minGasUtilization*100, minGasBlock)},
+				{"Max Gas Utilization", fmt.Sprintf("%.2f%% (Block %d)", maxGasUtilization*100, maxGasBlock)},
+			}
+			md.Table(markdown.TableSet{
+				Header: []string{"Metric", "Value"},
+				Rows:   rows,
+			})
+		}
+	}
+}
+
 func (r *Report) Markdown() (string, error) {
 	var buf bytes.Buffer
 
@@ -173,6 +311,10 @@ func (r *Report) Markdown() (string, error) {
 
 	if len(r.screenshots) > 0 {
 		r.addScreenshotsToMarkdown(md)
+	}
+
+	if r.loadTestStatus != "" || r.loadTestResults != nil {
+		r.addLoadTestResultsToMarkdown(md)
 	}
 
 	if err := md.Build(); err != nil {
