@@ -63,10 +63,14 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 		Func:        app.commandStart,
 	}
 	app.commands["chains"] = Command{
-		Func: app.commandChains,
+		Usage:       "/ironbird chains",
+		Description: "List of chain images that ironbird can use to spin-up testnet",
+		Func:        app.commandChains,
 	}
 	app.commands["loadtests"] = Command{
-		Func: app.commandLoadTests,
+		Usage:       "/ironbird loadtests",
+		Description: "List of load test modes that ironbird can run against testnet",
+		Func:        app.commandLoadTests,
 	}
 
 	return app, nil
