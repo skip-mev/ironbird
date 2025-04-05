@@ -117,10 +117,11 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 	return "", err
 }
 
-func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (packagedState PackagedState, err error) {
+func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
+	var err error
 
 	if opts.RunnerType == string(testnet.Docker) {
 		p, err = docker.RestoreProvider(
@@ -138,7 +139,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 	}
 
 	if err != nil {
-		return
+		return PackagedState{}, err
 	}
 
 	nodeOptions := types.NodeOptions{}
@@ -185,14 +186,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 	)
 
 	if err != nil {
-		providerState, err := p.SerializeProvider(ctx)
-		if err != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
-		}
-
-		packagedState.ProviderState = providerState
-
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to create chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return PackagedState{}, temporal.NewApplicationErrorWithOptions("failed to create chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	err = chain.Init(ctx, types.ChainOptions{
@@ -202,46 +196,35 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 	})
 
 	if err != nil {
-		providerState, err := p.SerializeProvider(ctx)
-		if err != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
-		}
-
-		packagedState.ProviderState = providerState
-
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to init chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return PackagedState{}, temporal.NewApplicationErrorWithOptions("failed to init chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
 	if err != nil {
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return PackagedState{}, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	packagedState.ProviderState = providerState
-
-	chainState, err := chain.Serialize(ctx, p)
+	state, err := chain.Serialize(ctx, p)
 	if err != nil {
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return PackagedState{}, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
-
-	packagedState.ChainState = chainState
 
 	var testnetNodes []testnet.Node
 
 	for _, validator := range chain.GetValidators() {
 		cosmosIp, err := validator.GetExternalAddress(ctx, "1317")
 		if err != nil {
-			return packagedState, err
+			return PackagedState{}, err
 		}
 
 		cometIp, err := validator.GetExternalAddress(ctx, "26657")
 		if err != nil {
-			return packagedState, err
+			return PackagedState{}, err
 		}
 
 		metricsIp, err := validator.GetIP(ctx)
 		if err != nil {
-			return packagedState, err
+			return PackagedState{}, err
 		}
 
 		testnetNodes = append(testnetNodes, testnet.Node{
@@ -252,7 +235,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		})
 	}
 
-	return packagedState, nil
+	return PackagedState{
+		ProviderState: providerState,
+		ChainState:    state,
+		Nodes:         testnetNodes,
+	}, err
 }
 
 func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (string, error) {

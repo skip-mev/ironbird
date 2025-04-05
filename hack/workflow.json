@@ -5,8 +5,6 @@
   "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
   "ChainConfig": {
     "Name": "cosmos",
-    "NumOfNodes": 0,
-    "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
       "skip-mev/ironbird-cometbft": "cometbft/cometbft"
@@ -24,38 +22,23 @@
       {
         "key": "consensus.params.block.max_gas",
         "value": "75000000"
-      },
-      {
-        "key": "app_state.feemarket.params.enabled",
-        "value": true
-      },
-      {
-        "key": "app_state.feemarket.params.max_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.min_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.max_block_utilization",
-        "value": "150000000"
       }
     ]
   },
   "LoadTestConfig": {
-    "BlockGasLimitTarget": 1,
+    "BlockGasLimitTarget": 0.3,
     "NumOfBlocks": 10,
     "Msgs": [
       {
         "Weight": 0.5,
-        "Type": "MsgSend"
+        "Type": "Msgsend"
       },
       {
         "Weight": 0.5,
-        "Type": "MsgMultiSend"
+        "Type": "MultiMsgsend"
       }
     ]
   },
-  "RunnerType": "Docker"
+  "NumOfNodes": 0,
+  "NumOfValidators": 4
 }
