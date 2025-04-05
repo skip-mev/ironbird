@@ -10,7 +10,6 @@ import (
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
-	"github.com/skip-mev/petri/core/v3/types"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
@@ -164,14 +163,14 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		})
 	}
 
+	numberOfCustomWallets := 100
 	var mnemonics []string
-	var wallets []types.WalletI
+	var addresses []string
 	var walletsMutex sync.Mutex
 	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	numberOfCustomWallets := 75
 	for i := 0; i < numberOfCustomWallets; i++ {
 		wg.Add(1)
 		go func() {
@@ -184,14 +183,15 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
 
 			walletsMutex.Lock()
-			wallets = append(wallets, w)
+			mnemonics = append(mnemonics, w.Mnemonic())
+			addresses = append(addresses, w.FormattedAddress())
 			walletsMutex.Unlock()
 		}()
 	}
 
 	wg.Wait()
 
-	logger.Info("successfully created wallets ", zap.Int("count", len(wallets)))
+	logger.Info("successfully created wallets ", zap.Int("count", len(mnemonics)))
 
 	node := validators[len(validators)-1]
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
@@ -201,40 +201,26 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
-
-	var walletAddresses []string
-	for _, w := range wallets {
-		walletAddresses = append(walletAddresses, w.FormattedAddress())
-		mnemonics = append(mnemonics, w.Mnemonic())
-	}
-
 	command := []string{
 		chain.GetConfig().BinaryName,
 		"tx", "bank", "multi-send",
 		faucetWallet.FormattedAddress(),
 	}
 
-	command = append(command, walletAddresses...)
-
-	command = append(command, []string{
-		"1000000000stake",
+	command = append(command, addresses...)
+	command = append(command, "1000000000stake",
 		"--chain-id", chainConfig.ChainId,
 		"--keyring-backend", "test",
+		"--fees", "3000stake",
 		"--gas", "auto",
-		"--gas-prices", "2stake",
-		"--gas-adjustment", "1.5",
-		"--broadcast-mode", "sync",
 		"--yes",
 		"--home", chainConfig.HomeDir,
-	}...)
+	)
 
-	stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
-	logger.Debug("funding wallets", zap.String("stdout", stdout), zap.String("stderr", stderr), zap.Int("exit_code", exitCode))
+	_, stderr, exitCode, err := node.RunCommand(ctx, command)
 	if err != nil || exitCode != 0 {
 		logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
 	}
-
-	logger.Debug("load test wallets funded")
 	time.Sleep(5 * time.Second)
 
 	var msgs []Message
@@ -300,14 +286,14 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:latest",
 			UID:   "100",
 			GID:   "100",
 		},
 		ProviderSpecificConfig: map[string]string{
 			"region":   "ams3",
 			"image_id": "177032231",
-			"size":     "s-1vcpu-1gb",
+			"size":     "s-4vcpu-8gb",
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir: "/tmp/catalyst",
@@ -355,6 +341,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
 			}
+			logger.Info("load test result", zap.Any("result", result))
 
 			if err := task.Destroy(ctx); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)

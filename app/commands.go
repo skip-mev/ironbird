@@ -16,7 +16,7 @@ import (
 )
 
 var SubcommandRegex = regexp.MustCompile(`/ironbird ([^\s]*).*`)
-var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)(?:\s+--runner=([^\s]*))?`)
+var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)`)
 
 type CommandFunc func(context.Context, *Comment, string) error
 type Command struct {
@@ -204,22 +204,8 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	chainName := args[0][1]
 	loadTestName := args[0][2]
 
-	// Set default runner type to Docker if not specified
-	runnerType := testnettypes.Docker
-
-	if len(args[0]) > 3 && args[0][3] != "" {
-		runnerArg := args[0][3]
-
-		switch testnettypes.RunnerType(runnerArg) {
-		case testnettypes.Docker:
-			runnerType = testnettypes.Docker
-		case testnettypes.DigitalOcean:
-			runnerType = testnettypes.DigitalOcean
-		default:
-			return fmt.Errorf("unknown runner type '%s'. Valid options are: %s, %s",
-				runnerArg, testnettypes.Docker, testnettypes.DigitalOcean)
-		}
-	}
+	// Set runner type to DigitalOcean by default when using Github CLI
+	runnerType := testnettypes.DigitalOcean
 
 	chain, ok := a.cfg.Chains[chainName]
 

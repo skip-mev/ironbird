@@ -12,12 +12,11 @@
       "skip-mev/ironbird-cometbft": "cometbft/cometbft"
     },
     "Image": {
-      "Dockerfile": "./hack/gaia.Dockerfile",
-      "GID": "1025",
-      "UID": "1025",
-      "BinaryName": "gaiad",
-      "HomeDir": "/gaiad",
-      "GasPrices": "0.00025uatom"
+      "GID": "1000",
+      "UID": "1000",
+      "BinaryName": "/usr/bin/simd",
+      "HomeDir": "/gaia",
+      "GasPrices": "0.0005stake"
     },
     "Version": "v21.0.1",
     "GenesisModifications": [
@@ -41,8 +40,11 @@
         "key": "app_state.feemarket.params.max_block_utilization",
         "value": "150000000"
       }
-    ]
+    ],
+    "NumOfNodes": 1,
+    "NumOfValidators": 4
   },
+  "RunnerType": "DigitalOcean",
   "LoadTestConfig": {
     "BlockGasLimitTarget": 1,
     "NumOfBlocks": 10,
@@ -57,5 +59,4 @@
       }
     ]
   },
-  "RunnerType": "Docker"
 }

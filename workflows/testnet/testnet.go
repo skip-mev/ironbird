@@ -82,7 +82,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		testnetOptions.ProviderSpecificOptions = map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",
-			"size":     "s-1vcpu-1gb",
+			"size":     "s-4vcpu-8gb",
 		}
 	}
 
@@ -166,10 +166,10 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			// assume 2 sec block times
+			// assume ~ 2 sec block times
 			loadTestRuntime = time.Duration(opts.LoadTestConfig.NumOfBlocks*2) * time.Second
-			// buffer for docker image pull + droplet spin up
-			loadTestRuntime += 20 * time.Minute
+			// buffer for load test run & wallets creating
+			loadTestRuntime += 30 * time.Minute
 
 			var state loadtest.PackagedState
 			if err := workflow.ExecuteActivity(
@@ -219,7 +219,7 @@ func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions,
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
 
 	// Check if loadTestRuntime is longer than the default 1 hour
-	defaultDuration := time.Hour
+	defaultDuration := time.Second * 10 * time.Duration(iterations)
 	if loadTestRuntime > defaultDuration {
 		// Calculate iterations based on loadTestRuntime (each iteration is 10 seconds)
 		iterations = int(loadTestRuntime.Seconds() / 10)

@@ -13,6 +13,21 @@ chains:
       gas_prices: "0.00025uatom"
     num_of_validators: 6
     num_of_nodes: 0
+
+  simapp:
+    name: simapp
+    version: v0.50.13
+    dependencies:
+      skip-mev/ironbird-cometbft: cometbft/cometbft
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 6
+    num_of_nodes: 0
     genesis_modifications:
       - key: consensus.params.block.max_gas
         value: "75000000"
