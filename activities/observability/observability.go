@@ -77,17 +77,38 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	prometheusTask, err := monitoring.SetupPrometheusTask(ctx, logger, p, prometheusOptions)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after prometheus setup error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: providerState,
+		}, fmt.Errorf("failed to setup prometheus task: %w", err)
 	}
 
 	if err := prometheusTask.Start(ctx); err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after prometheus start error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: providerState,
+		}, fmt.Errorf("failed to start prometheus task: %w", err)
 	}
 
 	prometheusIp, err := prometheusTask.GetIP(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after prometheus IP error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: providerState,
+		}, fmt.Errorf("failed to get prometheus IP: %w", err)
 	}
 
 	grafanaOptions := monitoring.GrafanaOptions{
@@ -102,41 +123,126 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	grafanaTask, err := monitoring.SetupGrafanaTask(ctx, logger, p, grafanaOptions)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after grafana setup error: %v, original error: %w", serializeErr, err)
+		}
+
+		prometheusState, promErr := p.SerializeTask(ctx, prometheusTask)
+		if promErr != nil {
+			return PackagedState{
+				ProviderState: providerState,
+			}, fmt.Errorf("failed to serialize prometheus task after grafana setup error: %v, original error: %w", promErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:   providerState,
+			PrometheusState: prometheusState,
+		}, fmt.Errorf("failed to setup grafana task: %w", err)
 	}
 
 	if err := grafanaTask.Start(ctx); err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after grafana start error: %v, original error: %w", serializeErr, err)
+		}
+
+		prometheusState, promErr := p.SerializeTask(ctx, prometheusTask)
+		if promErr != nil {
+			return PackagedState{
+				ProviderState: providerState,
+			}, fmt.Errorf("failed to serialize prometheus task after grafana start error: %v, original error: %w", promErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:   providerState,
+			PrometheusState: prometheusState,
+		}, fmt.Errorf("failed to start grafana task: %w", err)
 	}
 
 	grafanaIp, err := grafanaTask.GetIP(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after grafana IP error: %v, original error: %w", serializeErr, err)
+		}
+
+		prometheusState, promErr := p.SerializeTask(ctx, prometheusTask)
+		if promErr != nil {
+			return PackagedState{
+				ProviderState: providerState,
+			}, fmt.Errorf("failed to serialize prometheus task after grafana IP error: %v, original error: %w", promErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:   providerState,
+			PrometheusState: prometheusState,
+		}, fmt.Errorf("failed to get grafana IP: %w", err)
 	}
 
 	externalGrafanaIp, err := grafanaTask.GetExternalAddress(ctx, "3000")
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after external grafana IP error: %v, original error: %w", serializeErr, err)
+		}
+
+		prometheusState, promErr := p.SerializeTask(ctx, prometheusTask)
+		if promErr != nil {
+			return PackagedState{
+				ProviderState: providerState,
+			}, fmt.Errorf("failed to serialize prometheus task after external grafana IP error: %v, original error: %w", promErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:   providerState,
+			PrometheusState: prometheusState,
+			GrafanaURL:      fmt.Sprintf("http://%s:3000", grafanaIp),
+		}, fmt.Errorf("failed to get external grafana IP: %w", err)
 	}
 
 	prometheusState, err := p.SerializeTask(ctx, prometheusTask)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after prometheus state error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:      providerState,
+			GrafanaURL:         fmt.Sprintf("http://%s:3000", grafanaIp),
+			ExternalGrafanaURL: fmt.Sprintf("http://%s", externalGrafanaIp),
+		}, fmt.Errorf("failed to serialize prometheus task: %w", err)
 	}
 
 	grafanaState, err := p.SerializeTask(ctx, grafanaTask)
 
 	if err != nil {
-		return PackagedState{}, err
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after grafana state error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState:      providerState,
+			PrometheusState:    prometheusState,
+			GrafanaURL:         fmt.Sprintf("http://%s:3000", grafanaIp),
+			ExternalGrafanaURL: fmt.Sprintf("http://%s", externalGrafanaIp),
+		}, fmt.Errorf("failed to serialize grafana task: %w", err)
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		return PackagedState{
+			PrometheusState:    prometheusState,
+			GrafanaState:       grafanaState,
+			GrafanaURL:         fmt.Sprintf("http://%s:3000", grafanaIp),
+			ExternalGrafanaURL: fmt.Sprintf("http://%s", externalGrafanaIp),
+		}, fmt.Errorf("failed to serialize provider: %w", err)
 	}
 
 	return PackagedState{
