@@ -98,7 +98,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	node := validators[len(validators)-1]
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
 	if err != nil {
-		logger.Fatal("failed to recover faucet wallet key", zap.Error(err))
+		logger.Error("failed to recover faucet wallet key", zap.Error(err))
+		return nil, fmt.Errorf("failed to recover faucet wallet key: %w", err)
 	}
 	time.Sleep(1 * time.Second)
 
