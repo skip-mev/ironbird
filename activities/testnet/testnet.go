@@ -38,7 +38,6 @@ type TestnetOptions struct {
 type PackagedState struct {
 	ProviderState []byte
 	ChainState    []byte
-	Nodes         []testnet.Node
 }
 
 type Activity struct {
