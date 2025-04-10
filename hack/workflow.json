@@ -5,20 +5,19 @@
   "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
   "ChainConfig": {
     "Name": "cosmos",
-    "NumOfNodes": 0,
-    "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
       "skip-mev/ironbird-cometbft": "cometbft/cometbft"
     },
     "Image": {
+      "Dockerfile": "./hack/simapp.Dockerfile",
       "GID": "1000",
       "UID": "1000",
       "BinaryName": "/usr/bin/simd",
-      "HomeDir": "/gaia",
+      "HomeDir": "/simd",
       "GasPrices": "0.0005stake"
     },
-    "Version": "v21.0.1",
+    "Version": "v0.50.13",
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
@@ -58,5 +57,5 @@
         "Type": "MsgMultiSend"
       }
     ]
-  },
+  }
 }
