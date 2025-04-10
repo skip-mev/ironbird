@@ -22,22 +22,6 @@
       {
         "key": "consensus.params.block.max_gas",
         "value": "75000000"
-      },
-      {
-        "key": "app_state.feemarket.params.enabled",
-        "value": true
-      },
-      {
-        "key": "app_state.feemarket.params.max_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.min_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.max_block_utilization",
-        "value": "150000000"
       }
     ],
     "NumOfNodes": 1,
