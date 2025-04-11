@@ -257,6 +257,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		})
 	}
 
+	packagedState.Nodes = testnetNodes
+
 	return packagedState, nil
 }
 
