@@ -45,7 +45,6 @@ func (a *App) generateInitialComment() (string, error) {
 	detailsMd = detailsMd.BulletList(commandEntries...)
 
 	customConfigMd := markdown.NewMarkdown(&customConfigOut)
-	customConfigMd = customConfigMd.PlainText("**Custom Load Test Configurations**").LF()
 	customConfigMd = customConfigMd.PlainText("You can provide a custom load test configuration using the `--load-test-config=` flag:").LF()
 	customConfigMd = customConfigMd.CodeBlocks("", `/ironbird start cosmos --load-test-config={
   "block_gas_limit_target": 0.75,
