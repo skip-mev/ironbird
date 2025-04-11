@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/nao1215/markdown"
@@ -259,10 +260,19 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	}
 
 	chainName := args[0][1]
-	loadTestName := args[0][2]
+	secondArg := args[0][2]
 
 	customConfig := CustomConfigRegex.FindStringSubmatch(command)
 	hasCustomConfig := len(customConfig) > 1
+
+	// Check if the second arg is the custom config flag, not a load test mode
+	isCustomConfigFlag := strings.HasPrefix(secondArg, "--load-test-config=")
+	loadTestName := ""
+
+	// Only treat secondArg as loadTestName if it's not the custom config flag
+	if !isCustomConfigFlag {
+		loadTestName = secondArg
+	}
 
 	// If custom config is provided, loadTestName should be empty
 	if hasCustomConfig && loadTestName != "" {
