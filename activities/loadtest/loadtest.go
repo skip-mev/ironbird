@@ -134,8 +134,8 @@ type Node struct {
 type Message struct {
 	Type          string  `yaml:"type" json:"type"`
 	Weight        float64 `yaml:"weight" json:"weight"`
-	NumMsgs       int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
-	ContainedType MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
+	NumMsgs       int     `yaml:"num_msgs" json:"NumMsgs"`
+	ContainedType MsgType `yaml:"contained_type" json:"ContainedType"`
 }
 
 type Activity struct {
