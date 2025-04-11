@@ -169,32 +169,44 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
-	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	numberOfCustomWallets := 400
-	for i := 0; i < numberOfCustomWallets; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
-			if err != nil {
-				logger.Error("failed to create wallet", zap.Error(err))
-				return
-			}
-			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
+	totalWallets := 2500
+	batchSize := 100 // batch to avoid crashing chain docker network
 
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
-		}()
+	for batch := 0; batch < totalWallets; batch += batchSize {
+		var wg sync.WaitGroup
+		currentBatchSize := batchSize
+		if batch+batchSize > totalWallets {
+			currentBatchSize = totalWallets - batch
+		}
+
+		logger.Info("creating wallet batch", zap.Int("batch", batch/batchSize+1), zap.Int("size", currentBatchSize))
+
+		for i := 0; i < currentBatchSize; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
+				if err != nil {
+					logger.Error("failed to create wallet", zap.Error(err))
+					return
+				}
+				logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
+
+				walletsMutex.Lock()
+				mnemonics = append(mnemonics, w.Mnemonic())
+				addresses = append(addresses, w.FormattedAddress())
+				walletsMutex.Unlock()
+			}()
+		}
+
+		wg.Wait()
+		logger.Info("completed wallet batch", zap.Int("batch", batch/batchSize+1), zap.Int("total_wallets", len(mnemonics)))
 	}
 
-	wg.Wait()
-
-	logger.Info("successfully created wallets ", zap.Int("count", len(mnemonics)))
+	logger.Info("successfully created all wallets", zap.Int("count", len(mnemonics)))
 
 	node := validators[len(validators)-1]
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
@@ -214,7 +226,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	command = append(command, "1000000000stake",
 		"--chain-id", chainConfig.ChainId,
 		"--keyring-backend", "test",
-		"--fees", "3000stake",
+		"--fees", "80000stake",
 		"--gas", "auto",
 		"--yes",
 		"--home", chainConfig.HomeDir,
