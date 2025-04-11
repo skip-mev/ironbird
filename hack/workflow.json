@@ -5,58 +5,48 @@
   "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
   "ChainConfig": {
     "Name": "cosmos",
-    "NumOfNodes": 0,
+    "NumOfNodes": 1,
     "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
       "skip-mev/ironbird-cometbft": "cometbft/cometbft"
     },
     "Image": {
+      "Dockerfile": "./hack/simapp.Dockerfile",
       "GID": "1000",
       "UID": "1000",
       "BinaryName": "/usr/bin/simd",
-      "HomeDir": "/gaia",
+      "HomeDir": "/simd",
       "GasPrices": "0.0005stake"
     },
-    "Version": "v21.0.1",
+    "Version": "v0.50.13",
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
         "value": "75000000"
-      },
-      {
-        "key": "app_state.feemarket.params.enabled",
-        "value": true
-      },
-      {
-        "key": "app_state.feemarket.params.max_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.min_learning_rate",
-        "value": "0"
-      },
-      {
-        "key": "app_state.feemarket.params.max_block_utilization",
-        "value": "150000000"
-      }
-    ],
-    "NumOfNodes": 1,
-    "NumOfValidators": 4
-  },
-  "RunnerType": "DigitalOcean",
-  "LoadTestConfig": {
-    "BlockGasLimitTarget": 1,
-    "NumOfBlocks": 10,
-    "Msgs": [
-      {
-        "Weight": 0.5,
-        "Type": "MsgSend"
-      },
-      {
-        "Weight": 0.5,
-        "Type": "MsgMultiSend"
       }
     ]
   },
+  "RunnerType": "Docker",
+  "LoadTestConfig": {
+    "BlockGasLimitTarget": 1,
+    "NumOfBlocks": 10,
+    "NumOfTxs": 1000,
+    "Msgs": [
+      {
+        "Weight": 0.3,
+        "Type": "MsgSend"
+      },
+      {
+        "Weight": 0.4,
+        "Type": "MsgMultiSend"
+      },
+      {
+        "Weight": 0.3,
+        "Type": "MsgArr",
+        "ContainedType": "MsgSend",
+        "NumMsgs": 2000
+      }
+    ]
+  }
 }

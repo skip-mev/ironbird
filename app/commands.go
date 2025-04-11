@@ -5,18 +5,21 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v66/github"
 	"github.com/nao1215/markdown"
 	"github.com/skip-mev/ironbird/types"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
-	testnet "github.com/skip-mev/ironbird/workflows/testnet"
+	"github.com/skip-mev/ironbird/workflows/testnet"
 	temporalclient "go.temporal.io/sdk/client"
+	"gopkg.in/yaml.v3"
 )
 
 var SubcommandRegex = regexp.MustCompile(`/ironbird ([^\s]*).*`)
-var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ([^\s]*)`)
+var StartRegex = regexp.MustCompile(`/ironbird start ([^\s]*) ?([^\s]*)`)
+var CustomConfigRegex = regexp.MustCompile(`--load-test-config=(\{.*\})`)
 
 type CommandFunc func(context.Context, *Comment, string) error
 type Command struct {
@@ -28,6 +31,7 @@ type Command struct {
 func (a *App) generateInitialComment() (string, error) {
 	var detailsOut bytes.Buffer
 	var mdOut bytes.Buffer
+	var customConfigOut bytes.Buffer
 
 	detailsMd := markdown.NewMarkdown(&detailsOut)
 	detailsMd = detailsMd.PlainText("To use Ironbird, you can use the following commands:").LF()
@@ -39,12 +43,31 @@ func (a *App) generateInitialComment() (string, error) {
 	}
 
 	detailsMd = detailsMd.BulletList(commandEntries...)
+
+	customConfigMd := markdown.NewMarkdown(&customConfigOut)
+	customConfigMd = customConfigMd.PlainText("You can provide a custom load test configuration using the `--load-test-config=` flag:").LF()
+	customConfigMd = customConfigMd.CodeBlocks("", `/ironbird start cosmos --load-test-config={
+  "block_gas_limit_target": 0.75,
+  "num_of_blocks": 50,
+  "msgs": [
+    {"weight": 0.3, "type": "MsgSend"},
+    {"weight": 0.3, "type": "MsgMultiSend"},
+	{"weight": 0.4, "type": "MsgArr", "ContainedType": "MsgSend", "NumMsgs": 3300}
+  ]
+}`)
+	customConfigMd = customConfigMd.PlainText("Use `/ironbird loadtests` to see more examples.").LF()
+
+	if err := customConfigMd.Build(); err != nil {
+		return "", err
+	}
+
 	if err := detailsMd.Build(); err != nil {
 		return "", err
 	}
 
 	md := markdown.NewMarkdown(&mdOut)
 	md = md.Details("Ironbird - launch a network", detailsOut.String())
+	md = md.Details("Custom Load Test Configuration", customConfigOut.String())
 
 	if err := md.Build(); err != nil {
 		return "", err
@@ -84,8 +107,7 @@ func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTes
 	}
 
 	loadTestMd := markdown.NewMarkdown(&loadTestDetails)
-	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test: `%s`", loadTestConfig.Name)).LF()
-	loadTestMd = loadTestMd.PlainText(fmt.Sprintf("Description: `%s`", loadTestConfig.Description)).LF()
+	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test config: `%v`", loadTestConfig)).LF()
 
 	if err := loadTestMd.Build(); err != nil {
 		return "", err
@@ -157,6 +179,48 @@ func (a *App) HandleCommand(ctx context.Context, comment *Comment, command strin
 	return nil
 }
 
+func (a *App) parseCustomLoadTestConfig(yamlStr string) (*types.LoadTestConfig, error) {
+	var customConfig types.LoadTestConfig
+	if err := yaml.Unmarshal([]byte(yamlStr), &customConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse custom load test config: %w", err)
+	}
+
+	if customConfig.Name == "" {
+		customConfig.Name = "custom"
+	}
+
+	if customConfig.BlockGasLimitTarget <= 0 && customConfig.NumOfTxs <= 0 {
+		return nil, fmt.Errorf("either block_gas_limit_target or num_of_txs must be set")
+	}
+
+	if customConfig.BlockGasLimitTarget > 0 && customConfig.NumOfTxs > 0 {
+		return nil, fmt.Errorf("only one of block_gas_limit_target or num_of_txs should be set, not both")
+	}
+
+	if customConfig.BlockGasLimitTarget > 1 {
+		return nil, fmt.Errorf("block gas limit target must be between 0 and 1, got %f", customConfig.BlockGasLimitTarget)
+	}
+
+	if customConfig.NumOfBlocks <= 0 {
+		return nil, fmt.Errorf("num_of_blocks must be greater than 0")
+	}
+
+	if len(customConfig.Msgs) == 0 {
+		return nil, fmt.Errorf("at least one message type must be specified")
+	}
+
+	totalWeight := 0.0
+	for _, msg := range customConfig.Msgs {
+		totalWeight += msg.Weight
+	}
+
+	if totalWeight != 1.0 {
+		return nil, fmt.Errorf("message weights must sum to exactly 1.0 (got %.2f)", totalWeight)
+	}
+
+	return &customConfig, nil
+}
+
 func (a *App) commandStart(ctx context.Context, comment *Comment, command string) error {
 	if !comment.Issue.IsPullRequest {
 		return fmt.Errorf("command can only be run on pull requests")
@@ -202,7 +266,29 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	}
 
 	chainName := args[0][1]
-	loadTestName := args[0][2]
+	secondArg := args[0][2]
+
+	customConfig := CustomConfigRegex.FindStringSubmatch(command)
+	hasCustomConfig := len(customConfig) > 1
+
+	// Check if the second arg is the custom config flag, not a load test mode
+	isCustomConfigFlag := strings.HasPrefix(secondArg, "--load-test-config=")
+	loadTestName := ""
+
+	// Only treat secondArg as loadTestName if it's not the custom config flag
+	if !isCustomConfigFlag {
+		loadTestName = secondArg
+	}
+
+	// If custom config is provided, loadTestName should be empty
+	if hasCustomConfig && loadTestName != "" {
+		return fmt.Errorf("when using --load-test-config, do not specify a load test mode (e.g., 'full')")
+	}
+
+	// If no custom config is provided, loadTestName is required
+	if !hasCustomConfig && loadTestName == "" {
+		return fmt.Errorf("load test mode is required when not using --load-test-config")
+	}
 
 	// Set runner type to DigitalOcean by default when using Github CLI
 	runnerType := testnettypes.DigitalOcean
@@ -213,10 +299,19 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		return fmt.Errorf("unknown chain %s", chainName)
 	}
 
-	loadTest, ok := a.cfg.LoadTests[loadTestName]
-
-	if !ok {
-		return fmt.Errorf("unknown load test %s", loadTestName)
+	var loadTest types.LoadTestConfig
+	if hasCustomConfig {
+		customLoadTest, err := a.parseCustomLoadTestConfig(customConfig[1])
+		if err != nil {
+			return err
+		}
+		loadTest = *customLoadTest
+	} else {
+		configuredLoadTest, ok := a.cfg.LoadTests[loadTestName]
+		if !ok {
+			return fmt.Errorf("unknown load test %s", loadTestName)
+		}
+		loadTest = configuredLoadTest
 	}
 
 	id := fmt.Sprintf("%s/%s/%s/pr-%d", chain.Name, comment.Issue.Owner, comment.Issue.Repo, comment.Issue.Number)
@@ -288,22 +383,45 @@ func (a *App) commandChains(ctx context.Context, comment *Comment, _ string) err
 
 func (a *App) commandLoadTests(ctx context.Context, comment *Comment, _ string) error {
 	var mdOut bytes.Buffer
+	var exampleOut bytes.Buffer
 
 	md := markdown.NewMarkdown(&mdOut)
+	exampleMd := markdown.NewMarkdown(&exampleOut)
 
 	var entries []string
 	for name, loadTest := range a.cfg.LoadTests {
 		entries = append(entries, fmt.Sprintf("`%s` - `%s`", name, loadTest.Description))
 	}
 
+	entries = append(entries, "`custom` - Use the `--load-test-config={...}` flag with the start command to provide an inline YAML configuration")
+
 	md = md.H3("Ironbird - available loadtests")
 	md = md.BulletList(entries...)
+
+	exampleMd = exampleMd.PlainText("Example of using a custom load test configuration:").LF()
+	exampleMd = exampleMd.CodeBlocks("", `/ironbird start cosmos --load-test-config={
+  "name": "custom-test",
+  "description": "Custom load test with 1000 transactions per block",
+  "num_of_txs": 1000,
+  "num_of_blocks": 50,
+  "msgs": [
+    {"weight": 0.3, "type": "MsgSend"},
+    {"weight": 0.3, "type": "MsgMultiSend"},
+	{"weight": 0.4, "type": "MsgArr", "ContainedType": "MsgSend", "NumMsgs": 50 }
+  ]
+}`)
+
+	if err := exampleMd.Build(); err != nil {
+		return err
+	}
 
 	if err := md.Build(); err != nil {
 		return err
 	}
 
-	if _, err := a.CreateComment(ctx, comment.Issue, mdOut.String()); err != nil {
+	finalOutput := mdOut.String() + "\n\n" + exampleOut.String()
+
+	if _, err := a.CreateComment(ctx, comment.Issue, finalOutput); err != nil {
 		return err
 	}
 

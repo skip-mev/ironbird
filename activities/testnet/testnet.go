@@ -155,7 +155,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		}
 	}
 
-	chain, err := petrichain.CreateChain(
+	chain, chainErr := petrichain.CreateChain(
 		ctx,
 		logger,
 		p,
@@ -189,32 +189,32 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		},
 	)
 
-	if err != nil {
-		providerState, err := p.SerializeProvider(ctx)
-		if err != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	if chainErr != nil {
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
 		packagedState.ProviderState = providerState
 
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to create chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return packagedState, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	err = chain.Init(ctx, types.ChainOptions{
+	initErr := chain.Init(ctx, types.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(opts.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  CosmosWalletConfig,
 	})
 
-	if err != nil {
-		providerState, err := p.SerializeProvider(ctx)
-		if err != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	if initErr != nil {
+		providerState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
 		packagedState.ProviderState = providerState
 
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to init chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return packagedState, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
@@ -256,6 +256,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 			Metrics: fmt.Sprintf("%s:26660", metricsIp),
 		})
 	}
+
+	packagedState.Nodes = testnetNodes
 
 	return packagedState, nil
 }

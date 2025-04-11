@@ -3,8 +3,9 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/skip-mev/ironbird/activities/loadtest"
 	"os"
+
+	"github.com/skip-mev/ironbird/activities/loadtest"
 
 	"github.com/palantir/go-githubapp/githubapp"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
@@ -19,11 +20,12 @@ type TailscaleConfig struct {
 }
 
 type LoadTestConfig struct {
-	Name                string             `yaml:"name"`
-	Description         string             `yaml:"description"`
-	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target"`
-	NumOfBlocks         int                `yaml:"num_of_blocks"`
-	Msgs                []loadtest.Message `yaml:"msgs"`
+	Name                string             `yaml:"name" json:"Name"`
+	Description         string             `yaml:"description" json:"Description"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty" json:"BlockGasLimitTarget,omitempty"`
+	NumOfBlocks         int                `yaml:"num_of_blocks" json:"NumOfBlocks"`
+	NumOfTxs            int                `yaml:"num_of_txs,omitempty" json:"NumOfTxs,omitempty"`
+	Msgs                []loadtest.Message `yaml:"msgs" json:"Msgs"`
 }
 
 type AppConfig struct {
@@ -73,8 +75,8 @@ type ChainsConfig struct {
 	Image                ImageConfig            `yaml:"image"`
 	Version              string                 `yaml:"version"`
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
-	NumOfNodes      uint64            `yaml:"num_of_nodes"`
-	NumOfValidators uint64            `yaml:"num_of_validators"`
+	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
+	NumOfValidators      uint64                 `yaml:"num_of_validators"`
 }
 
 type ImageConfig struct {

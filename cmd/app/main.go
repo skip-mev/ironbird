@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+
 	"github.com/skip-mev/ironbird/app"
 	"github.com/skip-mev/ironbird/types"
 )

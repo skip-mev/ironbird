@@ -4,6 +4,9 @@ chains:
     version: v21.0.1
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
+      cometbft/cometbft: cometbft/cometbft
+      cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/gaia.Dockerfile"
       gid: "1025"
@@ -14,11 +17,56 @@ chains:
     num_of_validators: 6
     num_of_nodes: 0
 
-  simapp:
-    name: simapp
+  simapp-v47:
+    name: simapp-v47
+    version: v0.47.17
+    dependencies:
+      skip-mev/ironbird-cometbft: cometbft/cometbft
+      cometbft/cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
+      cosmos/cosmos-sdk: cosmos/cosmos-sdk
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 6
+    num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus_params.block.max_gas
+        value: "75000000"
+
+  simapp-v50:
+    name: simapp-v50
     version: v0.50.13
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
+      cometbft/cometbft: cometbft/cometbft
+      cosmos/cosmos-sdk: cosmos/cosmos-sdk
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 6
+    num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus.params.block.max_gas
+        value: "75000000"
+
+  simapp-v53:
+    name: simapp-v53
+    version: v0.53.0-rc.2
+    dependencies:
+      skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
+      cometbft/cometbft: cometbft/cometbft
+      cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/simapp.Dockerfile"
       gid: "1000"
