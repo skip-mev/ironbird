@@ -20,12 +20,12 @@ type TailscaleConfig struct {
 }
 
 type LoadTestConfig struct {
-	Name                string             `yaml:"name"`
-	Description         string             `yaml:"description"`
-	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty"`
-	NumOfBlocks         int                `yaml:"num_of_blocks"`
-	NumOfTxs            int                `yaml:"num_of_txs,omitempty"`
-	Msgs                []loadtest.Message `yaml:"msgs"`
+	Name                string             `yaml:"name" json:"Name"`
+	Description         string             `yaml:"description" json:"Description"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty" json:"BlockGasLimitTarget,omitempty"`
+	NumOfBlocks         int                `yaml:"num_of_blocks" json:"NumOfBlocks"`
+	NumOfTxs            int                `yaml:"num_of_txs,omitempty" json:"NumOfTxs,omitempty"`
+	Msgs                []loadtest.Message `yaml:"msgs" json:"Msgs"`
 }
 
 type AppConfig struct {
