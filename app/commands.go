@@ -108,8 +108,7 @@ func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTes
 	}
 
 	loadTestMd := markdown.NewMarkdown(&loadTestDetails)
-	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test: `%s`", loadTestConfig.Name)).LF()
-	loadTestMd = loadTestMd.PlainText(fmt.Sprintf("Description: `%s`", loadTestConfig.Description)).LF()
+	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test config: `%v`", loadTestConfig)).LF()
 
 	if err := loadTestMd.Build(); err != nil {
 		return "", err
