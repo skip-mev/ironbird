@@ -191,8 +191,16 @@ func (a *App) parseCustomLoadTestConfig(yamlStr string) (*types.LoadTestConfig, 
 		customConfig.Name = "custom"
 	}
 
-	if customConfig.BlockGasLimitTarget <= 0 || customConfig.BlockGasLimitTarget > 1 {
-		return nil, fmt.Errorf("block_gas_limit_target must be between 0 and 1")
+	if customConfig.BlockGasLimitTarget <= 0 && customConfig.NumOfTxs <= 0 {
+		return nil, fmt.Errorf("either block_gas_limit_target or num_of_txs must be set")
+	}
+
+	if customConfig.BlockGasLimitTarget > 0 && customConfig.NumOfTxs > 0 {
+		return nil, fmt.Errorf("only one of block_gas_limit_target or num_of_txs should be set, not both")
+	}
+
+	if customConfig.BlockGasLimitTarget > 1 {
+		return nil, fmt.Errorf("block gas limit target must be between 0 and 1, got %f", customConfig.BlockGasLimitTarget)
 	}
 
 	if customConfig.NumOfBlocks <= 0 {
