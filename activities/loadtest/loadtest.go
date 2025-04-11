@@ -300,7 +300,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:dev",
+			Image: "ghcr.io/skip-mev/catalyst:latest",
 			UID:   "100",
 			GID:   "100",
 		},
