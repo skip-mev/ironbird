@@ -3,8 +3,9 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/skip-mev/ironbird/activities/loadtest"
 	"os"
+
+	"github.com/skip-mev/ironbird/activities/loadtest"
 
 	"github.com/palantir/go-githubapp/githubapp"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
@@ -23,6 +24,7 @@ type LoadTestConfig struct {
 	Description         string             `yaml:"description"`
 	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target"`
 	NumOfBlocks         int                `yaml:"num_of_blocks"`
+	NumOfTxs            int                `yaml:"num_of_txs"`
 	Msgs                []loadtest.Message `yaml:"msgs"`
 }
 
@@ -73,8 +75,8 @@ type ChainsConfig struct {
 	Image                ImageConfig            `yaml:"image"`
 	Version              string                 `yaml:"version"`
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
-	NumOfNodes      uint64            `yaml:"num_of_nodes"`
-	NumOfValidators uint64            `yaml:"num_of_validators"`
+	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
+	NumOfValidators      uint64                 `yaml:"num_of_validators"`
 }
 
 type ImageConfig struct {

@@ -5,6 +5,8 @@
   "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
   "ChainConfig": {
     "Name": "cosmos",
+    "NumOfNodes": 1,
+    "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
       "skip-mev/ironbird-cometbft": "cometbft/cometbft"
@@ -23,22 +25,27 @@
         "key": "consensus.params.block.max_gas",
         "value": "75000000"
       }
-    ],
-    "NumOfNodes": 1,
-    "NumOfValidators": 4
+    ]
   },
-  "RunnerType": "DigitalOcean",
+  "RunnerType": "Docker",
   "LoadTestConfig": {
     "BlockGasLimitTarget": 1,
     "NumOfBlocks": 10,
+    "NumOfTxs": 1000,
     "Msgs": [
       {
-        "Weight": 0.5,
+        "Weight": 0.3,
         "Type": "MsgSend"
       },
       {
-        "Weight": 0.5,
+        "Weight": 0.4,
         "Type": "MsgMultiSend"
+      },
+      {
+        "Weight": 0.3,
+        "Type": "MsgArr",
+        "ContainedType": "MsgSend",
+        "NumMsgs": 2000
       }
     ]
   }

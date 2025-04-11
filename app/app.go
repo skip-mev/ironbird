@@ -59,7 +59,7 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 	app.commands = make(map[string]Command)
 	app.commands["start"] = Command{
 		Description: "Launch a testnet with the specified chain and load test configuration.",
-		Usage:       "/ironbird start <chain> <loadtest>",
+		Usage:       "/ironbird start <chain> <loadtest> [--load-test-config=<yaml>]",
 		Func:        app.commandStart,
 	}
 	app.commands["chains"] = Command{

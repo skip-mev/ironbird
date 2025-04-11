@@ -132,8 +132,10 @@ type Node struct {
 }
 
 type Message struct {
-	Type   string  `yaml:"type"`
-	Weight float64 `yaml:"weight"`
+	Type          string  `yaml:"type"`
+	Weight        float64 `yaml:"weight"`
+	NumMsgs       int     `yaml:"num_msgs,omitempty"`
+	ContainedType MsgType `yaml:"contained_type,omitempty"`
 }
 
 type Activity struct {
@@ -286,7 +288,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:dev",
 			UID:   "100",
 			GID:   "100",
 		},
