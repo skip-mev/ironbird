@@ -133,10 +133,10 @@ type Node struct {
 }
 
 type Message struct {
-	Type          string  `yaml:"type"`
-	Weight        float64 `yaml:"weight"`
-	NumMsgs       int     `yaml:"num_msgs,omitempty"`
-	ContainedType MsgType `yaml:"contained_type,omitempty"`
+	Type          string  `yaml:"type" json:"type"`
+	Weight        float64 `yaml:"weight" json:"weight"`
+	NumMsgs       int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
+	ContainedType MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
 }
 
 type Activity struct {
@@ -166,7 +166,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		})
 	}
 
-	numberOfCustomWallets := 100
+	numberOfCustomWallets := 400
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
