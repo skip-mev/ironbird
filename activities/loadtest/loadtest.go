@@ -117,7 +117,8 @@ type PackagedState struct {
 
 type LoadTestConfig struct {
 	ChainID             string    `yaml:"chain_id"`
-	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target"`
+	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target,omitempty"`
+	NumOfTxs            int       `yaml:"num_of_txs,omitempty"`
 	NumOfBlocks         int       `yaml:"num_of_blocks"`
 	NodesAddresses      []Node    `yaml:"nodes_addresses"`
 	Mnemonics           []string  `yaml:"mnemonics"`
@@ -132,10 +133,10 @@ type Node struct {
 }
 
 type Message struct {
-	Type          string  `yaml:"type" json:"type"`
-	Weight        float64 `yaml:"weight" json:"weight"`
-	NumMsgs       int     `yaml:"num_msgs" json:"NumMsgs"`
-	ContainedType MsgType `yaml:"contained_type" json:"ContainedType"`
+	Type          string  `yaml:"type"`
+	Weight        float64 `yaml:"weight"`
+	NumMsgs       int     `yaml:"num_msgs,omitempty"`
+	ContainedType MsgType `yaml:"contained_type,omitempty"`
 }
 
 type Activity struct {
@@ -226,14 +227,21 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	time.Sleep(5 * time.Second)
 
 	config := LoadTestConfig{
-		ChainID:             chainID,
-		BlockGasLimitTarget: loadTestConfig.BlockGasLimitTarget,
-		NumOfBlocks:         loadTestConfig.NumOfBlocks,
-		NodesAddresses:      nodes,
-		Mnemonics:           mnemonics,
-		GasDenom:            chain.GetConfig().Denom,
-		Bech32Prefix:        chain.GetConfig().Bech32Prefix,
-		Msgs:                loadTestConfig.Msgs,
+		ChainID:        chainID,
+		NumOfBlocks:    loadTestConfig.NumOfBlocks,
+		NodesAddresses: nodes,
+		Mnemonics:      mnemonics,
+		GasDenom:       chain.GetConfig().Denom,
+		Bech32Prefix:   chain.GetConfig().Bech32Prefix,
+		Msgs:           loadTestConfig.Msgs,
+	}
+
+	if loadTestConfig.NumOfTxs > 0 {
+		config.NumOfTxs = loadTestConfig.NumOfTxs
+	} else if loadTestConfig.BlockGasLimitTarget > 0 {
+		config.BlockGasLimitTarget = loadTestConfig.BlockGasLimitTarget
+	} else {
+		return nil, fmt.Errorf("failed to generate load test config, either BlockGasLimitTarget or NumOfTxs must be provided")
 	}
 	logger.Info("Load test config constructed", zap.Any("config", config))
 
