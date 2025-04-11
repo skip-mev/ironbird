@@ -117,7 +117,8 @@ type PackagedState struct {
 
 type LoadTestConfig struct {
 	ChainID             string    `yaml:"chain_id"`
-	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target"`
+	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target,omitempty"`
+	NumOfTxs            int       `yaml:"num_of_txs,omitempty"`
 	NumOfBlocks         int       `yaml:"num_of_blocks"`
 	NodesAddresses      []Node    `yaml:"nodes_addresses"`
 	Mnemonics           []string  `yaml:"mnemonics"`
@@ -132,8 +133,10 @@ type Node struct {
 }
 
 type Message struct {
-	Type   string  `yaml:"type"`
-	Weight float64 `yaml:"weight"`
+	Type          string  `yaml:"type" json:"type"`
+	Weight        float64 `yaml:"weight" json:"weight"`
+	NumMsgs       int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
+	ContainedType MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
 }
 
 type Activity struct {
@@ -163,35 +166,47 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 		})
 	}
 
-	numberOfCustomWallets := 100
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
-	var wg sync.WaitGroup
 
 	faucetWallet := chain.GetFaucetWallet()
 
-	for i := 0; i < numberOfCustomWallets; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
-			if err != nil {
-				logger.Error("failed to create wallet", zap.Error(err))
-				return
-			}
-			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
+	totalWallets := 2500
+	batchSize := 100 // batch to avoid crashing chain docker network
 
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
-		}()
+	for batch := 0; batch < totalWallets; batch += batchSize {
+		var wg sync.WaitGroup
+		currentBatchSize := batchSize
+		if batch+batchSize > totalWallets {
+			currentBatchSize = totalWallets - batch
+		}
+
+		logger.Info("creating wallet batch", zap.Int("batch", batch/batchSize+1), zap.Int("size", currentBatchSize))
+
+		for i := 0; i < currentBatchSize; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
+				if err != nil {
+					logger.Error("failed to create wallet", zap.Error(err))
+					return
+				}
+				logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
+
+				walletsMutex.Lock()
+				mnemonics = append(mnemonics, w.Mnemonic())
+				addresses = append(addresses, w.FormattedAddress())
+				walletsMutex.Unlock()
+			}()
+		}
+
+		wg.Wait()
+		logger.Info("completed wallet batch", zap.Int("batch", batch/batchSize+1), zap.Int("total_wallets", len(mnemonics)))
 	}
 
-	wg.Wait()
-
-	logger.Info("successfully created wallets ", zap.Int("count", len(mnemonics)))
+	logger.Info("successfully created all wallets", zap.Int("count", len(mnemonics)))
 
 	node := validators[len(validators)-1]
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
@@ -211,7 +226,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	command = append(command, "1000000000stake",
 		"--chain-id", chainConfig.ChainId,
 		"--keyring-backend", "test",
-		"--fees", "3000stake",
+		"--fees", "80000stake",
 		"--gas", "auto",
 		"--yes",
 		"--home", chainConfig.HomeDir,
@@ -223,23 +238,22 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	}
 	time.Sleep(5 * time.Second)
 
-	var msgs []Message
-	for _, msg := range loadTestConfig.Msgs {
-		msgs = append(msgs, Message{
-			Type:   msg.Type,
-			Weight: msg.Weight,
-		})
+	config := LoadTestConfig{
+		ChainID:        chainID,
+		NumOfBlocks:    loadTestConfig.NumOfBlocks,
+		NodesAddresses: nodes,
+		Mnemonics:      mnemonics,
+		GasDenom:       chain.GetConfig().Denom,
+		Bech32Prefix:   chain.GetConfig().Bech32Prefix,
+		Msgs:           loadTestConfig.Msgs,
 	}
 
-	config := LoadTestConfig{
-		ChainID:             chainID,
-		BlockGasLimitTarget: loadTestConfig.BlockGasLimitTarget,
-		NumOfBlocks:         loadTestConfig.NumOfBlocks,
-		NodesAddresses:      nodes,
-		Mnemonics:           mnemonics,
-		GasDenom:            chain.GetConfig().Denom,
-		Bech32Prefix:        chain.GetConfig().Bech32Prefix,
-		Msgs:                msgs,
+	if loadTestConfig.NumOfTxs > 0 {
+		config.NumOfTxs = loadTestConfig.NumOfTxs
+	} else if loadTestConfig.BlockGasLimitTarget > 0 {
+		config.BlockGasLimitTarget = loadTestConfig.BlockGasLimitTarget
+	} else {
+		return nil, fmt.Errorf("failed to generate load test config, either BlockGasLimitTarget or NumOfTxs must be provided")
 	}
 	logger.Info("Load test config constructed", zap.Any("config", config))
 
@@ -286,7 +300,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:dev",
 			UID:   "100",
 			GID:   "100",
 		},

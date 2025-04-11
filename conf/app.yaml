@@ -4,6 +4,7 @@ chains:
     version: v21.0.1
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
       cometbft/cometbft: cometbft/cometbft
       cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:
@@ -22,6 +23,7 @@ chains:
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
       cometbft/cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
       cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/simapp.Dockerfile"
@@ -41,6 +43,7 @@ chains:
     version: v0.50.13
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
       cometbft/cometbft: cometbft/cometbft
       cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:
@@ -61,6 +64,7 @@ chains:
     version: v0.53.0-rc.2
     dependencies:
       skip-mev/ironbird-cometbft: cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
       cometbft/cometbft: cometbft/cometbft
       cosmos/cosmos-sdk: cosmos/cosmos-sdk
     image:

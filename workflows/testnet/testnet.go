@@ -152,13 +152,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			configStr := fmt.Sprintf(
-				"- Block Gas Limit Target: %.2f%%\n"+
-					"- Number of Blocks: %d\n"+
-					"- Message Types: %v\n",
-				opts.LoadTestConfig.BlockGasLimitTarget*100,
-				opts.LoadTestConfig.NumOfBlocks,
-				opts.LoadTestConfig.Msgs)
+			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", opts.LoadTestConfig)
 
 			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
 			if err != nil {
