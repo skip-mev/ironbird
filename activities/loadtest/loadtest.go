@@ -10,14 +10,14 @@ import (
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
-	petriutil "github.com/skip-mev/petri/core/v3/util"
-
 	"github.com/skip-mev/ironbird/activities/testnet"
+	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
+	"github.com/skip-mev/petri/cosmos/v3/wallet"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -188,7 +188,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				w, err := chain.CreateWallet(ctx, petriutil.RandomString(5), testnet.CosmosWalletConfig)
+				w, err := wallet.NewGeneratedWallet(petriutil.RandomString(5), testnet.CosmosWalletConfig)
 				if err != nil {
 					logger.Error("failed to create wallet", zap.Error(err))
 					return
