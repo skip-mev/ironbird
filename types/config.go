@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/skip-mev/ironbird/activities/loadtest"
 
@@ -22,10 +23,12 @@ type TailscaleConfig struct {
 type LoadTestConfig struct {
 	Name                string             `yaml:"name" json:"Name"`
 	Description         string             `yaml:"description" json:"Description"`
-	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty" json:"BlockGasLimitTarget,omitempty"`
 	NumOfBlocks         int                `yaml:"num_of_blocks" json:"NumOfBlocks"`
+	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty" json:"BlockGasLimitTarget,omitempty"`
 	NumOfTxs            int                `yaml:"num_of_txs,omitempty" json:"NumOfTxs,omitempty"`
 	Msgs                []loadtest.Message `yaml:"msgs" json:"Msgs"`
+	UnorderedTxs        bool               `yaml:"unordered_txs" json:"UnorderedTxs,omitempty"`
+	TxTimeout           time.Duration      `yaml:"tx_timeout" json:"TxTimeout,omitempty"`
 }
 
 type AppConfig struct {

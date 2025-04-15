@@ -133,10 +133,11 @@ type Node struct {
 }
 
 type Message struct {
-	Type          string  `yaml:"type" json:"type"`
-	Weight        float64 `yaml:"weight" json:"weight"`
-	NumMsgs       int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
-	ContainedType MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
+	Type            string  `yaml:"type" json:"type"`
+	Weight          float64 `yaml:"weight" json:"weight"`
+	NumMsgs         int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
+	ContainedType   MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
+	NumOfRecipients int     `yaml:"num_of_recipients,omitempty" json:"NumOfRecipients,omitempty"` // Number of recipients to include for MsgMultiSend
 }
 
 type Activity struct {
