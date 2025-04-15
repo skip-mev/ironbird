@@ -3,11 +3,11 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"time"
 
 	"github.com/nao1215/markdown"
-	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 	"go.temporal.io/sdk/workflow"
@@ -27,9 +27,9 @@ type Report struct {
 	observabilityURL string
 	screenshots      map[string]string
 	buildResult      builder.BuildResult
-	loadTestResults  *loadtest.LoadTestResult
+	loadTestResults  *types.LoadTestResult
 	loadTestStatus   string
-	loadTestConfig   string
+	loadTestSpec     string
 }
 
 func NewReport(ctx workflow.Context, name, title, summary string, opts *WorkflowOptions) (*Report, error) {
@@ -142,9 +142,9 @@ func (r *Report) SetObservabilityURL(ctx workflow.Context, url string) error {
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) UpdateLoadTest(ctx workflow.Context, status string, config string, results *loadtest.LoadTestResult) error {
+func (r *Report) UpdateLoadTest(ctx workflow.Context, status string, config string, results *types.LoadTestResult) error {
 	r.loadTestStatus = status
-	r.loadTestConfig = config
+	r.loadTestSpec = config
 	r.loadTestResults = results
 	return r.UpdateCheck(ctx)
 }
@@ -187,15 +187,14 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 	if r.loadTestStatus != "" {
 		md.H2("Status")
 		md.PlainText(r.loadTestStatus)
-		if r.loadTestConfig != "" {
+		if r.loadTestSpec != "" {
 			md.H2("Configuration")
-			md.PlainText(r.loadTestConfig)
+			md.PlainText(r.loadTestSpec)
 		}
 	}
 
 	// If we have results and no error, show them
 	if r.loadTestResults != nil && r.loadTestResults.Error == "" {
-		// Overall stats
 		md.H2("🎯 Overall Statistics")
 		rows := [][]string{
 			{"Total Transactions", fmt.Sprintf("%d", r.loadTestResults.Overall.TotalTransactions)},
@@ -211,7 +210,6 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 			Rows:   rows,
 		})
 
-		// Message type stats
 		md.H2("📊 Message Type Statistics")
 		for msgType, stats := range r.loadTestResults.ByMessage {
 			md.H3(string(msgType))
@@ -228,16 +226,8 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 				Header: []string{"Metric", "Value"},
 				Rows:   rows,
 			})
-
-			if len(stats.Errors.BroadcastErrors) > 0 {
-				md.H4("Errors")
-				for errType, count := range stats.Errors.ErrorCounts {
-					md.PlainText(fmt.Sprintf("- %s: %d occurrences\n", errType, count))
-				}
-			}
 		}
 
-		// Node stats
 		md.H2("🖥️ Node Statistics")
 		for nodeAddr, stats := range r.loadTestResults.ByNode {
 			md.H3(nodeAddr)
@@ -265,7 +255,6 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 			})
 		}
 
-		// Block stats
 		md.H2("📦 Block Statistics Summary")
 		if len(r.loadTestResults.ByBlock) > 0 {
 			var totalGasUtilization float64
