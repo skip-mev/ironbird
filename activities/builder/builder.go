@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -24,6 +25,11 @@ import (
 type Activity struct {
 	BuilderConfig types.BuilderConfig
 	AwsConfig     *aws.Config
+}
+
+type BuildResult struct {
+	FQDNTag string
+	Logs    []byte
 }
 
 func (a *Activity) getAuthenticationToken(ctx context.Context) (string, string, error) {
@@ -99,21 +105,21 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	return nil
 }
 
-func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[string][]byte, buildArgs map[string]string) (string, error) {
+func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[string][]byte, buildArgs map[string]string) (BuildResult, error) {
 	if err := a.createRepositoryIfNotExists(ctx); err != nil {
-		return "", err
+		return BuildResult{}, err
 	}
 
 	username, password, err := a.getAuthenticationToken(ctx)
 
 	if err != nil {
-		return "", err
+		return BuildResult{}, err
 	}
 
 	bkClient, err := client.New(ctx, a.BuilderConfig.BuildKitAddress)
 
 	if err != nil {
-		return "", err
+		return BuildResult{}, err
 	}
 	defer bkClient.Close()
 
@@ -164,11 +170,14 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	}
 
 	statusChan := make(chan *client.SolveStatus)
+	var logs bytes.Buffer
 
 	go func() {
 		for status := range statusChan {
 			for _, v := range status.Logs {
-				fmt.Printf("[%s]: %s\n", v.Timestamp.String(), string(v.Data))
+				logLine := fmt.Sprintf("[%s]: %s\n", v.Timestamp.String(), string(v.Data))
+				logs.WriteString(logLine)
+				fmt.Print(logLine)
 			}
 		}
 	}()
@@ -176,8 +185,11 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	_, err = bkClient.Solve(ctx, nil, solveOpt, statusChan)
 
 	if err != nil {
-		return "", err
+		return BuildResult{}, err
 	}
 
-	return fqdnTag, nil
+	return BuildResult{
+		FQDNTag: fqdnTag,
+		Logs:    logs.Bytes(),
+	}, nil
 }

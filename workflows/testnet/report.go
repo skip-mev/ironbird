@@ -3,6 +3,7 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/builder"
 	"time"
 
 	"github.com/nao1215/markdown"
@@ -25,6 +26,7 @@ type Report struct {
 	nodes            []testnettypes.Node
 	observabilityURL string
 	screenshots      map[string]string
+	buildResult      builder.BuildResult
 	loadTestResults  *loadtest.LoadTestResult
 	loadTestStatus   string
 	loadTestConfig   string
@@ -117,6 +119,11 @@ func (r *Report) SetStatus(ctx workflow.Context, status, title, summary string) 
 	r.title = title
 	r.summary = summary
 
+	return r.UpdateCheck(ctx)
+}
+
+func (r *Report) SetBuildResult(ctx workflow.Context, buildResult builder.BuildResult) error {
+	r.buildResult = buildResult
 	return r.UpdateCheck(ctx)
 }
 
@@ -294,6 +301,16 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 	}
 }
 
+func (r *Report) addBuildResultToMarkdown(md *markdown.Markdown) {
+	var buf bytes.Buffer
+	subMd := markdown.NewMarkdown(&buf)
+
+	subMd.H3f("Image tag: %s\n\n", r.buildResult.FQDNTag)
+	subMd.H3("Build logs:\n\n")
+	subMd.CodeBlocks(markdown.SyntaxHighlightNone, string(r.buildResult.Logs))
+	md.Details("Image build results", subMd.String())
+}
+
 func (r *Report) Markdown() (string, error) {
 	var buf bytes.Buffer
 
@@ -301,6 +318,10 @@ func (r *Report) Markdown() (string, error) {
 
 	if len(r.nodes) > 0 {
 		r.addNodesToMarkdown(md)
+	}
+
+	if r.buildResult.FQDNTag != "" {
+		r.addBuildResultToMarkdown(md)
 	}
 
 	if r.observabilityURL != "" {

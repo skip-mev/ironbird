@@ -17,12 +17,12 @@ func generateTag(chain, version, owner, repo, sha string) string {
 	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
 }
 
-func buildImage(ctx workflow.Context, opts WorkflowOptions) (string, error) {
+func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult, error) {
 	// todo: side effect
 	dockerFileBz, err := os.ReadFile(opts.ChainConfig.Image.Dockerfile)
 
 	if err != nil {
-		return "", err
+		return builder.BuildResult{}, err
 	}
 
 	replaces := generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
@@ -30,18 +30,18 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var builderActivity *builder.Activity
 	tag := generateTag(opts.ChainConfig.Name, opts.ChainConfig.Version, opts.Owner, opts.Repo, opts.SHA)
 
-	var builtTag string
+	var buildResult builder.BuildResult
 
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
 		"Dockerfile":  dockerFileBz,
 		"replaces.sh": replaces,
 	}, map[string]string{
 		"CHAIN_TAG": opts.ChainConfig.Version,
-	}).Get(ctx, &builtTag)
+	}).Get(ctx, &buildResult)
 
 	if err != nil {
-		return "", err
+		return builder.BuildResult{}, err
 	}
 
-	return builtTag, nil
+	return buildResult, nil
 }

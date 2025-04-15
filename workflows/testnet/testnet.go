@@ -59,15 +59,19 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	builtTag, err := buildImage(ctx, opts)
+	buildResult, err := buildImage(ctx, opts)
 
 	if err != nil {
 		return "", err
 	}
 
+	if err := report.SetBuildResult(ctx, buildResult); err != nil {
+		return "", err
+	}
+
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
-		Image:                builtTag,
+		Image:                buildResult.FQDNTag,
 		UID:                  opts.ChainConfig.Image.UID,
 		GID:                  opts.ChainConfig.Image.GID,
 		BinaryName:           opts.ChainConfig.Image.BinaryName,
