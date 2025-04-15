@@ -3,10 +3,10 @@ chains:
     name: cosmos
     version: v21.0.1
     dependencies:
-      skip-mev/ironbird-cometbft: cometbft/cometbft
-      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
-      cometbft/cometbft: cometbft/cometbft
-      cosmos/cosmos-sdk: cosmos/cosmos-sdk
+      skip-mev/ironbird-cometbft: github.com/cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: github.com/cosmos/cosmos-sdk
+      cometbft/cometbft: github.com/cometbft/cometbft
+      cosmos/cosmos-sdk: github.com/cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/gaia.Dockerfile"
       gid: "1025"
@@ -21,10 +21,10 @@ chains:
     name: simapp-v47
     version: v0.47.17
     dependencies:
-      skip-mev/ironbird-cometbft: cometbft/cometbft
-      cometbft/cometbft: cometbft/cometbft
-      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
-      cosmos/cosmos-sdk: cosmos/cosmos-sdk
+      skip-mev/ironbird-cometbft: github.com/cometbft/cometbft
+      cometbft/cometbft: github.com/cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: github.com/cosmos/cosmos-sdk
+      cosmos/cosmos-sdk: github.com/cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/simapp.Dockerfile"
       gid: "1000"
@@ -63,10 +63,10 @@ chains:
     name: simapp-v53
     version: v0.53.0-rc.2
     dependencies:
-      skip-mev/ironbird-cometbft: cometbft/cometbft
-      skip-mev/ironbird-cosmos-sdk: cosmos/cosmos-sdk
-      cometbft/cometbft: cometbft/cometbft
-      cosmos/cosmos-sdk: cosmos/cosmos-sdk
+      skip-mev/ironbird-cometbft: github.com/cometbft/cometbft
+      skip-mev/ironbird-cosmos-sdk: github.com/cosmos/cosmos-sdk
+      cometbft/cometbft: github.com/cometbft/cometbft
+      cosmos/cosmos-sdk: github.com/cosmos/cosmos-sdk
     image:
       dockerfile: "./hack/simapp.Dockerfile"
       gid: "1000"

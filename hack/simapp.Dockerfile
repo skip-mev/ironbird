@@ -11,9 +11,12 @@ ARG CHAIN_TAG=main
 RUN git clone --depth 1 --branch $CHAIN_TAG https://github.com/cosmos/cosmos-sdk /src/app
 WORKDIR /src/app
 
+WORKDIR /src/app/simapp
 COPY replaces.sh .
 RUN chmod +x replaces.sh && sh replaces.sh
+RUN cat go.mod
 RUN go mod tidy
+WORKDIR /src/app
 
 RUN make build
 

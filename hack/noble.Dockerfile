@@ -13,6 +13,7 @@ WORKDIR /src/app
 
 COPY replaces.sh .
 RUN chmod +x replaces.sh && sh replaces.sh
+RUN cat go.mod
 RUN go mod tidy
 
 RUN LEDGER_ENABLED=false BUILD_TAGS=muslc make build

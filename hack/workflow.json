@@ -9,12 +9,12 @@
     "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
-      "skip-mev/ironbird-cometbft": "cometbft/cometbft"
+      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft"
     },
     "Image": {
       "Dockerfile": "./hack/simapp.Dockerfile",
-      "GID": "1000",
-      "UID": "1000",
+      "GID": "1025",
+      "UID": "1025",
       "BinaryName": "/usr/bin/simd",
       "HomeDir": "/simd",
       "GasPrices": "0.0005stake"
