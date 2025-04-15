@@ -9,7 +9,6 @@ RUN apk add --no-cache $PACKAGES
 
 ARG CHAIN_TAG=main
 RUN git clone --depth 1 --branch $CHAIN_TAG https://github.com/cosmos/cosmos-sdk /src/app
-WORKDIR /src/app
 
 WORKDIR /src/app/simapp
 COPY replaces.sh .
