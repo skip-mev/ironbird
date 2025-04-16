@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/skip-mev/catalyst/pkg/types"
 	"sync"
 	"time"
 
@@ -22,121 +23,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type MsgType string
-
-// LoadTestResult represents the results of a load test
-type LoadTestResult struct {
-	Overall   OverallStats
-	ByMessage map[MsgType]MessageStats
-	ByNode    map[string]NodeStats
-	ByBlock   []BlockStat
-	Error     string `json:"error,omitempty"`
-}
-
-// OverallStats represents the overall statistics of the load test
-type OverallStats struct {
-	TotalTransactions      int
-	SuccessfulTransactions int
-	FailedTransactions     int
-	AvgGasPerTransaction   int64
-	AvgBlockGasUtilization float64
-	Runtime                time.Duration
-	StartTime              time.Time
-	EndTime                time.Time
-	BlocksProcessed        int
-}
-
-// MessageStats represents statistics for a specific message type
-type MessageStats struct {
-	Transactions TransactionStats
-	Gas          GasStats
-	Errors       ErrorStats
-}
-
-// TransactionStats represents transaction-related statistics
-type TransactionStats struct {
-	Total      int
-	Successful int
-	Failed     int
-}
-
-// GasStats represents gas-related statistics
-type GasStats struct {
-	Average int64
-	Min     int64
-	Max     int64
-	Total   int64
-}
-
-// ErrorStats represents error-related statistics
-type ErrorStats struct {
-	BroadcastErrors []BroadcastError
-	ErrorCounts     map[string]int // Error type to count
-}
-
-// NodeStats represents statistics for a specific node
-type NodeStats struct {
-	Address          string
-	TransactionStats TransactionStats
-	MessageCounts    map[MsgType]int
-	GasStats         GasStats
-}
-
-// BlockStat represents statistics for a specific block
-type BlockStat struct {
-	BlockHeight    int64
-	Timestamp      time.Time
-	GasLimit       int
-	TotalGasUsed   int64
-	MessageStats   map[MsgType]MessageBlockStats
-	GasUtilization float64
-}
-
-// MessageBlockStats represents message-specific statistics within a block
-type MessageBlockStats struct {
-	TransactionsSent int
-	SuccessfulTxs    int
-	FailedTxs        int
-	GasUsed          int64
-}
-
-// BroadcastError represents errors during broadcasting transactions
-type BroadcastError struct {
-	BlockHeight int64   // Block height where the error occurred (0 indicates tx did not make it to a block)
-	TxHash      string  // Hash of the transaction that failed
-	Error       string  // Error message
-	MsgType     MsgType // Type of message that failed
-	NodeAddress string  // Address of the node that returned the error
-}
-
 type PackagedState struct {
 	ProviderState []byte
 	ChainState    []byte
-	Result        LoadTestResult
-}
-
-type LoadTestConfig struct {
-	ChainID             string    `yaml:"chain_id"`
-	BlockGasLimitTarget float64   `yaml:"block_gas_limit_target,omitempty"`
-	NumOfTxs            int       `yaml:"num_of_txs,omitempty"`
-	NumOfBlocks         int       `yaml:"num_of_blocks"`
-	NodesAddresses      []Node    `yaml:"nodes_addresses"`
-	Mnemonics           []string  `yaml:"mnemonics"`
-	GasDenom            string    `yaml:"gas_denom"`
-	Bech32Prefix        string    `yaml:"bech32_prefix"`
-	Msgs                []Message `yaml:"msgs"`
-}
-
-type Node struct {
-	GRPC string `yaml:"grpc"`
-	RPC  string `yaml:"rpc"`
-}
-
-type Message struct {
-	Type          string  `yaml:"type" json:"type"`
-	Weight        float64 `yaml:"weight" json:"weight"`
-	NumMsgs       int     `yaml:"num_msgs,omitempty" json:"NumMsgs,omitempty"`
-	ContainedType MsgType `yaml:"contained_type,omitempty" json:"ContainedType,omitempty"`
+	Result        types.LoadTestResult
 }
 
 type Activity struct {
@@ -144,9 +34,10 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 }
 
-func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string, loadTestConfig *LoadTestConfig) ([]byte, error) {
+func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
+	loadTestSpec *types.LoadTestSpec) ([]byte, error) {
 	validators := chain.GetValidators()
-	var nodes []Node
+	var nodes []types.NodeAddress
 	for _, v := range validators {
 		grpcAddr, err := v.GetIP(ctx)
 		grpcAddr = grpcAddr + ":9090"
@@ -160,7 +51,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 			return nil, err
 		}
 
-		nodes = append(nodes, Node{
+		nodes = append(nodes, types.NodeAddress{
 			GRPC: grpcAddr,
 			RPC:  fmt.Sprintf("http://%s", rpcAddr),
 		})
@@ -226,20 +117,20 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 	}
 	time.Sleep(5 * time.Second)
 
-	config := LoadTestConfig{
+	config := types.LoadTestSpec{
 		ChainID:        chainID,
-		NumOfBlocks:    loadTestConfig.NumOfBlocks,
+		NumOfBlocks:    loadTestSpec.NumOfBlocks,
 		NodesAddresses: nodes,
 		Mnemonics:      mnemonics,
 		GasDenom:       chain.GetConfig().Denom,
 		Bech32Prefix:   chain.GetConfig().Bech32Prefix,
-		Msgs:           loadTestConfig.Msgs,
+		Msgs:           loadTestSpec.Msgs,
 	}
 
-	if loadTestConfig.NumOfTxs > 0 {
-		config.NumOfTxs = loadTestConfig.NumOfTxs
-	} else if loadTestConfig.BlockGasLimitTarget > 0 {
-		config.BlockGasLimitTarget = loadTestConfig.BlockGasLimitTarget
+	if loadTestSpec.NumOfTxs > 0 {
+		config.NumOfTxs = loadTestSpec.NumOfTxs
+	} else if loadTestSpec.BlockGasLimitTarget > 0 {
+		config.BlockGasLimitTarget = loadTestSpec.BlockGasLimitTarget
 	} else {
 		return nil, fmt.Errorf("failed to generate load test config, either BlockGasLimitTarget or NumOfTxs must be provided")
 	}
@@ -249,7 +140,7 @@ func generateLoadTestConfig(ctx context.Context, logger *zap.Logger, chain *chai
 }
 
 func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
-	loadTestConfig *LoadTestConfig, runnerType string, providerState []byte) (PackagedState, error) {
+	loadTestSpec *types.LoadTestSpec, runnerType string, providerState []byte) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
@@ -279,7 +170,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		return PackagedState{}, err
 	}
 
-	configBytes, err := generateLoadTestConfig(ctx, logger, chain, chain.GetConfig().ChainId, loadTestConfig)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, loadTestSpec)
 	if err != nil {
 		return PackagedState{}, err
 	}
@@ -288,7 +179,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		Name:          "catalyst",
 		ContainerName: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:dev",
 			UID:   "100",
 			GID:   "100",
 		},
@@ -339,7 +230,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 				return PackagedState{}, fmt.Errorf("failed to read result file: %w", err)
 			}
 
-			var result LoadTestResult
+			var result types.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
 			}

@@ -28,24 +28,16 @@
     ]
   },
   "RunnerType": "Docker",
-  "LoadTestConfig": {
-    "BlockGasLimitTarget": 1,
+  "LoadTestSpec": {
     "NumOfBlocks": 10,
-    "NumOfTxs": 1000,
+    "NumOfTxs": 300,
     "Msgs": [
       {
-        "Weight": 0.3,
-        "Type": "MsgSend"
-      },
-      {
-        "Weight": 0.4,
-        "Type": "MsgMultiSend"
-      },
-      {
-        "Weight": 0.3,
-        "Type": "MsgArr",
-        "ContainedType": "MsgSend",
-        "NumMsgs": 2000
+        "Weight": 1,
+        "Type": "MsgMultiSend",
+        "NumOfRecipients": 100,
+        "UnorderedTxs": true,
+        "TxTimeout": "30s"
       }
     ]
   }

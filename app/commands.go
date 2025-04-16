@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	catalyst_types "github.com/skip-mev/catalyst/pkg/types"
 	"regexp"
 	"strings"
 
@@ -90,7 +91,8 @@ func (a *App) generatedFailedCommandComment(command string, err error) (string, 
 	return mdOut.String(), nil
 }
 
-func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTestConfig types.LoadTestConfig, workflowId, runId string, runnerType testnettypes.RunnerType) (string, error) {
+func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTestSpec catalyst_types.LoadTestSpec,
+	workflowId, runId string, runnerType testnettypes.RunnerType) (string, error) {
 	var mdOut bytes.Buffer
 	var chainDetails bytes.Buffer
 	var loadTestDetails bytes.Buffer
@@ -107,14 +109,14 @@ func (a *App) generateStartedTestComment(chainConfig types.ChainsConfig, loadTes
 	}
 
 	loadTestMd := markdown.NewMarkdown(&loadTestDetails)
-	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test config: `%v`", loadTestConfig)).LF()
+	loadTestMd = loadTestMd.LF().PlainText(fmt.Sprintf("Load test config: `%v`", loadTestSpec)).LF()
 
 	if err := loadTestMd.Build(); err != nil {
 		return "", err
 	}
 
 	md := markdown.NewMarkdown(&mdOut)
-	md = md.PlainText(fmt.Sprintf("Ironbird has started a testnet for chain `%s` using loadtest `%s` with runner `%s`", chainConfig.Name, loadTestConfig.Name, runnerType)).LF()
+	md = md.PlainText(fmt.Sprintf("Ironbird has started a testnet for chain `%s` using loadtest `%s` with runner `%s`", chainConfig.Name, loadTestSpec.Name, runnerType)).LF()
 	md = md.Details("Chain details", chainDetails.String())
 	md = md.Details("Load test details", loadTestDetails.String())
 
@@ -179,43 +181,15 @@ func (a *App) HandleCommand(ctx context.Context, comment *Comment, command strin
 	return nil
 }
 
-func (a *App) parseCustomLoadTestConfig(yamlStr string) (*types.LoadTestConfig, error) {
-	var customConfig types.LoadTestConfig
+func (a *App) parseCustomLoadTestSpec(yamlStr string) (*catalyst_types.LoadTestSpec, error) {
+	var customConfig catalyst_types.LoadTestSpec
 	if err := yaml.Unmarshal([]byte(yamlStr), &customConfig); err != nil {
 		return nil, fmt.Errorf("failed to parse custom load test config: %w", err)
 	}
 
-	if customConfig.Name == "" {
-		customConfig.Name = "custom"
-	}
-
-	if customConfig.BlockGasLimitTarget <= 0 && customConfig.NumOfTxs <= 0 {
-		return nil, fmt.Errorf("either block_gas_limit_target or num_of_txs must be set")
-	}
-
-	if customConfig.BlockGasLimitTarget > 0 && customConfig.NumOfTxs > 0 {
-		return nil, fmt.Errorf("only one of block_gas_limit_target or num_of_txs should be set, not both")
-	}
-
-	if customConfig.BlockGasLimitTarget > 1 {
-		return nil, fmt.Errorf("block gas limit target must be between 0 and 1, got %f", customConfig.BlockGasLimitTarget)
-	}
-
-	if customConfig.NumOfBlocks <= 0 {
-		return nil, fmt.Errorf("num_of_blocks must be greater than 0")
-	}
-
-	if len(customConfig.Msgs) == 0 {
-		return nil, fmt.Errorf("at least one message type must be specified")
-	}
-
-	totalWeight := 0.0
-	for _, msg := range customConfig.Msgs {
-		totalWeight += msg.Weight
-	}
-
-	if totalWeight != 1.0 {
-		return nil, fmt.Errorf("message weights must sum to exactly 1.0 (got %.2f)", totalWeight)
+	err := customConfig.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
 	}
 
 	return &customConfig, nil
@@ -299,9 +273,9 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		return fmt.Errorf("unknown chain %s", chainName)
 	}
 
-	var loadTest types.LoadTestConfig
+	var loadTest catalyst_types.LoadTestSpec
 	if hasCustomConfig {
-		customLoadTest, err := a.parseCustomLoadTestConfig(customConfig[1])
+		customLoadTest, err := a.parseCustomLoadTestSpec(customConfig[1])
 		if err != nil {
 			return err
 		}
@@ -325,7 +299,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		Repo:           comment.Issue.Repo,
 		SHA:            *pr.Head.SHA,
 		ChainConfig:    chain,
-		LoadTestConfig: &loadTest,
+		LoadTestSpec:   &loadTest,
 		RunnerType:     runnerType,
 	})
 

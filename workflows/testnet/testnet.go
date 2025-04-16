@@ -30,8 +30,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
 
-	if opts.LoadTestConfig != nil {
-		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestConfig.Name)
+	if opts.LoadTestSpec != nil {
+		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestSpec.Name)
 	}
 
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
@@ -144,7 +144,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	var loadTestRuntime time.Duration
-	if opts.LoadTestConfig != nil {
+	if opts.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			if err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
@@ -155,7 +155,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", opts.LoadTestConfig)
+			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", opts.LoadTestSpec)
 
 			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
 			if err != nil {
@@ -164,7 +164,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			}
 
 			// assume ~ 2 sec block times
-			loadTestRuntime = time.Duration(opts.LoadTestConfig.NumOfBlocks*2) * time.Second
+			loadTestRuntime = time.Duration(opts.LoadTestSpec.NumOfBlocks*2) * time.Second
 			// buffer for load test run & wallets creating
 			loadTestRuntime += 30 * time.Minute
 
@@ -173,7 +173,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
-				opts.LoadTestConfig,
+				opts.LoadTestSpec,
 				opts.RunnerType,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {

@@ -2,6 +2,7 @@ package testnet
 
 import (
 	"fmt"
+	catalyst_types "github.com/skip-mev/catalyst/pkg/types"
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/types"
@@ -18,7 +19,7 @@ type WorkflowOptions struct {
 	SHA            string
 	ChainConfig    types.ChainsConfig
 	RunnerType     testnet.RunnerType
-	LoadTestConfig *types.LoadTestConfig
+	LoadTestSpec   *catalyst_types.LoadTestSpec
 }
 
 func (o *WorkflowOptions) GenerateCheckOptions(name, status, title, summary, text string, conclusion *string) github.CheckRunOptions {
