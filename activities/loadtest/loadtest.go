@@ -90,7 +90,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	node := validators[len(validators)-1]
 	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
 	if err != nil {
-		logger.Fatal("failed to recover faucet wallet key", zap.Error(err))
+		logger.Error("failed to recover faucet wallet key", zap.Error(err))
+		return nil, fmt.Errorf("failed to recover faucet wallet key: %w", err)
 	}
 	time.Sleep(1 * time.Second)
 
@@ -167,12 +168,34 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 
 	chain, err := chain.RestoreChain(ctx, logger, p, chainState, node.RestoreNode, testnet.CosmosWalletConfig)
 	if err != nil {
-		return PackagedState{}, err
+		newProviderState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after chain restore error: %v, original error: %w", serializeErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: newProviderState,
+		}, fmt.Errorf("failed to restore chain: %w", err)
 	}
 
 	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, loadTestSpec)
 	if err != nil {
-		return PackagedState{}, err
+		newProviderState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after config generation error: %v, original error: %w", serializeErr, err)
+		}
+
+		newChainState, chainErr := chain.Serialize(ctx, p)
+		if chainErr != nil {
+			return PackagedState{
+				ProviderState: newProviderState,
+			}, fmt.Errorf("failed to serialize chain after config generation error: %v, original error: %w", chainErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: newProviderState,
+			ChainState:    newChainState,
+		}, fmt.Errorf("failed to generate load test config: %w", err)
 	}
 
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
@@ -196,16 +219,61 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	})
 
 	if err != nil {
-		return PackagedState{}, err
+		newProviderState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after task creation error: %v, original error: %w", serializeErr, err)
+		}
+
+		newChainState, chainErr := chain.Serialize(ctx, p)
+		if chainErr != nil {
+			return PackagedState{
+				ProviderState: newProviderState,
+			}, fmt.Errorf("failed to serialize chain after task creation error: %v, original error: %w", chainErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: newProviderState,
+			ChainState:    newChainState,
+		}, fmt.Errorf("failed to create task: %w", err)
 	}
 
 	if err := task.WriteFile(ctx, "loadtest.yml", configBytes); err != nil {
-		return PackagedState{}, fmt.Errorf("failed to write config file to task: %w", err)
+		newProviderState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after write file error: %v, original error: %w", serializeErr, err)
+		}
+
+		newChainState, chainErr := chain.Serialize(ctx, p)
+		if chainErr != nil {
+			return PackagedState{
+				ProviderState: newProviderState,
+			}, fmt.Errorf("failed to serialize chain after write file error: %v, original error: %w", chainErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: newProviderState,
+			ChainState:    newChainState,
+		}, fmt.Errorf("failed to write config file to task: %w", err)
 	}
 
 	logger.Info("starting load test")
 	if err := task.Start(ctx); err != nil {
-		return PackagedState{}, err
+		newProviderState, serializeErr := p.SerializeProvider(ctx)
+		if serializeErr != nil {
+			return PackagedState{}, fmt.Errorf("failed to serialize provider after task start error: %v, original error: %w", serializeErr, err)
+		}
+
+		newChainState, chainErr := chain.Serialize(ctx, p)
+		if chainErr != nil {
+			return PackagedState{
+				ProviderState: newProviderState,
+			}, fmt.Errorf("failed to serialize chain after task start error: %v, original error: %w", chainErr, err)
+		}
+
+		return PackagedState{
+			ProviderState: newProviderState,
+			ChainState:    newChainState,
+		}, fmt.Errorf("failed to start task: %w", err)
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -214,7 +282,22 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	for {
 		select {
 		case <-ctx.Done():
-			return PackagedState{}, ctx.Err()
+			newProviderState, serializeErr := p.SerializeProvider(ctx)
+			if serializeErr != nil {
+				return PackagedState{}, fmt.Errorf("failed to serialize provider after context done: %v, original error: %w", serializeErr, ctx.Err())
+			}
+
+			newChainState, chainErr := chain.Serialize(ctx, p)
+			if chainErr != nil {
+				return PackagedState{
+					ProviderState: newProviderState,
+				}, fmt.Errorf("failed to serialize chain after context done: %v, original error: %w", chainErr, ctx.Err())
+			}
+
+			return PackagedState{
+				ProviderState: newProviderState,
+				ChainState:    newChainState,
+			}, ctx.Err()
 		case <-ticker.C:
 			status, err := task.GetStatus(ctx)
 			if err != nil {
@@ -227,17 +310,63 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 
 			resultBytes, err := task.ReadFile(ctx, "load_test.json")
 			if err != nil {
-				return PackagedState{}, fmt.Errorf("failed to read result file: %w", err)
+				newProviderState, serializeErr := p.SerializeProvider(ctx)
+				if serializeErr != nil {
+					return PackagedState{}, fmt.Errorf("failed to serialize provider after read file error: %v, original error: %w", serializeErr, err)
+				}
+
+				newChainState, chainErr := chain.Serialize(ctx, p)
+				if chainErr != nil {
+					return PackagedState{
+						ProviderState: newProviderState,
+					}, fmt.Errorf("failed to serialize chain after read file error: %v, original error: %w", chainErr, err)
+				}
+
+				return PackagedState{
+					ProviderState: newProviderState,
+					ChainState:    newChainState,
+				}, fmt.Errorf("failed to read result file: %w", err)
 			}
 
 			var result types.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
-				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
+				newProviderState, serializeErr := p.SerializeProvider(ctx)
+				if serializeErr != nil {
+					return PackagedState{}, fmt.Errorf("failed to serialize provider after unmarshal error: %v, original error: %w", serializeErr, err)
+				}
+
+				newChainState, chainErr := chain.Serialize(ctx, p)
+				if chainErr != nil {
+					return PackagedState{
+						ProviderState: newProviderState,
+					}, fmt.Errorf("failed to serialize chain after unmarshal error: %v, original error: %w", chainErr, err)
+				}
+
+				return PackagedState{
+					ProviderState: newProviderState,
+					ChainState:    newChainState,
+				}, fmt.Errorf("failed to parse result file: %w", err)
 			}
 			logger.Info("load test result", zap.Any("result", result))
 
 			if err := task.Destroy(ctx); err != nil {
-				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)
+				newProviderState, serializeErr := p.SerializeProvider(ctx)
+				if serializeErr != nil {
+					return PackagedState{}, fmt.Errorf("failed to serialize provider after task destroy error: %v, original error: %w", serializeErr, err)
+				}
+
+				newChainState, chainErr := chain.Serialize(ctx, p)
+				if chainErr != nil {
+					return PackagedState{
+						ProviderState: newProviderState,
+					}, fmt.Errorf("failed to serialize chain after task destroy error: %v, original error: %w", chainErr, err)
+				}
+
+				return PackagedState{
+					ProviderState: newProviderState,
+					ChainState:    newChainState,
+					Result:        result,
+				}, fmt.Errorf("failed to destroy task: %w", err)
 			}
 
 			newProviderState, err := p.SerializeProvider(ctx)
