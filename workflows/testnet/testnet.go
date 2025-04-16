@@ -9,7 +9,6 @@ import (
 	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
-	"github.com/skip-mev/petri/core/v3/monitoring"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
@@ -233,27 +232,6 @@ func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions,
 		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &status)
 
 		if err != nil {
-			return err
-		}
-
-		var screenshot []byte
-		err = workflow.ExecuteActivity(ctx, observabilityActivities.GrabGraphScreenshot, grafanaUrl, monitoring.DefaultDashboardUID, "comet-performance", "18", "now-5m").Get(ctx, &screenshot)
-
-		if err != nil {
-			return err
-		}
-
-		var screenShotUrl string
-
-		err = workflow.ExecuteActivity(ctx, observabilityActivities.UploadScreenshot, testnetOptions.Name, fmt.Sprintf("testnet-%d", time.Now().Unix()), screenshot).Get(ctx, &screenShotUrl)
-
-		if err != nil {
-			return err
-		}
-
-		if err := report.SetScreenshots(ctx, map[string]string{
-			"Average block latency": screenShotUrl,
-		}); err != nil {
 			return err
 		}
 

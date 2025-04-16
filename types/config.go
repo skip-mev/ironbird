@@ -41,8 +41,6 @@ type WorkerConfig struct {
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
-
-	ScreenshotBucketName string `yaml:"screenshot_bucket_name"`
 }
 
 type TemporalConfig struct {

@@ -119,10 +119,8 @@ func main() {
 	}
 
 	observabilityActivity := observability.Activity{
-		TailscaleSettings:    tailscaleSettings,
-		AwsConfig:            &awsConfig,
-		ScreenshotBucketName: cfg.ScreenshotBucketName,
-		DOToken:              cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		DOToken:           cfg.DigitalOcean.Token,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -139,8 +137,6 @@ func main() {
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
-	w.RegisterActivity(observabilityActivity.GrabGraphScreenshot)
-	w.RegisterActivity(observabilityActivity.UploadScreenshot)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	w.RegisterActivity(notifier.UpdateCheck)
