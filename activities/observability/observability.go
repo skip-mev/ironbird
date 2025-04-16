@@ -1,17 +1,13 @@
 package observability
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"net/http"
 
 	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/types/testnet"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/skip-mev/petri/core/v3/monitoring"
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -34,10 +30,8 @@ type PackagedState struct {
 }
 
 type Activity struct {
-	TailscaleSettings    digitalocean.TailscaleSettings
-	AwsConfig            *aws.Config
-	ScreenshotBucketName string
-	DOToken              string
+	TailscaleSettings digitalocean.TailscaleSettings
+	DOToken           string
 }
 
 func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (PackagedState, error) {
@@ -146,60 +140,4 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 		GrafanaState:       grafanaState,
 		ProviderState:      providerState,
 	}, nil
-}
-
-func (a *Activity) GrabGraphScreenshot(ctx context.Context, grafanaUrl, dashboardId, dashboardName, panelId, from string) ([]byte, error) {
-	httpClient := http.Client{
-		Transport: &http.Transport{
-			// Set to true to prevent GZIP-bomb DoS attacks
-			DisableCompression: true,
-			DialContext:        a.TailscaleSettings.Server.Dial,
-			Proxy:              http.ProxyFromEnvironment,
-		},
-	}
-
-	resp, err := httpClient.Get(
-		fmt.Sprintf(
-			"%s/render/d-solo/%s/%s?orgId=1&panelId=%s&from=%s&to=now",
-			grafanaUrl,
-			dashboardId,
-			dashboardName,
-			panelId,
-			from,
-		),
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-
-	if _, err := buf.ReadFrom(resp.Body); err != nil {
-		return nil, nil
-	}
-
-	return buf.Bytes(), nil
-}
-
-func (a *Activity) UploadScreenshot(ctx context.Context, run, screenshot string, bz []byte) (string, error) {
-	if a.AwsConfig == nil {
-		return "", fmt.Errorf("aws config is required")
-	}
-
-	client := s3.NewFromConfig(*a.AwsConfig)
-	key := fmt.Sprintf("%s/%s.png", run, screenshot)
-
-	_, err := client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(a.ScreenshotBucketName),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(bz),
-		ContentType: aws.String("image/png"),
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", a.ScreenshotBucketName, key), nil
 }
