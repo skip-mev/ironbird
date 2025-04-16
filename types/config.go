@@ -3,14 +3,11 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
-	"time"
-
-	"github.com/skip-mev/ironbird/activities/loadtest"
-
 	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/skip-mev/catalyst/pkg/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"gopkg.in/yaml.v3"
+	"os"
 )
 
 type TailscaleConfig struct {
@@ -20,22 +17,11 @@ type TailscaleConfig struct {
 	NodeTags          []string `yaml:"node_tags"`
 }
 
-type LoadTestConfig struct {
-	Name                string             `yaml:"name" json:"Name"`
-	Description         string             `yaml:"description" json:"Description"`
-	NumOfBlocks         int                `yaml:"num_of_blocks" json:"NumOfBlocks"`
-	BlockGasLimitTarget float64            `yaml:"block_gas_limit_target,omitempty" json:"BlockGasLimitTarget,omitempty"`
-	NumOfTxs            int                `yaml:"num_of_txs,omitempty" json:"NumOfTxs,omitempty"`
-	Msgs                []loadtest.Message `yaml:"msgs" json:"Msgs"`
-	UnorderedTxs        bool               `yaml:"unordered_txs" json:"UnorderedTxs,omitempty"`
-	TxTimeout           time.Duration      `yaml:"tx_timeout" json:"TxTimeout,omitempty"`
-}
-
 type AppConfig struct {
 	Github    githubapp.Config
-	Chains    map[string]ChainsConfig   `yaml:"chains"`
-	Temporal  TemporalConfig            `yaml:"temporal"`
-	LoadTests map[string]LoadTestConfig `yaml:"load_tests"`
+	Chains    map[string]ChainsConfig       `yaml:"chains"`
+	Temporal  TemporalConfig                `yaml:"temporal"`
+	LoadTests map[string]types.LoadTestSpec `yaml:"load_tests"`
 }
 
 type WorkerConfig struct {
