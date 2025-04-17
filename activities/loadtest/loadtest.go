@@ -57,6 +57,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 		})
 	}
 
+	loadTestSpec.NodesAddresses = nodes
+
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
@@ -116,27 +118,16 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 		logger.Warn("failed to fund wallet", zap.Error(err), zap.String("stderr", stderr))
 	}
 	time.Sleep(5 * time.Second)
+	loadTestSpec.Mnemonics = mnemonics
 
-	config := types.LoadTestSpec{
-		ChainID:        chainID,
-		NumOfBlocks:    loadTestSpec.NumOfBlocks,
-		NodesAddresses: nodes,
-		Mnemonics:      mnemonics,
-		GasDenom:       chain.GetConfig().Denom,
-		Bech32Prefix:   chain.GetConfig().Bech32Prefix,
-		Msgs:           loadTestSpec.Msgs,
+	err = loadTestSpec.Validate()
+	if err != nil {
+		logger.Error("failed to validate custom load test config", zap.Error(err))
+		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
 	}
 
-	if loadTestSpec.NumOfTxs > 0 {
-		config.NumOfTxs = loadTestSpec.NumOfTxs
-	} else if loadTestSpec.BlockGasLimitTarget > 0 {
-		config.BlockGasLimitTarget = loadTestSpec.BlockGasLimitTarget
-	} else {
-		return nil, fmt.Errorf("failed to generate load test config, either BlockGasLimitTarget or NumOfTxs must be provided")
-	}
-	logger.Info("Load test config constructed", zap.Any("config", config))
-
-	return yaml.Marshal(&config)
+	logger.Info("Load test spec constructed", zap.Any("spec", loadTestSpec))
+	return yaml.Marshal(&loadTestSpec)
 }
 
 func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,

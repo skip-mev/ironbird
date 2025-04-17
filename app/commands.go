@@ -187,11 +187,6 @@ func (a *App) parseCustomLoadTestSpec(yamlStr string) (*catalyst_types.LoadTestS
 		return nil, fmt.Errorf("failed to parse custom load test config: %w", err)
 	}
 
-	err := customConfig.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
-	}
-
 	return &customConfig, nil
 }
 
