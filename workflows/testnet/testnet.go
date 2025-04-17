@@ -35,8 +35,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
-
-	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, opts.SHA[:6])
+	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, runID[:6])
 	options := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 30,
 		RetryPolicy: &temporal.RetryPolicy{

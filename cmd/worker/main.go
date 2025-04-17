@@ -106,17 +106,11 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 
-	tsLocalClient, err := ts.LocalClient()
-
-	if err != nil {
-		panic(err)
-	}
-
 	tailscaleSettings := digitalocean.TailscaleSettings{
 		AuthKey:     cfg.Tailscale.NodeAuthKey,
 		Tags:        cfg.Tailscale.NodeTags,
 		Server:      &ts,
-		LocalClient: tsLocalClient,
+		LocalClient: lc,
 	}
 
 	testnetActivity := testnetactivity.Activity{

@@ -196,8 +196,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	}
 
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
-		Name:          "catalyst",
-		ContainerName: "catalyst",
+		Name: "catalyst",
 		Image: provider.ImageDefinition{
 			Image: "ghcr.io/skip-mev/catalyst:latest",
 			UID:   "100",
