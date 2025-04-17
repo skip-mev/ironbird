@@ -160,6 +160,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		logger,
 		p,
 		types.ChainConfig{
+			Name:          opts.Name,
 			Denom:         cosmosDenom,
 			Decimals:      cosmosDecimals,
 			NumValidators: int(opts.NumOfValidators),
