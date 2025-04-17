@@ -430,3 +430,8 @@ require (
 	pgregory.net/rapid v1.2.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace (
+	github.com/skip-mev/petri/core/v3 => ../petri/core
+	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
+)
