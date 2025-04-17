@@ -36,6 +36,11 @@ type Activity struct {
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
 	loadTestSpec *types.LoadTestSpec) ([]byte, error) {
+	chainConfig := chain.GetConfig()
+	loadTestSpec.GasDenom = chainConfig.Denom
+	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
+	loadTestSpec.ChainID = chainID
+
 	validators := chain.GetValidators()
 	var nodes []types.NodeAddress
 	for _, v := range validators {
@@ -96,9 +101,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	}
 	time.Sleep(1 * time.Second)
 
-	chainConfig := chain.GetConfig()
 	command := []string{
-		chain.GetConfig().BinaryName,
+		chainConfig.BinaryName,
 		"tx", "bank", "multi-send",
 		faucetWallet.FormattedAddress(),
 	}
@@ -122,7 +126,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 	err = loadTestSpec.Validate()
 	if err != nil {
-		logger.Error("failed to validate custom load test config", zap.Error(err))
+		logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
 		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
 	}
 
