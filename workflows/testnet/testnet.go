@@ -1,8 +1,15 @@
 package testnet
 
 import (
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/skip-mev/petri/core/v3/provider"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+	chain "github.com/skip-mev/petri/cosmos/v3/chain"
+	"github.com/skip-mev/petri/cosmos/v3/node"
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
@@ -79,6 +86,75 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		RunnerType:           string(opts.RunnerType),
 		NumOfValidators:      opts.ChainConfig.NumOfValidators,
 		NumOfNodes:           opts.ChainConfig.NumOfNodes,
+	}
+
+	// Register the chain update handler
+	if err := workflow.SetUpdateHandler(
+		ctx,
+		"chain_update",
+		func(ctx workflow.Context, newOptions testnet.TestnetOptions) error {
+			stdCtx := workflow.WithValue(ctx, struct{}{}, nil).(context.Context)
+			logger, _ := zap.NewDevelopment()
+
+			var p provider.ProviderI
+			var err error
+
+			if testnetOptions.RunnerType == string(testnettypes.Docker) {
+				p, err = docker.RestoreProvider(
+					stdCtx,
+					logger,
+					testnetOptions.ProviderState,
+				)
+			} else {
+				p, err = digitalocean.RestoreProvider(
+					stdCtx,
+					testnetOptions.ProviderState,
+					"", // creates new token
+					testnetActivities.TailscaleSettings,
+					digitalocean.WithLogger(logger),
+				)
+			}
+
+			if err != nil {
+				return fmt.Errorf("failed to restore provider: %w", err)
+			}
+
+			chain, err := chain.RestoreChain(stdCtx, logger, p, testnetOptions.ChainState, node.RestoreNode,
+				testnet.CosmosWalletConfig)
+
+			if err != nil {
+				return fmt.Errorf("failed to create chain: %w", err)
+			}
+
+			err = chain.Teardown(stdCtx)
+			if err != nil {
+				return fmt.Errorf("failed to teardown chain: %w", err)
+			}
+
+			// Launch new chain with same provider but new options
+			newOptions.ProviderState = testnetOptions.ProviderState
+			var chainState testnet.PackagedState
+			if err := workflow.ExecuteActivity(
+				ctx,
+				testnetActivities.LaunchTestnet,
+				newOptions,
+			).Get(ctx, &chainState); err != nil {
+				return err
+			}
+
+			// Update the testnet options with new state
+			testnetOptions = newOptions // Replace with new options
+			testnetOptions.ChainState = chainState.ChainState
+			testnetOptions.ProviderState = chainState.ProviderState
+
+			return nil
+		},
+	); err != nil {
+		return "", temporal.NewApplicationErrorWithOptions(
+			"failed to register update handler",
+			err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true},
+		)
 	}
 
 	if opts.RunnerType == testnettypes.DigitalOcean {

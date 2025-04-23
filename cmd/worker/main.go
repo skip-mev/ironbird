@@ -138,7 +138,6 @@ func main() {
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
-
 	w.RegisterActivity(notifier.UpdateCheck)
 	w.RegisterActivity(notifier.CreateCheck)
 
@@ -149,4 +148,8 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func generateTailscaleSettings() {
+
 }

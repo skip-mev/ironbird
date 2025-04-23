@@ -1,15 +1,15 @@
 {
   "InstallationID": 57729708,
   "Owner": "skip-mev",
-  "Repo": "ironbird-cometbft",
-  "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
+  "Repo": "ironbird-cosmos-sdk",
+  "SHA": "f1088410316a2cf1f93fbfde3e77fd1465b91cb2",
   "ChainConfig": {
     "Name": "cosmos",
     "NumOfNodes": 1,
     "NumOfValidators": 1,
     "SnapshotURL": "",
     "Dependencies": {
-      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft"
+      "skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk"
     },
     "Image": {
       "Dockerfile": "./hack/simapp.Dockerfile",
@@ -19,7 +19,7 @@
       "HomeDir": "/simd",
       "GasPrices": "0.0005stake"
     },
-    "Version": "v0.50.13",
+    "Version": "v0.53.0-rc.3",
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
@@ -27,7 +27,7 @@
       }
     ]
   },
-  "RunnerType": "Docker",
+  "RunnerType": "DigitalOcean",
   "LoadTestSpec": {
     "NumOfBlocks": 10,
     "NumOfTxs": 300,
