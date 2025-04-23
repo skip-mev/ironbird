@@ -123,7 +123,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	for _, node := range chainState.Nodes {
 		logger.Info("node.Metrics", zap.String("", node.Metrics))
-		metricsIps = append(metricsIps, node.Metrics)
+		metricsIps = append(metricsIps, fmt.Sprintf("%s:26660", node.Metrics))
+		metricsIps = append(metricsIps, fmt.Sprintf("%s:1317", node.Metrics))
 	}
 	logger.Info("metrics ips", zap.Strings("ips", metricsIps))
 
