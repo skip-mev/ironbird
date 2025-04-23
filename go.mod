@@ -17,7 +17,7 @@ require (
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/skip-mev/catalyst v0.0.0-20250416173639-dec5b4c12203
 	github.com/skip-mev/petri/core/v3 v3.0.3-0.20250423210055-db34bcf855ec
-	github.com/skip-mev/petri/cosmos/v3 v3.0.3-0.20250329210549-9d3b200cd9c0
+	github.com/skip-mev/petri/cosmos/v3 v3.0.3-0.20250423210055-db34bcf855ec
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	go.temporal.io/sdk v1.30.1
