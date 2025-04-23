@@ -149,6 +149,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, req.Tag)
+
 	solveOpt := client.SolveOpt{
 		Frontend:      "dockerfile.v0",
 		FrontendAttrs: frontendAttrs,
