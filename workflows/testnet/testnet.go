@@ -125,10 +125,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	var metricsIps []string
-
-	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
-
 	var loadTestRuntime time.Duration
 	if req.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
