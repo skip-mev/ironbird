@@ -119,12 +119,15 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 	var observabilityPackagedState observability.PackagedState
 	var metricsIps []string
+	logger, _ := zap.NewDevelopment()
 
 	for _, node := range chainState.Nodes {
+		logger.Info("node.Metrics", zap.String("", node.Metrics))
 		metricsIps = append(metricsIps,
-			fmt.Sprintf("%s:26660/metrics", node.Metrics),
-			fmt.Sprintf("%s:1317/metrics?format=prometheus", node.Metrics))
+			fmt.Sprintf("http://%s:26660/metrics", node.Metrics),
+			fmt.Sprintf("http://%s:1317/metrics?format=prometheus", node.Metrics))
 	}
+	logger.Info("metrics ips", zap.Strings("ips", metricsIps))
 
 	if err := workflow.ExecuteActivity(
 		ctx,
