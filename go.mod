@@ -16,7 +16,7 @@ require (
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/skip-mev/catalyst v0.0.0-20250416173639-dec5b4c12203
-	github.com/skip-mev/petri/core/v3 v3.0.2
+	github.com/skip-mev/petri/core/v3 v3.0.3-0.20250423210055-db34bcf855ec
 	github.com/skip-mev/petri/cosmos/v3 v3.0.3-0.20250329210549-9d3b200cd9c0
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
@@ -329,6 +329,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sivchari/containedctx v1.0.3 // indirect
 	github.com/sivchari/tenv v1.7.1 // indirect
+	github.com/skip-mev/petri v0.0.0-20250423210055-db34bcf855ec // indirect
 	github.com/sonatard/noctx v0.0.2 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
