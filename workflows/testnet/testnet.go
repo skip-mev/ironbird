@@ -2,6 +2,7 @@ package testnet
 
 import (
 	"fmt"
+	"github.com/skip-mev/ironbird/messages"
 	"time"
 
 	"github.com/skip-mev/ironbird/activities/github"
@@ -19,8 +20,8 @@ var githubActivities *github.NotifierActivity
 var observabilityActivities *observability.Activity
 var loadTestActivities *loadtest.Activity
 
-func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
-	if err := opts.Validate(); err != nil {
+func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
+	if err := req.Validate(); err != nil {
 		return "", temporal.NewApplicationErrorWithOptions(
 			"invalid workflow options",
 			err.Error(),
@@ -28,15 +29,16 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		)
 	}
 
-	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
+	name := fmt.Sprintf("Testnet (%s) bake", req.ChainConfig.Name)
 
-	if opts.LoadTestSpec != nil {
-		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestSpec.Name)
+	if req.LoadTestSpec != nil {
+		name = fmt.Sprintf("%s/loadtest-%s", req.ChainConfig.Name, req.LoadTestSpec.Name)
 	}
 
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, runID[:6])
+	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, runID[:6])
+
 	options := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 30,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -51,14 +53,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		checkName,
 		"Launching testnet",
 		"",
-		&opts,
+		req,
 	)
 
 	if err != nil {
 		return "", err
 	}
 
-	buildResult, err := buildImage(ctx, opts)
+	buildResult, err := buildImage(ctx, req)
 
 	if err != nil {
 		return "", err
@@ -71,17 +73,17 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	testnetOptions := testnet.TestnetOptions{
 		Name:                 runName,
 		Image:                buildResult.FQDNTag,
-		UID:                  opts.ChainConfig.Image.UID,
-		GID:                  opts.ChainConfig.Image.GID,
-		BinaryName:           opts.ChainConfig.Image.BinaryName,
-		HomeDir:              opts.ChainConfig.Image.HomeDir,
-		GenesisModifications: opts.ChainConfig.GenesisModifications,
-		RunnerType:           string(opts.RunnerType),
-		NumOfValidators:      opts.ChainConfig.NumOfValidators,
-		NumOfNodes:           opts.ChainConfig.NumOfNodes,
+		UID:                  req.ChainConfig.Image.UID,
+		GID:                  req.ChainConfig.Image.GID,
+		BinaryName:           req.ChainConfig.Image.BinaryName,
+		HomeDir:              req.ChainConfig.Image.HomeDir,
+		GenesisModifications: req.ChainConfig.GenesisModifications,
+		RunnerType:           string(req.RunnerType),
+		NumOfValidators:      req.ChainConfig.NumOfValidators,
+		NumOfNodes:           req.ChainConfig.NumOfNodes,
 	}
 
-	if opts.RunnerType == testnettypes.DigitalOcean {
+	if req.RunnerType == testnettypes.DigitalOcean {
 		testnetOptions.ProviderSpecificOptions = map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",
@@ -131,7 +133,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			PrometheusTargets:      metricsIps,
 			ProviderState:          testnetOptions.ProviderState,
 			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
-			RunnerType:             string(opts.RunnerType),
+			RunnerType:             string(req.RunnerType),
 		},
 	).Get(ctx, &observabilityPackagedState); err != nil {
 		return "", err
@@ -144,7 +146,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	}
 
 	var loadTestRuntime time.Duration
-	if opts.LoadTestSpec != nil {
+	if req.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			if err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
@@ -155,7 +157,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", opts.LoadTestSpec)
+			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", req.LoadTestSpec)
 
 			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
 			if err != nil {
@@ -164,7 +166,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			}
 
 			// assume ~ 2 sec block times
-			loadTestRuntime = time.Duration(opts.LoadTestSpec.NumOfBlocks*2) * time.Second
+			loadTestRuntime = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
 			// buffer for load test run & wallets creating
 			loadTestRuntime += 30 * time.Minute
 
@@ -173,8 +175,8 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
 				testnetOptions.ChainState,
-				opts.LoadTestSpec,
-				opts.RunnerType,
+				req.LoadTestSpec,
+				req.RunnerType,
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))

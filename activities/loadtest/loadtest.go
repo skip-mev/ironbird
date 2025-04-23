@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/messages"
 	"sync"
 	"time"
 
@@ -35,7 +36,8 @@ type Activity struct {
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec *types.LoadTestSpec) ([]byte, error) {
+	loadTestSpec types.LoadTestSpec) ([]byte, error) {
+
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
 	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
@@ -134,22 +136,21 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	return yaml.Marshal(&loadTestSpec)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
-	loadTestSpec *types.LoadTestSpec, runnerType string, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
-	if runnerType == string(testnettypes.Docker) {
+	if req.RunnerType == string(testnettypes.Docker) {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			providerState,
+			req.ProviderState,
 		)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			providerState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -157,17 +158,17 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	}
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.RunLoadTestResponse{}, err
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, chainState, node.RestoreNode, testnet.CosmosWalletConfig)
+	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, testnet.CosmosWalletConfig)
 	if err != nil {
-		return PackagedState{}, err
+		return messages.RunLoadTestResponse{}, err
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, loadTestSpec)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec)
 	if err != nil {
-		return PackagedState{}, err
+		return messages.RunLoadTestResponse{}, err
 	}
 
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
@@ -190,16 +191,16 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	})
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.RunLoadTestResponse{}, err
 	}
 
 	if err := task.WriteFile(ctx, "loadtest.yml", configBytes); err != nil {
-		return PackagedState{}, fmt.Errorf("failed to write config file to task: %w", err)
+		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to write config file to task: %w", err)
 	}
 
 	logger.Info("starting load test")
 	if err := task.Start(ctx); err != nil {
-		return PackagedState{}, err
+		return messages.RunLoadTestResponse{}, err
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -208,7 +209,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	for {
 		select {
 		case <-ctx.Done():
-			return PackagedState{}, ctx.Err()
+			return messages.RunLoadTestResponse{}, ctx.Err()
 		case <-ticker.C:
 			status, err := task.GetStatus(ctx)
 			if err != nil {
@@ -221,30 +222,30 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 
 			resultBytes, err := task.ReadFile(ctx, "load_test.json")
 			if err != nil {
-				return PackagedState{}, fmt.Errorf("failed to read result file: %w", err)
+				return messages.RunLoadTestResponse{}, fmt.Errorf("failed to read result file: %w", err)
 			}
 
 			var result types.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
-				return PackagedState{}, fmt.Errorf("failed to parse result file: %w", err)
+				return messages.RunLoadTestResponse{}, fmt.Errorf("failed to parse result file: %w", err)
 			}
 			logger.Info("load test result", zap.Any("result", result))
 
 			if err := task.Destroy(ctx); err != nil {
-				return PackagedState{}, fmt.Errorf("failed to destroy task: %w", err)
+				return messages.RunLoadTestResponse{}, fmt.Errorf("failed to destroy task: %w", err)
 			}
 
 			newProviderState, err := p.SerializeProvider(ctx)
 			if err != nil {
-				return PackagedState{}, fmt.Errorf("failed to serialize provider: %w", err)
+				return messages.RunLoadTestResponse{}, fmt.Errorf("failed to serialize provider: %w", err)
 			}
 
 			newChainState, err := chain.Serialize(ctx, p)
 			if err != nil {
-				return PackagedState{}, fmt.Errorf("failed to serialize chain: %w", err)
+				return messages.RunLoadTestResponse{}, fmt.Errorf("failed to serialize chain: %w", err)
 			}
 
-			return PackagedState{
+			return messages.RunLoadTestResponse{
 				ProviderState: newProviderState,
 				ChainState:    newChainState,
 				Result:        result,

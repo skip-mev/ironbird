@@ -16,6 +16,7 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/util/staticfs"
+	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
@@ -105,26 +106,26 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	return nil
 }
 
-func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[string][]byte, buildArgs map[string]string) (BuildResult, error) {
+func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 	if err := a.createRepositoryIfNotExists(ctx); err != nil {
-		return BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
 	username, password, err := a.getAuthenticationToken(ctx)
 
 	if err != nil {
-		return BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
 	bkClient, err := client.New(ctx, a.BuilderConfig.BuildKitAddress)
 
 	if err != nil {
-		return BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 	defer bkClient.Close()
 
 	fs := staticfs.NewFS()
-	for name, content := range files {
+	for name, content := range req.Files {
 		fs.Add(name, &fstypes.Stat{Mode: 0644}, content)
 	}
 
@@ -142,11 +143,11 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 		"target":   "",
 	}
 
-	for k, v := range buildArgs {
+	for k, v := range req.BuildArguments {
 		frontendAttrs[fmt.Sprintf("build-arg:%s", k)] = v
 	}
 
-	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, tag)
+	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, req.Tag)
 
 	solveOpt := client.SolveOpt{
 		Frontend:      "dockerfile.v0",
@@ -185,10 +186,10 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	_, err = bkClient.Solve(ctx, nil, solveOpt, statusChan)
 
 	if err != nil {
-		return BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
-	return BuildResult{
+	return messages.BuildDockerImageResponse{
 		FQDNTag: fqdnTag,
 		Logs:    logs.Bytes(),
 	}, nil

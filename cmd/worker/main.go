@@ -133,8 +133,8 @@ func main() {
 	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
-	w.RegisterActivity(notifier.UpdateCheck)
-	w.RegisterActivity(notifier.CreateCheck)
+	w.RegisterActivity(notifier.UpdateGitHubCheck)
+	w.RegisterActivity(notifier.CreateGitHubCheck)
 
 	w.RegisterActivity(builderActivity.BuildDockerImage)
 

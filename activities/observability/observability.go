@@ -3,6 +3,7 @@ package observability
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/ironbird/messages"
 
 	"go.uber.org/zap"
 
@@ -34,22 +35,22 @@ type Activity struct {
 	DOToken           string
 }
 
-func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (PackagedState, error) {
+func (a *Activity) LaunchObservabilityStack(ctx context.Context, req messages.LaunchObservabilityStackRequest) (messages.LaunchObservabilityStackResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
 
-	if opts.RunnerType == string(testnet.Docker) {
+	if req.RunnerType == string(testnet.Docker) {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			opts.ProviderState,
+			req.ProviderState,
 		)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			opts.ProviderState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -57,31 +58,31 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 	}
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	prometheusOptions := monitoring.PrometheusOptions{
-		Targets: opts.PrometheusTargets,
+		Targets: req.PrometheusTargets,
 	}
 
-	if opts.RunnerType == string(testnet.DigitalOcean) {
-		prometheusOptions.ProviderSpecificConfig = opts.ProviderSpecificConfig
+	if req.RunnerType == string(testnet.DigitalOcean) {
+		prometheusOptions.ProviderSpecificConfig = req.ProviderSpecificConfig
 	}
 
 	prometheusTask, err := monitoring.SetupPrometheusTask(ctx, logger, p, prometheusOptions)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	if err := prometheusTask.Start(ctx); err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	prometheusIp, err := prometheusTask.GetIP(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	grafanaOptions := monitoring.GrafanaOptions{
@@ -89,51 +90,51 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, opts Options) (
 		DashboardJSON: monitoring.DefaultDashboardJSON,
 	}
 
-	if opts.RunnerType == string(testnet.DigitalOcean) {
-		grafanaOptions.ProviderSpecificConfig = opts.ProviderSpecificConfig
+	if req.RunnerType == string(testnet.DigitalOcean) {
+		grafanaOptions.ProviderSpecificConfig = req.ProviderSpecificConfig
 	}
 
 	grafanaTask, err := monitoring.SetupGrafanaTask(ctx, logger, p, grafanaOptions)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	if err := grafanaTask.Start(ctx); err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	grafanaIp, err := grafanaTask.GetIP(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	externalGrafanaIp, err := grafanaTask.GetExternalAddress(ctx, "3000")
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	prometheusState, err := p.SerializeTask(ctx, prometheusTask)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	grafanaState, err := p.SerializeTask(ctx, grafanaTask)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
 
 	if err != nil {
-		return PackagedState{}, err
+		return messages.LaunchObservabilityStackResponse{}, err
 	}
 
-	return PackagedState{
+	return messages.LaunchObservabilityStackResponse{
 		GrafanaURL:         fmt.Sprintf("http://%s:3000", grafanaIp),
 		ExternalGrafanaURL: fmt.Sprintf("http://%s", externalGrafanaIp),
 		PrometheusState:    prometheusState,

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	catalyst_types "github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/messages"
 	"regexp"
 	"strings"
 
@@ -288,7 +289,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 	workflow, err := a.temporalClient.ExecuteWorkflow(ctx, temporalclient.StartWorkflowOptions{
 		ID:        id,
 		TaskQueue: testnet.TaskQueue,
-	}, testnet.Workflow, testnet.WorkflowOptions{
+	}, testnet.Workflow, messages.TestnetWorkflowRequest{
 		InstallationID: comment.InstallationID,
 		Owner:          comment.Issue.Owner,
 		Repo:           comment.Issue.Repo,

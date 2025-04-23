@@ -3,6 +3,7 @@ package testnet
 import (
 	"fmt"
 	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/messages"
 	"go.temporal.io/sdk/workflow"
 	"os"
 )
@@ -17,30 +18,30 @@ func generateTag(chain, version, owner, repo, sha string) string {
 	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
 }
 
-func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult, error) {
+func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.BuildDockerImageResponse, error) {
 	// todo: side effect
-	dockerFileBz, err := os.ReadFile(opts.ChainConfig.Image.Dockerfile)
+	dockerFileBz, err := os.ReadFile(req.ChainConfig.Image.Dockerfile)
 
 	if err != nil {
-		return builder.BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
-	replaces := generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
+	replaces := generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
 
 	var builderActivity *builder.Activity
-	tag := generateTag(opts.ChainConfig.Name, opts.ChainConfig.Version, opts.Owner, opts.Repo, opts.SHA)
+	tag := generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
 
-	var buildResult builder.BuildResult
+	var buildResult messages.BuildDockerImageResponse
 
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
 		"Dockerfile":  dockerFileBz,
 		"replaces.sh": replaces,
 	}, map[string]string{
-		"CHAIN_TAG": opts.ChainConfig.Version,
+		"CHAIN_TAG": req.ChainConfig.Version,
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
-		return builder.BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
 	return buildResult, nil
