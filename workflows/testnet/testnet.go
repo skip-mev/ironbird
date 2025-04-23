@@ -158,15 +158,15 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		observabilityActivities.LaunchGrafana,
 		messages.LaunchGrafanaRequest{
 			PrometheusURL:          prometheusResp.PrometheusURL,
-			ProviderState:          testnetOptions.ProviderState,
-			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
+			ProviderState:          providerState,
+			ProviderSpecificConfig: providerSpecificOptions,
 			RunnerType:             string(req.RunnerType),
 		},
 	).Get(ctx, &grafanaResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ProviderState = grafanaResp.ProviderState
+	providerState = grafanaResp.ProviderState
 
 	if err := report.SetObservabilityURL(ctx, grafanaResp.ExternalGrafanaURL); err != nil {
 		return "", err
@@ -231,7 +231,11 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		})
 	}
 
+<<<<<<< HEAD
 	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, loadTestRuntime); err != nil {
+=======
+	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, grafanaResp.ExternalGrafanaURL); err != nil {
+>>>>>>> c287a77 (fix: split out observability stack into prometheus and grafana)
 		return "", err
 	}
 
