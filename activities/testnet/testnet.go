@@ -253,7 +253,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 			Name:    validator.GetDefinition().Name,
 			Rpc:     fmt.Sprintf("http://%s", cometIp),
 			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
-			Metrics: fmt.Sprintf("%s:26660", metricsIp),
+			Metrics: metricsIp,
 		})
 	}
 

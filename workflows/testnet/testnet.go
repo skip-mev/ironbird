@@ -121,7 +121,9 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var metricsIps []string
 
 	for _, node := range chainState.Nodes {
-		metricsIps = append(metricsIps, node.Metrics)
+		metricsIps = append(metricsIps,
+			fmt.Sprintf("%s:26660/metrics", node.Metrics),
+			fmt.Sprintf("%s:1317/metrics?format=prometheus", node.Metrics))
 	}
 
 	if err := workflow.ExecuteActivity(
