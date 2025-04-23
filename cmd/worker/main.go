@@ -136,7 +136,8 @@ func main() {
 	w.RegisterActivity(testnetActivity.MonitorTestnet)
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
-	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
+	w.RegisterActivity(observabilityActivity.LaunchPrometheus)
+	w.RegisterActivity(observabilityActivity.LaunchGrafana)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	w.RegisterActivity(notifier.UpdateGitHubCheck)

@@ -33,7 +33,7 @@ type Activity struct {
 	DOToken           string
 }
 
-func (a *Activity) LaunchObservabilityStack(ctx context.Context, req messages.LaunchObservabilityStackRequest) (messages.LaunchObservabilityStackResponse, error) {
+func (a *Activity) LaunchPrometheus(ctx context.Context, req messages.LaunchPrometheusRequest) (messages.LaunchPrometheusResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
@@ -56,7 +56,7 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, req messages.La
 	}
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchPrometheusResponse{}, err
 	}
 
 	prometheusOptions := monitoring.PrometheusOptions{
@@ -70,21 +70,64 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, req messages.La
 	prometheusTask, err := monitoring.SetupPrometheusTask(ctx, logger, p, prometheusOptions)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchPrometheusResponse{}, err
 	}
 
 	if err := prometheusTask.Start(ctx); err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchPrometheusResponse{}, err
 	}
 
 	prometheusIp, err := prometheusTask.GetIP(ctx)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchPrometheusResponse{}, err
+	}
+
+	prometheusState, err := p.SerializeTask(ctx, prometheusTask)
+	if err != nil {
+		return messages.LaunchPrometheusResponse{}, err
+	}
+
+	providerState, err := p.SerializeProvider(ctx)
+	if err != nil {
+		return messages.LaunchPrometheusResponse{}, err
+	}
+
+	return messages.LaunchPrometheusResponse{
+		PrometheusURL:   fmt.Sprintf("http://%s:9090", prometheusIp),
+		PrometheusState: prometheusState,
+		ProviderState:   providerState,
+	}, nil
+}
+
+func (a *Activity) LaunchGrafana(ctx context.Context, req messages.LaunchGrafanaRequest) (messages.LaunchGrafanaResponse, error) {
+	logger, _ := zap.NewDevelopment()
+
+	var p provider.ProviderI
+	var err error
+
+	if req.RunnerType == string(testnet.Docker) {
+		p, err = docker.RestoreProvider(
+			ctx,
+			logger,
+			req.ProviderState,
+		)
+	} else {
+		p, err = digitalocean.RestoreProvider(
+			ctx,
+			req.ProviderState,
+			a.DOToken,
+			a.TailscaleSettings,
+			digitalocean.WithLogger(logger),
+		)
+	}
+
+	if err != nil {
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	grafanaOptions := monitoring.GrafanaOptions{
-		PrometheusURL: fmt.Sprintf("http://%s:9090", prometheusIp),
+		PrometheusURL: req.PrometheusURL,
 		DashboardJSON: monitoring.DefaultDashboardJSON,
 	}
 
@@ -95,47 +138,40 @@ func (a *Activity) LaunchObservabilityStack(ctx context.Context, req messages.La
 	grafanaTask, err := monitoring.SetupGrafanaTask(ctx, logger, p, grafanaOptions)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	if err := grafanaTask.Start(ctx); err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	grafanaIp, err := grafanaTask.GetIP(ctx)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	externalGrafanaIp, err := grafanaTask.GetExternalAddress(ctx, "3000")
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
-	}
-
-	prometheusState, err := p.SerializeTask(ctx, prometheusTask)
-
-	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	grafanaState, err := p.SerializeTask(ctx, grafanaTask)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
 
 	if err != nil {
-		return messages.LaunchObservabilityStackResponse{}, err
+		return messages.LaunchGrafanaResponse{}, err
 	}
 
-	return messages.LaunchObservabilityStackResponse{
+	return messages.LaunchGrafanaResponse{
 		GrafanaURL:         fmt.Sprintf("http://%s:3000", grafanaIp),
 		ExternalGrafanaURL: fmt.Sprintf("http://%s", externalGrafanaIp),
-		PrometheusState:    prometheusState,
 		GrafanaState:       grafanaState,
 		ProviderState:      providerState,
 	}, nil

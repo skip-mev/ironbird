@@ -128,28 +128,46 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	var observabilityResp messages.LaunchObservabilityStackResponse
 	var metricsIps []string
 
 
 	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
 
+	var prometheusResp messages.LaunchPrometheusResponse
+
 	if err := workflow.ExecuteActivity(
 		ctx,
-		observabilityActivities.LaunchObservabilityStack,
-		observability.Options{
+		observabilityActivities.LaunchPrometheus,
+		messages.LaunchPrometheusRequest{
 			PrometheusTargets:      metricsIps,
 			ProviderState:          providerState,
 			ProviderSpecificConfig: providerSpecificOptions,
 			RunnerType:             string(req.RunnerType),
 		},
-	).Get(ctx, &observabilityResp); err != nil {
+	).Get(ctx, &prometheusResp); err != nil {
 		return "", err
 	}
 
-	providerState = observabilityResp.ProviderState
+	providerState = prometheusResp.ProviderState
 
-	if err := report.SetObservabilityURL(ctx, observabilityResp.ExternalGrafanaURL); err != nil {
+	var grafanaResp messages.LaunchGrafanaResponse
+
+	if err := workflow.ExecuteActivity(
+		ctx,
+		observabilityActivities.LaunchGrafana,
+		messages.LaunchGrafanaRequest{
+			PrometheusURL:          prometheusResp.PrometheusURL,
+			ProviderState:          testnetOptions.ProviderState,
+			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
+			RunnerType:             string(req.RunnerType),
+		},
+	).Get(ctx, &grafanaResp); err != nil {
+		return "", err
+	}
+
+	testnetOptions.ProviderState = grafanaResp.ProviderState
+
+	if err := report.SetObservabilityURL(ctx, grafanaResp.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
