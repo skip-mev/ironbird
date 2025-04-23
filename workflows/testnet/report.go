@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/activities/github"
+	"github.com/skip-mev/ironbird/messages"
+	"time"
 	"github.com/skip-mev/ironbird/activities/builder"
 
 	"html"
@@ -17,7 +20,7 @@ import (
 )
 
 type Report struct {
-	workflowOptions *WorkflowOptions
+	workflowRequest messages.TestnetWorkflowRequest
 	start           time.Time
 	checkId         int64
 	name            string
@@ -29,19 +32,30 @@ type Report struct {
 	nodes            []testnettypes.Node
 	observabilityURL string
 	screenshots      map[string]string
-	buildResult      builder.BuildResult
+	buildResult      messages.BuildDockerImageResponse
 	loadTestResults  *types.LoadTestResult
 	loadTestStatus   string
 	loadTestSpec     string
 }
 
-func NewReport(ctx workflow.Context, name, title, summary string, opts *WorkflowOptions) (*Report, error) {
-	if opts == nil {
-		return nil, fmt.Errorf("workflow options are required")
+func GenerateCheckOptions(req messages.TestnetWorkflowRequest, name, status, title, summary, text string, conclusion *string) github.CheckRunOptions {
+	return github.CheckRunOptions{
+		InstallationID: req.InstallationID,
+		Owner:          req.Owner,
+		Repo:           req.Repo,
+		SHA:            req.SHA,
+		Name:           name,
+		Status:         util.StringPtr(status),
+		Title:          util.StringPtr(title),
+		Summary:        util.StringPtr(summary),
+		Text:           text,
+		Conclusion:     conclusion,
 	}
+}
 
+func NewReport(ctx workflow.Context, name, title, summary string, req messages.TestnetWorkflowRequest) (*Report, error) {
 	report := &Report{
-		workflowOptions: opts,
+		workflowRequest: req,
 		start:           workflow.Now(ctx),
 		status:          "queued",
 		name:            name,
@@ -61,22 +75,15 @@ func NewReport(ctx workflow.Context, name, title, summary string, opts *Workflow
 }
 
 func (r *Report) CreateCheck(ctx workflow.Context) (int64, error) {
-	options := r.workflowOptions.GenerateCheckOptions(
-		r.name,
-		r.status,
-		r.title,
-		r.summary,
-		"",
-		nil,
-	)
+	options := GenerateCheckOptions(r.workflowRequest, r.name, r.status, r.title, r.summary, "", nil)
 
-	var checkId int64
+	var resp messages.CreateGitHubCheckResponse
 
-	if err := workflow.ExecuteActivity(ctx, githubActivities.CreateCheck, options).Get(ctx, &checkId); err != nil {
+	if err := workflow.ExecuteActivity(ctx, githubActivities.CreateGitHubCheck, options).Get(ctx, &resp); err != nil {
 		return -1, err
 	}
 
-	return checkId, nil
+	return int64(resp), nil
 }
 
 func (r *Report) UpdateCheck(ctx workflow.Context) error {
@@ -92,16 +99,9 @@ func (r *Report) UpdateCheck(ctx workflow.Context) error {
 		conclusion = util.StringPtr(r.conclusion)
 	}
 
-	options := r.workflowOptions.GenerateCheckOptions(
-		r.name,
-		r.status,
-		r.title,
-		r.summary,
-		output,
-		conclusion,
-	)
+	options := GenerateCheckOptions(r.workflowRequest, r.name, r.status, r.title, r.summary, output, conclusion)
 
-	return workflow.ExecuteActivity(ctx, githubActivities.UpdateCheck, r.checkId, options).Get(ctx, nil)
+	return workflow.ExecuteActivity(ctx, githubActivities.UpdateGitHubCheck, r.checkId, options).Get(ctx, nil)
 }
 
 func (r *Report) TimeSinceStart(ctx workflow.Context) time.Duration {
@@ -125,7 +125,7 @@ func (r *Report) SetStatus(ctx workflow.Context, status, title, summary string) 
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) SetBuildResult(ctx workflow.Context, buildResult builder.BuildResult) error {
+func (r *Report) SetBuildResult(ctx workflow.Context, buildResult messages.BuildDockerImageResponse) error {
 	r.buildResult = buildResult
 	return r.UpdateCheck(ctx)
 }

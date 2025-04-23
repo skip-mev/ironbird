@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/messages"
 	"sync"
 	"time"
 
-	"github.com/skip-mev/catalyst/pkg/types"
 
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
@@ -35,7 +36,7 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 }
 
-func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.ProviderI, chain *chain.Chain, originalErr error, errMsg string) (PackagedState, error) {
+func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.ProviderI, chain *chain.Chain, originalErr error, errMsg string) (RunLoadTestResponse, error) {
 	packagedState := PackagedState{}
 	wrappedErr := fmt.Errorf("%s: %w", errMsg, originalErr)
 
@@ -59,7 +60,8 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec *types.LoadTestSpec) ([]byte, error) {
+	loadTestSpec types.LoadTestSpec) ([]byte, error) {
+
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
 	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
@@ -159,22 +161,21 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	return yaml.Marshal(&loadTestSpec)
 }
 
-func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
-	loadTestSpec *types.LoadTestSpec, runnerType string, providerState []byte) (PackagedState, error) {
+func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
-	if runnerType == string(testnettypes.Docker) {
+	if req.RunnerType == string(testnettypes.Docker) {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			providerState,
+			req.ProviderState,
 		)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			providerState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -185,12 +186,12 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 		return PackagedState{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, chainState, node.RestoreNode, testnet.CosmosWalletConfig)
+	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, testnet.CosmosWalletConfig)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, loadTestSpec)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}
@@ -272,7 +273,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 				return PackagedState{ProviderState: newProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to serialize chain: %w", err)
 			}
 
-			return PackagedState{
+			return messages.RunLoadTestResponse{
 				ProviderState: newProviderState,
 				ChainState:    newChainState,
 				Result:        result,

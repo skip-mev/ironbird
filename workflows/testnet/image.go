@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/messages"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
 )
@@ -23,32 +24,29 @@ func generateTag(chain, version, owner, repo, sha string) string {
 	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
 }
 
-func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult, error) {
+func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.BuildDockerImageResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	// todo: side effect
-	dockerFileBz, err := os.ReadFile(opts.ChainConfig.Image.Dockerfile)
+	dockerFileBz, err := os.ReadFile(req.ChainConfig.Image.Dockerfile)
 
 	if err != nil {
-		return builder.BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
-	logger.Info("opts", zap.Any("opts", opts))
-	logger.Info("dockerfile", zap.String("", string(dockerFileBz)))
-
 	var builderActivity *builder.Activity
-	tag := generateTag(opts.ChainConfig.Name, opts.ChainConfig.Version, opts.Owner, opts.Repo, opts.SHA)
+	tag := generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
 
-	var buildResult builder.BuildResult
+	var buildResult messages.BuildDockerImageResponse
 
 	var chainTag string
 	replaces := ""
 	// Skip replace script in the SDK repo because its not needed
-	if opts.Repo == SDK_REPO {
-		chainTag = opts.SHA
+	if req.Repo == SDK_REPO {
+		chainTag = req.SHA
 	} else {
-		chainTag = opts.ChainConfig.Version
-		replaces = generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
+		chainTag = req.ChainConfig.Version
+		replaces = generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
 		logger.Info("replaces", zap.String("", replaces))
 	}
 
@@ -61,7 +59,7 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
-		return builder.BuildResult{}, err
+		return messages.BuildDockerImageResponse{}, err
 	}
 
 	return buildResult, nil
