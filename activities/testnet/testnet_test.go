@@ -2,13 +2,19 @@ package testnet
 
 import (
 	"context"
+	"github.com/skip-mev/ironbird/messages"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var testnetOptions = TestnetOptions{
+var createProviderReq = messages.CreateProviderRequest{
+	Name:       petriutil.RandomString(10),
+	RunnerType: "Docker",
+}
+
+var launchTestnetReq = messages.LaunchTestnetRequest{
 	Name:                    petriutil.RandomString(10),
 	Image:                   "ghcr.io/cosmos/simapp",
 	UID:                     "1025",
@@ -26,46 +32,52 @@ var testnetOptions = TestnetOptions{
 	NumOfValidators: 1,
 	NumOfNodes:      0,
 	ProviderState:   nil,
-	ChainState:      nil,
 }
 
 func TestProviderLifecycle(t *testing.T) {
 	activity := Activity{}
-	options := testnetOptions
+	options := createProviderReq
 
-	state, err := activity.CreateProvider(context.Background(), options)
+	resp, err := activity.CreateProvider(context.Background(), options)
 
 	require.NoError(t, err)
-	require.NotEmpty(t, state)
+	require.NotEmpty(t, resp.ProviderState)
 
-	options.ProviderState = []byte(state)
-
-	state, err = activity.TeardownProvider(context.Background(), options)
+	_, err = activity.TeardownProvider(context.Background(), messages.TeardownProviderRequest{
+		RunnerType:    options.RunnerType,
+		ProviderState: resp.ProviderState,
+	})
 	require.NoError(t, err)
 }
 
 func TestChainLifecycle(t *testing.T) {
 	activity := Activity{}
-	options := testnetOptions
 
+	var providerState, chainState []byte
 	defer func() {
-		if options.ProviderState == nil {
+		if providerState == nil {
 			return
 		}
 
-		_, err := activity.TeardownProvider(context.Background(), options)
+		_, err := activity.TeardownProvider(context.Background(), messages.TeardownProviderRequest{
+			RunnerType:    launchTestnetReq.RunnerType,
+			ProviderState: providerState,
+		})
 		require.NoError(t, err)
 	}()
 
-	state, err := activity.CreateProvider(context.Background(), options)
-	options.ProviderState = []byte(state)
+	createProviderResp, err := activity.CreateProvider(context.Background(), createProviderReq)
 	require.NoError(t, err)
-	require.NotEmpty(t, state)
+	providerState = createProviderResp.ProviderState
+	require.NotEmpty(t, providerState)
 
-	packagedState, err := activity.LaunchTestnet(context.Background(), options)
-	options.ProviderState = packagedState.ProviderState
-	options.ChainState = packagedState.ChainState
+	req := launchTestnetReq
+	req.ProviderState = providerState
+	packagedState, err := activity.LaunchTestnet(context.Background(), req)
+	providerState = packagedState.ProviderState
+	chainState = packagedState.ChainState
 
 	require.NoError(t, err)
 	require.NotNil(t, packagedState)
+	require.NotNil(t, chainState)
 }
