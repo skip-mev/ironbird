@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/skip-mev/ironbird/types/testnet"
@@ -35,12 +36,6 @@ type TestnetOptions struct {
 	ChainState    []byte
 }
 
-type PackagedState struct {
-	ProviderState []byte
-	ChainState    []byte
-	Nodes         []testnet.Node
-}
-
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
@@ -61,22 +56,22 @@ const (
 	cosmosDecimals = 6
 )
 
-func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (string, error) {
+func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
 
-	if opts.RunnerType == string(testnet.Docker) {
+	if req.RunnerType == testnet.Docker {
 		p, err = docker.CreateProvider(
 			ctx,
 			logger,
-			opts.Name,
+			req.Name,
 		)
 	} else {
 		p, err = digitalocean.NewProvider(
 			ctx,
-			opts.Name,
+			req.Name,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -84,30 +79,30 @@ func (a *Activity) CreateProvider(ctx context.Context, opts TestnetOptions) (str
 	}
 
 	if err != nil {
-		return "", err
+		return messages.CreateProviderResponse{}, err
 	}
 
 	state, err := p.SerializeProvider(ctx)
 
-	return string(state), err
+	return messages.CreateProviderResponse{ProviderState: state}, err
 }
 
-func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (string, error) {
+func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
 
-	if opts.RunnerType == string(testnet.Docker) {
+	if req.RunnerType == testnet.Docker {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			opts.ProviderState,
+			req.ProviderState,
 		)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			opts.ProviderState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -115,27 +110,27 @@ func (a *Activity) TeardownProvider(ctx context.Context, opts TestnetOptions) (s
 	}
 
 	if err != nil {
-		return "", err
+		return messages.TeardownProviderResponse{}, err
 	}
 
 	err = p.Teardown(ctx)
-	return "", err
+	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (packagedState PackagedState, err error) {
+func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnetRequest) (resp messages.LaunchTestnetResponse, err error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 
-	if opts.RunnerType == string(testnet.Docker) {
+	if req.RunnerType == testnet.Docker {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			opts.ProviderState)
+			req.ProviderState)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			opts.ProviderState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -148,9 +143,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 
 	nodeOptions := types.NodeOptions{}
 
-	if opts.RunnerType == string(testnet.DigitalOcean) {
+	if req.RunnerType == testnet.DigitalOcean {
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
-			definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
+			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 			return definition
 		}
 	}
@@ -163,26 +158,26 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 			Name:          opts.Name,
 			Denom:         cosmosDenom,
 			Decimals:      cosmosDecimals,
-			NumValidators: int(opts.NumOfValidators),
-			NumNodes:      int(opts.NumOfNodes),
-			BinaryName:    opts.BinaryName,
+			NumValidators: int(req.NumOfValidators),
+			NumNodes:      int(req.NumOfNodes),
+			BinaryName:    req.BinaryName,
 			Image: provider.ImageDefinition{
-				Image: opts.Image,
-				UID:   opts.UID,
-				GID:   opts.GID,
+				Image: req.Image,
+				UID:   req.UID,
+				GID:   req.GID,
 			},
 			GasPrices:            "0.0005stake",
 			Bech32Prefix:         "cosmos",
-			HomeDir:              opts.HomeDir,
+			HomeDir:              req.HomeDir,
 			CoinType:             "118",
-			ChainId:              opts.Name,
+			ChainId:              req.Name,
 			UseGenesisSubCommand: true,
 		},
 		types.ChainOptions{
 			NodeCreator: node.CreateNode,
 			NodeOptions: types.NodeOptions{
 				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
-					definition.ProviderSpecificConfig = opts.ProviderSpecificOptions
+					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 					return definition
 				},
 			},
@@ -193,16 +188,16 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 	if chainErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
 		if serializeErr != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
-		packagedState.ProviderState = providerState
+		resp.ProviderState = providerState
 
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	initErr := chain.Init(ctx, types.ChainOptions{
-		ModifyGenesis: petrichain.ModifyGenesis(opts.GenesisModifications),
+		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  CosmosWalletConfig,
 	})
@@ -210,44 +205,44 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
 		if serializeErr != nil {
-			return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
-		packagedState.ProviderState = providerState
+		resp.ProviderState = providerState
 
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
 	if err != nil {
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	packagedState.ProviderState = providerState
+	resp.ProviderState = providerState
 
 	chainState, err := chain.Serialize(ctx, p)
 	if err != nil {
-		return packagedState, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	packagedState.ChainState = chainState
+	resp.ChainState = chainState
 
 	var testnetNodes []testnet.Node
 
 	for _, validator := range chain.GetValidators() {
 		cosmosIp, err := validator.GetExternalAddress(ctx, "1317")
 		if err != nil {
-			return packagedState, err
+			return resp, err
 		}
 
 		cometIp, err := validator.GetExternalAddress(ctx, "26657")
 		if err != nil {
-			return packagedState, err
+			return resp, err
 		}
 
 		metricsIp, err := validator.GetIP(ctx)
 		if err != nil {
-			return packagedState, err
+			return resp, err
 		}
 
 		testnetNodes = append(testnetNodes, testnet.Node{
@@ -258,27 +253,27 @@ func (a *Activity) LaunchTestnet(ctx context.Context, opts TestnetOptions) (pack
 		})
 	}
 
-	packagedState.Nodes = testnetNodes
+	resp.Nodes = testnetNodes
 
-	return packagedState, nil
+	return resp, nil
 }
 
-func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (string, error) {
+func (a *Activity) MonitorTestnet(ctx context.Context, req messages.MonitorTestnetRequest) (messages.MonitorTestnetResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
 	var err error
 
-	if opts.RunnerType == string(testnet.Docker) {
+	if req.RunnerType == testnet.Docker {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,
-			opts.ProviderState,
+			req.ProviderState,
 		)
 	} else {
 		p, err = digitalocean.RestoreProvider(
 			ctx,
-			opts.ProviderState,
+			req.ProviderState,
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
@@ -289,7 +284,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, opts TestnetOptions) (str
 		return "", err
 	}
 
-	chain, err := petrichain.RestoreChain(ctx, logger, p, opts.ChainState, node.RestoreNode, CosmosWalletConfig)
+	chain, err := petrichain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, CosmosWalletConfig)
 
 	if err != nil {
 		return "", err

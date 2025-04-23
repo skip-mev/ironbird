@@ -31,7 +31,6 @@ type Report struct {
 
 	nodes            []testnettypes.Node
 	observabilityURL string
-	screenshots      map[string]string
 	buildResult      messages.BuildDockerImageResponse
 	loadTestResults  *types.LoadTestResult
 	loadTestStatus   string
@@ -130,11 +129,6 @@ func (r *Report) SetBuildResult(ctx workflow.Context, buildResult messages.Build
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) SetScreenshots(ctx workflow.Context, screenshots map[string]string) error {
-	r.screenshots = screenshots
-	return r.UpdateCheck(ctx)
-}
-
 func (r *Report) SetNodes(ctx workflow.Context, nodes []testnettypes.Node) error {
 	r.nodes = nodes
 	return r.UpdateCheck(ctx)
@@ -165,17 +159,6 @@ func (r *Report) addNodesToMarkdown(md *markdown.Markdown) {
 		Header: []string{"Name", "RPC", "LCD"},
 		Rows:   rows,
 	})
-}
-
-func (r *Report) addScreenshotsToMarkdown(md *markdown.Markdown) {
-	md.HorizontalRule()
-	md.H1("Observability graphs")
-
-	for name, url := range r.screenshots {
-		md.HorizontalRule()
-		md.H3(fmt.Sprintf("Screenshot - %s", name))
-		md.PlainText(fmt.Sprintf("![](%s)", url))
-	}
 }
 
 func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
@@ -327,10 +310,6 @@ func (r *Report) Markdown() (string, error) {
 		md.HorizontalRule()
 		md.H1("Observability")
 		md.PlainText(fmt.Sprintf("Grafana: [%s](%s)", r.observabilityURL, r.observabilityURL))
-	}
-
-	if len(r.screenshots) > 0 {
-		r.addScreenshotsToMarkdown(md)
 	}
 
 	if r.loadTestStatus != "" || r.loadTestResults != nil {

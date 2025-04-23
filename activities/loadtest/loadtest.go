@@ -25,12 +25,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type PackagedState struct {
-	ProviderState []byte
-	ChainState    []byte
-	Result        types.LoadTestResult
-}
-
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings

@@ -28,14 +28,6 @@ type Options struct {
 	RunnerType             string
 }
 
-type PackagedState struct {
-	ExternalGrafanaURL string
-	GrafanaURL         string
-	PrometheusState    []byte
-	GrafanaState       []byte
-	ProviderState      []byte
-}
-
 type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 	DOToken           string

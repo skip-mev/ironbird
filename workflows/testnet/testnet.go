@@ -106,26 +106,22 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		}
 	}()
 
-	var chainState testnet.PackagedState
+	var testnetResp messages.LaunchTestnetResponse
 
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, testnetOptions).Get(ctx, &chainState); err != nil {
+	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, testnetOptions).Get(ctx, &testnetResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ChainState = chainState.ChainState
-	testnetOptions.ProviderState = chainState.ProviderState
+	testnetOptions.ChainState = testnetResp.ChainState
+	testnetOptions.ProviderState = testnetResp.ProviderState
 
-	if err := report.SetNodes(ctx, chainState.Nodes); err != nil {
+	if err := report.SetNodes(ctx, testnetResp.Nodes); err != nil {
 		return "", err
 	}
 
-	var observabilityPackagedState observability.PackagedState
+	var observabilityResp messages.LaunchObservabilityStackResponse
 	var metricsIps []string
 
-	for _, node := range chainState.Nodes {
-		metricsIps = append(metricsIps, fmt.Sprintf("%s:26660", node.Metrics))
-		metricsIps = append(metricsIps, fmt.Sprintf("%s:1317", node.Metrics))
-	}
 
 	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
 
@@ -138,13 +134,13 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
 			RunnerType:             string(req.RunnerType),
 		},
-	).Get(ctx, &observabilityPackagedState); err != nil {
+	).Get(ctx, &observabilityResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ProviderState = observabilityPackagedState.ProviderState
+	testnetOptions.ProviderState = observabilityResp.ProviderState
 
-	if err := report.SetObservabilityURL(ctx, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := report.SetObservabilityURL(ctx, observabilityResp.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
@@ -161,7 +157,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 			// buffer for load test run & wallets creating
 			loadTestRuntime += 30 * time.Minute
 
-			var state loadtest.PackagedState
+			var loadTestResp messages.RunLoadTestResponse
 			if err := workflow.ExecuteActivity(
 				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
@@ -169,7 +165,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 				req.LoadTestSpec,
 				req.RunnerType,
 				testnetOptions.ProviderState,
-			).Get(ctx, &state); err != nil {
+			).Get(ctx, &loadTestResp); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
 				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), "", nil)
 				if updateErr != nil {
@@ -178,14 +174,14 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 				return
 			}
 
-			if state.Result.Error != "" {
-				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", state.Result.Error))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, "", &state.Result)
+			if loadTestResp.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+loadTestResp.Result.Error, configStr, &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
 			} else {
-				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &state.Result)
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", configStr, &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
@@ -193,7 +189,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		})
 	}
 
-	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, observabilityResp.ExternalGrafanaURL); err != nil {
 		return "", err
 	}
 
