@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/observability"
@@ -150,6 +149,11 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var loadTestRuntime time.Duration
 	if opts.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
+			updateErr := report.UpdateLoadTest(ctx, "Load test starting", "", nil)
+			if updateErr != nil {
+				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+			}
+
 			// assume ~ 2 sec block times
 			loadTestRuntime = time.Duration(opts.LoadTestSpec.NumOfBlocks*2) * time.Second
 			// buffer for load test run & wallets creating
@@ -163,9 +167,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				opts.LoadTestSpec,
 				opts.RunnerType,
 				testnetOptions.ProviderState,
-				func(status string, config string, results *types.LoadTestResult) error {
-					return report.UpdateLoadTest(ctx, status, config, results)
-				},
 			).Get(ctx, &state); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
 				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), "", nil)
