@@ -1,15 +1,16 @@
 {
   "InstallationID": 57729708,
   "Owner": "skip-mev",
-  "Repo": "ironbird-cometbft",
-  "SHA": "0ea6592419a2272d2e4cdc10c79430a242e0f323",
+  "Repo": "ironbird-cosmos-sdk",
+  "SHA": "3de8d67d5feb33fad8d3e54236bec1428af3fe6b",
   "ChainConfig": {
     "Name": "cosmos",
     "NumOfNodes": 1,
-    "NumOfValidators": 1,
+    "NumOfValidators": 6,
     "SnapshotURL": "",
     "Dependencies": {
-      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft"
+      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft",
+      "skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk"
     },
     "Image": {
       "Dockerfile": "./hack/simapp.Dockerfile",
@@ -27,17 +28,18 @@
       }
     ]
   },
-  "RunnerType": "Docker",
+  "RunnerType": "DigitalOcean",
   "LoadTestSpec": {
-    "NumOfBlocks": 10,
-    "NumOfTxs": 300,
+    "Name": "unordered_test_bird",
+    "NumOfBlocks": 100,
+    "BlockGasLimitTarget": 0.90,
     "Msgs": [
       {
         "Weight": 1,
         "Type": "MsgMultiSend",
-        "NumOfRecipients": 100,
+        "NumOfRecipients": 20,
         "UnorderedTxs": true,
-        "TxTimeout": "30s"
+        "TxTimeout": "5m"
       }
     ]
   }

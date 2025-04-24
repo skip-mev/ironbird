@@ -14,7 +14,7 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
-	github.com/skip-mev/catalyst v0.0.0-20250416173639-dec5b4c12203
+	github.com/skip-mev/catalyst v0.0.0-20250423195134-abd77214dfa1
 	github.com/skip-mev/petri/core/v3 v3.0.3-0.20250423210055-db34bcf855ec
 	github.com/skip-mev/petri/cosmos/v3 v3.0.3-0.20250423224123-259e56c344cb
 	github.com/stretchr/testify v1.10.0

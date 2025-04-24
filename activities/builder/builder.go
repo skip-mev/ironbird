@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ecrpublic"
 	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecrpublic/types"
@@ -19,7 +21,6 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
-	"strings"
 )
 
 type Activity struct {
@@ -186,6 +187,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	if err != nil {
 		return BuildResult{}, err
 	}
+
 
 	return BuildResult{
 		FQDNTag: fqdnTag,
