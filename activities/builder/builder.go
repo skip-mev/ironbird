@@ -172,7 +172,6 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 
 	statusChan := make(chan *client.SolveStatus)
 	var logs bytes.Buffer
-	done := make(chan struct{})
 
 	go func() {
 		for status := range statusChan {
@@ -182,16 +181,13 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 				fmt.Print(logLine)
 			}
 		}
-		close(done)
 	}()
 
 	_, err = bkClient.Solve(ctx, nil, solveOpt, statusChan)
 	if err != nil {
-		<-done
 		return BuildResult{}, err
 	}
 
-	<-done
 
 	return BuildResult{
 		FQDNTag: fqdnTag,
