@@ -293,10 +293,15 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 
 func (r *Report) addBuildResultToMarkdown(md *markdown.Markdown) {
 	md.HorizontalRule()
-	md.H2("Build Results")
+	// Use raw HTML for collapsible section
+	md.PlainText(`<details>`)
+	md.PlainText(`<summary><h2>Build Results</h2></summary>`)
+
 	md.H3(fmt.Sprintf("Image tag: %s", r.buildResult.FQDNTag))
 	md.H3("Build logs:")
 	md.CodeBlocks(markdown.SyntaxHighlightNone, string(r.buildResult.Logs))
+
+	md.PlainText(`</details>`)
 }
 
 func (r *Report) Markdown() (string, error) {
