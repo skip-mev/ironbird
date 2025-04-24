@@ -3,9 +3,12 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"time"
+
+	"html"
 
 	"github.com/nao1215/markdown"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
@@ -291,13 +294,20 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 }
 
 func (r *Report) addBuildResultToMarkdown(md *markdown.Markdown) {
-	var buf bytes.Buffer
-	subMd := markdown.NewMarkdown(&buf)
+	md.HorizontalRule()
 
-	subMd.H3f("Image tag: %s\n\n", r.buildResult.FQDNTag)
-	subMd.H3("Build logs:\n\n")
-	subMd.CodeBlocks(markdown.SyntaxHighlightNone, string(r.buildResult.Logs))
-	md.Details("Image build results", subMd.String())
+	// Construct the entire collapsible section as raw HTML to avoid mixing markdown generation methods
+	htmlContent := fmt.Sprintf(`
+<details>
+<summary><h2>Build Results</h2></summary>
+
+<h3>Image tag: %s</h3>
+<h3>Build logs:</h3>
+<pre><code>%s</code></pre>
+</details>
+`, r.buildResult.FQDNTag, html.EscapeString(string(r.buildResult.Logs)))
+
+	md.PlainText(htmlContent)
 }
 
 func (r *Report) Markdown() (string, error) {

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/catalyst/pkg/types"
 	"sync"
 	"time"
+
+	"github.com/skip-mev/catalyst/pkg/types"
 
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"

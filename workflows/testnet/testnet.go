@@ -149,21 +149,9 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var loadTestRuntime time.Duration
 	if opts.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			if err != nil {
-				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Failed to begin load test: "+err.Error(), "", nil)
-				if updateErr != nil {
-					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
-				}
-				return
-			}
-
-			configStr := fmt.Sprintf("Load Test Configuration:\n%+v", opts.LoadTestSpec)
-
-			err = report.UpdateLoadTest(ctx, "Load test in progress", configStr, nil)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(err))
-				return
+			updateErr := report.UpdateLoadTest(ctx, "Load test in progress", "", nil)
+			if updateErr != nil {
+				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 			}
 
 			// assume ~ 2 sec block times
@@ -181,7 +169,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				testnetOptions.ProviderState,
 			).Get(ctx, &state); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), configStr, nil)
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), "", nil)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
@@ -190,12 +178,12 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 
 			if state.Result.Error != "" {
 				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", state.Result.Error))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, configStr, &state.Result)
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, "", &state.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
 			} else {
-				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", configStr, &state.Result)
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &state.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
