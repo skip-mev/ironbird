@@ -150,7 +150,6 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var loadTestRuntime time.Duration
 	if opts.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
-
 			// assume ~ 2 sec block times
 			loadTestRuntime = time.Duration(opts.LoadTestSpec.NumOfBlocks*2) * time.Second
 			// buffer for load test run & wallets creating
