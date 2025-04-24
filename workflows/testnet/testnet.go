@@ -149,7 +149,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	var loadTestRuntime time.Duration
 	if opts.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			updateErr := report.UpdateLoadTest(ctx, "Load test starting", "", nil)
+			updateErr := report.UpdateLoadTest(ctx, "Load test in progress", "", nil)
 			if updateErr != nil {
 				workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 			}
