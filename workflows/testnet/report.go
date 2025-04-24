@@ -3,9 +3,10 @@ package testnet
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"time"
 
 	"github.com/nao1215/markdown"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
@@ -291,13 +292,11 @@ func (r *Report) addLoadTestResultsToMarkdown(md *markdown.Markdown) {
 }
 
 func (r *Report) addBuildResultToMarkdown(md *markdown.Markdown) {
-	var buf bytes.Buffer
-	subMd := markdown.NewMarkdown(&buf)
-
-	subMd.H3f("Image tag: %s\n\n", r.buildResult.FQDNTag)
-	subMd.H3("Build logs:\n\n")
-	subMd.CodeBlocks(markdown.SyntaxHighlightNone, string(r.buildResult.Logs))
-	md.Details("Image build results", subMd.String())
+	md.HorizontalRule()
+	md.H2("Build Results")
+	md.H3(fmt.Sprintf("Image tag: %s", r.buildResult.FQDNTag))
+	md.H3("Build logs:")
+	md.CodeBlocks(markdown.SyntaxHighlightNone, string(r.buildResult.Logs))
 }
 
 func (r *Report) Markdown() (string, error) {

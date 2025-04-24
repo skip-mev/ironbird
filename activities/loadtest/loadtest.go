@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/catalyst/pkg/types"
 	"sync"
 	"time"
+
+	"github.com/skip-mev/catalyst/pkg/types"
 
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
@@ -135,7 +136,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 }
 
 func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
-	loadTestSpec *types.LoadTestSpec, runnerType string, providerState []byte) (PackagedState, error) {
+	loadTestSpec *types.LoadTestSpec, runnerType string, providerState []byte,
+	updateLoadTestFn func(status string, config string, results *types.LoadTestResult) error) (PackagedState, error) {
 	logger, _ := zap.NewDevelopment()
 
 	var p provider.ProviderI
@@ -166,6 +168,12 @@ func (a *Activity) RunLoadTest(ctx context.Context, chainState []byte,
 	}
 
 	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, loadTestSpec)
+	if err != nil {
+		return PackagedState{}, err
+	}
+
+	configStr := fmt.Sprintf("Load test spec:\n%+v", loadTestSpec)
+	err = updateLoadTestFn("Load test in progress", configStr, nil)
 	if err != nil {
 		return PackagedState{}, err
 	}

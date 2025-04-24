@@ -2,8 +2,8 @@ package testnet
 
 import (
 	"fmt"
-	catalyst_types "github.com/skip-mev/catalyst/pkg/types"
 
+	catalyst_types "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/types/testnet"
