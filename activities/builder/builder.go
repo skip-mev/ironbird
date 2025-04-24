@@ -183,7 +183,6 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	}()
 
 	_, err = bkClient.Solve(ctx, nil, solveOpt, statusChan)
-
 	if err != nil {
 		return BuildResult{}, err
 	}
