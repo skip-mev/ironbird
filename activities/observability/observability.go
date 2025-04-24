@@ -164,7 +164,7 @@ func NewPrometheusScope(c prometheus.Configuration) tally.Scope {
 		CachedReporter:  reporter,
 		Separator:       prometheus.DefaultSeparator,
 		SanitizeOptions: &sdktally.PrometheusSanitizeOptions,
-		Prefix:          "temporal_samples",
+		Prefix:          "",
 	}
 	scope, _ := tally.NewRootScope(scopeOpts, time.Second)
 	scope = sdktally.NewPrometheusNamingScope(scope)
