@@ -360,7 +360,9 @@ require (
 	github.com/tonistiigi/units v0.0.0-20180711220420-6950e57a87ea // indirect
 	github.com/tonistiigi/vt100 v0.0.0-20240514184818-90bafcd6abab // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
+	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/u-root/uio v0.0.0-20240118234441-a3c409a6018e // indirect
+	github.com/uber-go/tally/v4 v4.1.7 // indirect
 	github.com/ultraware/funlen v0.1.0 // indirect
 	github.com/ultraware/whitespace v0.1.0 // indirect
 	github.com/uudashr/gocognit v1.1.2 // indirect
@@ -393,6 +395,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.4.0 // indirect
 	go.temporal.io/api v1.40.0 // indirect
+	go.temporal.io/sdk/contrib/tally v0.2.0 // indirect
+	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org/mem v0.0.0-20220726221520-4f986261bf13 // indirect

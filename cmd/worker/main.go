@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	sdktally "go.temporal.io/sdk/contrib/tally"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/uber-go/tally/v4/prometheus"
 	"tailscale.com/tsnet"
 
 	"log"
@@ -49,6 +51,10 @@ func main() {
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
+		MetricsHandler: sdktally.NewMetricsHandler(observability.NewPrometheusScope(prometheus.Configuration{
+			ListenAddress: "0.0.0.0:9090",
+			TimerType:     "histogram",
+		})),
 	})
 
 	if err != nil {
