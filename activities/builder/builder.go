@@ -21,6 +21,7 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
+	"go.uber.org/zap"
 )
 
 type Activity struct {
@@ -107,6 +108,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[string][]byte, buildArgs map[string]string) (BuildResult, error) {
+	logger, _ := zap.NewDevelopment()
 	if err := a.createRepositoryIfNotExists(ctx); err != nil {
 		return BuildResult{}, err
 	}
@@ -148,6 +150,11 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	}
 
 	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, tag)
+
+	logger.Info("fqdntag", zap.String("fqdnTag", fqdnTag))
+	logger.Info("BuilderConfig.Registry.URL", zap.String("", a.BuilderConfig.Registry.URL))
+	logger.Info("a.BuilderConfig.Registry.ImageName", zap.String("", a.BuilderConfig.Registry.ImageName))
+	logger.Info("tag", zap.String("tag", tag))
 
 	solveOpt := client.SolveOpt{
 		Frontend:      "dockerfile.v0",

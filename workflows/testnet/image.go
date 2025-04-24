@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"go.temporal.io/sdk/workflow"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -26,6 +27,9 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 	}
 
 	replaces := generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
+	logger, _ := zap.NewDevelopment()
+	logger.Info("replaces", zap.String("", string(replaces)))
+	logger.Info("dockerfile", zap.String("", string(dockerFileBz)))
 
 	var builderActivity *builder.Activity
 	tag := generateTag(opts.ChainConfig.Name, opts.ChainConfig.Version, opts.Owner, opts.Repo, opts.SHA)
