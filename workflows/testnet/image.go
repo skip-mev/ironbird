@@ -43,6 +43,7 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 		"replaces.sh": replaces,
 	}, map[string]string{
 		"CHAIN_TAG": opts.ChainConfig.Version,
+		"GIT_SHA":   tag,
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
