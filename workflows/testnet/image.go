@@ -12,7 +12,7 @@ import (
 func generateReplace(dependencies map[string]string, owner, repo, tag string) []byte {
 	orig := dependencies[fmt.Sprintf("%s/%s", owner, repo)]
 
-	return []byte(fmt.Sprintf("go mod edit -replace %s=github.com/%s/%s@%s", orig, owner, repo, tag))
+	return []byte(fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag))
 }
 
 func generateTag(chain, version, owner, repo, sha string) string {
