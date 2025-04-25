@@ -91,12 +91,12 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		}
 	}
 
-	var providerState string
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, testnetOptions).Get(ctx, &providerState); err != nil {
+	var createProviderResp messages.CreateProviderResponse
+	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, testnetOptions).Get(ctx, &createProviderResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ProviderState = []byte(providerState)
+	testnetOptions.ProviderState = createProviderResp.ProviderState
 
 	defer func() {
 		newCtx, _ := workflow.NewDisconnectedContext(ctx)
@@ -174,10 +174,12 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 			if err := workflow.ExecuteActivity(
 				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
-				testnetOptions.ChainState,
-				req.LoadTestSpec,
-				req.RunnerType,
-				testnetOptions.ProviderState,
+				messages.RunLoadTestRequest{
+					ChainState:    testnetOptions.ChainState,
+					ProviderState: testnetOptions.ProviderState,
+					LoadTestSpec:  *req.LoadTestSpec,
+					RunnerType:    req.RunnerType,
+				},
 			).Get(ctx, &loadTestResp); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
 				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), configStr, nil)
@@ -229,9 +231,9 @@ func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions,
 			return err
 		}
 
-		var status string
+		var monitorTestnetResp messages.MonitorTestnetResponse
 		// TODO: metrics checks
-		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &status)
+		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &monitorTestnetResp)
 
 		if err != nil {
 			return err

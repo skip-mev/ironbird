@@ -69,11 +69,19 @@ func NewReport(ctx workflow.Context, name, title, summary string, req messages.T
 }
 
 func (r *Report) CreateCheck(ctx workflow.Context) (int64, error) {
-	options := GenerateCheckOptions(r.workflowRequest, r.name, r.status, r.title, r.summary, "", nil)
-
 	var resp messages.CreateGitHubCheckResponse
 
-	if err := workflow.ExecuteActivity(ctx, githubActivities.CreateGitHubCheck, options).Get(ctx, &resp); err != nil {
+	if err := workflow.ExecuteActivity(ctx, githubActivities.CreateGitHubCheck, messages.CreateGitHubCheckRequest{
+		InstallationID: r.workflowRequest.InstallationID,
+		Owner:          r.workflowRequest.Owner,
+		Repo:           r.workflowRequest.Repo,
+		SHA:            r.workflowRequest.SHA,
+		Name:           r.name,
+		Status:         &r.status,
+		Title:          &r.title,
+		Summary:        &r.summary,
+		Conclusion:     nil,
+	}).Get(ctx, &resp); err != nil {
 		return -1, err
 	}
 
@@ -93,9 +101,18 @@ func (r *Report) UpdateCheck(ctx workflow.Context) error {
 		conclusion = util.StringPtr(r.conclusion)
 	}
 
-	options := GenerateCheckOptions(r.workflowRequest, r.name, r.status, r.title, r.summary, output, conclusion)
-
-	return workflow.ExecuteActivity(ctx, githubActivities.UpdateGitHubCheck, r.checkId, options).Get(ctx, nil)
+	return workflow.ExecuteActivity(ctx, githubActivities.UpdateGitHubCheck, messages.UpdateGitHubCheckRequest{
+		CheckID:        r.checkId,
+		InstallationID: r.workflowRequest.InstallationID,
+		Owner:          r.workflowRequest.Owner,
+		Repo:           r.workflowRequest.Repo,
+		Name:           r.name,
+		Status:         &r.status,
+		Title:          &r.title,
+		Summary:        &r.summary,
+		Text:           output,
+		Conclusion:     conclusion,
+	}).Get(ctx, nil)
 }
 
 func (r *Report) TimeSinceStart(ctx workflow.Context) time.Duration {

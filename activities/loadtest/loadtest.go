@@ -135,7 +135,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 
 	var p provider.ProviderI
 	var err error
-	if req.RunnerType == string(testnettypes.Docker) {
+	if req.RunnerType == testnettypes.Docker {
 		p, err = docker.RestoreProvider(
 			ctx,
 			logger,

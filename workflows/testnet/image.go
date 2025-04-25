@@ -33,11 +33,15 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 
 	var buildResult messages.BuildDockerImageResponse
 
-	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
-		"Dockerfile":  dockerFileBz,
-		"replaces.sh": replaces,
-	}, map[string]string{
-		"CHAIN_TAG": req.ChainConfig.Version,
+	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, messages.BuildDockerImageRequest{
+		Tag: tag,
+		Files: map[string][]byte{
+			"Dockerfile":  dockerFileBz,
+			"replaces.sh": replaces,
+		},
+		BuildArguments: map[string]string{
+			"CHAIN_TAG": req.ChainConfig.Version,
+		},
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
