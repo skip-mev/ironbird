@@ -50,12 +50,16 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 		logger.Info("replaces", zap.String("", replaces))
 	}
 
-	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
-		"Dockerfile": dockerFileBz,
-	}, map[string]string{
-		"CHAIN_TAG":   chainTag,
-		"GIT_SHA":     tag,
-		"REPLACE_CMD": replaces,
+	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, messages.BuildDockerImageRequest{
+		Tag: tag,
+		Files: map[string][]byte{
+			"Dockerfile":  dockerFileBz,
+		},
+		BuildArguments: map[string]string{
+			"CHAIN_TAG":   chainTag,
+			"GIT_SHA":     tag,
+			"REPLACE_CMD": replaces,
+		},
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
