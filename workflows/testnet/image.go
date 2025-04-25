@@ -9,10 +9,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func generateReplace(dependencies map[string]string, owner, repo, tag string) []byte {
+const (
+	SDK_REPO = "cosmos-sdk"
+)
+
+func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
 	orig := dependencies[fmt.Sprintf("%s/%s", owner, repo)]
 
-	return []byte(fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag))
+	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
 func generateTag(chain, version, owner, repo, sha string) string {
@@ -30,8 +34,6 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 	}
 
 	logger.Info("opts", zap.Any("opts", opts))
-	replaces := generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
-	logger.Info("replaces", zap.String("", string(replaces)))
 	logger.Info("dockerfile", zap.String("", string(dockerFileBz)))
 
 	var builderActivity *builder.Activity
@@ -39,12 +41,23 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 
 	var buildResult builder.BuildResult
 
+	var chainTag string
+	replaces := ""
+	// Skip replace script in the SDK repo because its not needed
+	if opts.Repo == SDK_REPO {
+		chainTag = opts.SHA
+	} else {
+		chainTag = opts.ChainConfig.Version
+		replaces = generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
+		logger.Info("replaces", zap.String("", replaces))
+	}
+
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
 		"Dockerfile": dockerFileBz,
 	}, map[string]string{
-		"CHAIN_TAG":   opts.ChainConfig.Version,
+		"CHAIN_TAG":   chainTag,
 		"GIT_SHA":     tag,
-		"REPLACE_CMD": string(replaces),
+		"REPLACE_CMD": replaces,
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
