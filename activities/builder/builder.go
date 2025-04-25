@@ -141,14 +141,15 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	}, map[string]*authprovider.AuthTLSConfig{})
 
 	frontendAttrs := map[string]string{
-		"filename":          "Dockerfile",
-		"target":            "",
-		"build-arg:GIT_SHA": tag,
+		"filename": "Dockerfile",
+		"target":   "",
 	}
 
 	for k, v := range buildArgs {
 		frontendAttrs[fmt.Sprintf("build-arg:%s", k)] = v
 	}
+
+	frontendAttrs["build-arg:GIT_SHA"] = tag
 
 	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, tag)
 
