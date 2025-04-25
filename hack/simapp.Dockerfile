@@ -3,16 +3,19 @@ ARG IMG_TAG=latest
 # Compile the simapp binary
 FROM --platform=linux/amd64 golang:1.23-alpine AS simd-builder
 WORKDIR /src/
+ARG GIT_SHA
+RUN echo "Ironbird building with SHA: $GIT_SHA"
 
 ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
 RUN apk add --no-cache $PACKAGES
 
 ARG CHAIN_TAG=main
+ARG REPLACE_CMD
 RUN git clone --depth 1 --branch $CHAIN_TAG https://github.com/cosmos/cosmos-sdk /src/app
 
 WORKDIR /src/app/simapp
-COPY replaces.sh .
-RUN chmod +x replaces.sh && sh replaces.sh
+RUN echo "$REPLACE_CMD" > replace_cmd.sh
+RUN chmod +x replace_cmd.sh && sh replace_cmd.sh
 RUN cat go.mod
 RUN go mod tidy
 WORKDIR /src/app

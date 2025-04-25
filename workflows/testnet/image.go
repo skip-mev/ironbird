@@ -2,10 +2,11 @@ package testnet
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/skip-mev/ironbird/activities/builder"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
-	"os"
 )
 
 func generateReplace(dependencies map[string]string, owner, repo, tag string) []byte {
@@ -39,11 +40,11 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 	var buildResult builder.BuildResult
 
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, tag, map[string][]byte{
-		"Dockerfile":  dockerFileBz,
-		"replaces.sh": replaces,
+		"Dockerfile": dockerFileBz,
 	}, map[string]string{
-		"CHAIN_TAG": opts.ChainConfig.Version,
-		"GIT_SHA":   tag,
+		"CHAIN_TAG":   opts.ChainConfig.Version,
+		"GIT_SHA":     tag,
+		"REPLACE_CMD": string(replaces),
 	}).Get(ctx, &buildResult)
 
 	if err != nil {
