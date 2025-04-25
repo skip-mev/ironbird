@@ -19,6 +19,8 @@ func generateTag(chain, version, owner, repo, sha string) string {
 }
 
 func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult, error) {
+	logger, _ := zap.NewDevelopment()
+
 	// todo: side effect
 	dockerFileBz, err := os.ReadFile(opts.ChainConfig.Image.Dockerfile)
 
@@ -26,8 +28,8 @@ func buildImage(ctx workflow.Context, opts WorkflowOptions) (builder.BuildResult
 		return builder.BuildResult{}, err
 	}
 
+	logger.Info("opts", zap.Any("opts", opts))
 	replaces := generateReplace(opts.ChainConfig.Dependencies, opts.Owner, opts.Repo, opts.SHA)
-	logger, _ := zap.NewDevelopment()
 	logger.Info("replaces", zap.String("", string(replaces)))
 	logger.Info("dockerfile", zap.String("", string(dockerFileBz)))
 

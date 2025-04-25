@@ -141,8 +141,9 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	}, map[string]*authprovider.AuthTLSConfig{})
 
 	frontendAttrs := map[string]string{
-		"filename": "Dockerfile",
-		"target":   "",
+		"filename":          "Dockerfile",
+		"target":            "",
+		"build-arg:GIT_SHA": tag,
 	}
 
 	for k, v := range buildArgs {
@@ -194,7 +195,6 @@ func (a *Activity) BuildDockerImage(ctx context.Context, tag string, files map[s
 	if err != nil {
 		return BuildResult{}, err
 	}
-
 
 	return BuildResult{
 		FQDNTag: fqdnTag,
