@@ -113,14 +113,25 @@ func main() {
 		LocalClient: lc,
 	}
 
+	telemetrySettings := digitalocean.TelemetrySettings{
+		Prometheus: digitalocean.PrometheusSettings{
+			URL:      "https://mimir.overseer.skip.build/api/v1/push",
+			Username: "overseer",
+			Password: "testytest",
+		},
+		Loki: digitalocean.LokiSettings{},
+	}
+
 	testnetActivity := testnetactivity.Activity{
 		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
 	}
 
 	loadTestActivity := loadtest.Activity{
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
 	}
 
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
