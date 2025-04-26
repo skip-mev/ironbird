@@ -113,7 +113,7 @@ func main() {
 			Password: "testytest",
 		},
 		Loki: digitalocean.LokiSettings{},
-	}
+    }
 
 	testnetActivity := testnetactivity.Activity{
 		TailscaleSettings: tailscaleSettings,
