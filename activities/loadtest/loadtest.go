@@ -27,6 +27,7 @@ import (
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
+	TelemetrySettings digitalocean.TelemetrySettings
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
@@ -148,6 +149,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -174,7 +176,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		},
 		ProviderSpecificConfig: map[string]string{
 			"region":   "ams3",
-			"image_id": "177032231",
+			"image_id": "185210261",
 			"size":     "s-4vcpu-8gb",
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},

@@ -24,6 +24,7 @@ type Options struct {
 
 type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
+	TelemetrySettings digitalocean.TelemetrySettings
 	DOToken           string
 }
 
@@ -46,6 +47,7 @@ func (a *Activity) LaunchPrometheus(ctx context.Context, req messages.LaunchProm
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -113,6 +115,7 @@ func (a *Activity) LaunchGrafana(ctx context.Context, req messages.LaunchGrafana
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 

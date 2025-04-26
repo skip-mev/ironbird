@@ -21,6 +21,7 @@ import (
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
+	TelemetrySettings digitalocean.TelemetrySettings
 }
 
 var (
@@ -57,6 +58,7 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -88,6 +90,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -116,6 +119,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -137,7 +141,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		logger,
 		p,
 		types.ChainConfig{
-			Name:          opts.Name,
+			Name:          req.Name,
 			Denom:         cosmosDenom,
 			Decimals:      cosmosDecimals,
 			NumValidators: int(req.NumOfValidators),
@@ -259,6 +263,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, req messages.MonitorTestn
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
