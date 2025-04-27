@@ -18,24 +18,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type TestnetOptions struct {
-	Name                    string
-	Image                   string
-	UID                     string
-	GID                     string
-	BinaryName              string
-	HomeDir                 string
-	ProviderSpecificOptions map[string]string
-	GenesisModifications    []petrichain.GenesisKV
-	RunnerType              string
-
-	NumOfValidators uint64
-	NumOfNodes      uint64
-
-	ProviderState []byte
-	ChainState    []byte
-}
-
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
