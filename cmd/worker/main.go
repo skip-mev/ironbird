@@ -15,7 +15,6 @@ import (
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
@@ -122,12 +121,6 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 	}
 
-	observabilityActivity := observability.Activity{
-		TailscaleSettings: tailscaleSettings,
-		TelemetrySettings: telemetrySettings,
-		DOToken:           cfg.DigitalOcean.Token,
-	}
-
 	loadTestActivity := loadtest.Activity{
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
@@ -142,8 +135,6 @@ func main() {
 	w.RegisterActivity(testnetActivity.MonitorTestnet)
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
-	w.RegisterActivity(observabilityActivity.LaunchPrometheus)
-	w.RegisterActivity(observabilityActivity.LaunchGrafana)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	w.RegisterActivity(notifier.UpdateGitHubCheck)
