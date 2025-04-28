@@ -16,8 +16,8 @@ require (
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/prometheus/client_golang v1.21.1
 	github.com/skip-mev/catalyst v0.0.0-20250423195134-abd77214dfa1
-	github.com/skip-mev/petri/core/v3 v3.0.3-0.20250423210055-db34bcf855ec
-	github.com/skip-mev/petri/cosmos/v3 v3.0.3-0.20250423224123-259e56c344cb
+	github.com/skip-mev/petri/core/v3 v3.0.3
+	github.com/skip-mev/petri/cosmos/v3 v3.0.3
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.7
@@ -429,9 +429,4 @@ require (
 	mvdan.cc/unparam v0.0.0-20240104100049-c549a3470d14 // indirect
 	pgregory.net/rapid v1.2.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
-)
-
-replace (
-	github.com/skip-mev/petri/core/v3 => ../petri/core
-	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
 )
