@@ -128,6 +128,10 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
+	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
+		return "", err
+	}
+
 	var metricsIps []string
 
 	for _, node := range testnetResp.Nodes {
@@ -167,10 +171,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	providerState = grafanaResp.ProviderState
-
-	if err := report.SetObservabilityURL(ctx, grafanaResp.ExternalGrafanaURL); err != nil {
-		return "", err
-	}
 
 	var loadTestRuntime time.Duration
 	if req.LoadTestSpec != nil {
@@ -231,11 +231,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		})
 	}
 
-<<<<<<< HEAD
 	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, loadTestRuntime); err != nil {
-=======
-	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, grafanaResp.ExternalGrafanaURL); err != nil {
->>>>>>> c287a77 (fix: split out observability stack into prometheus and grafana)
 		return "", err
 	}
 

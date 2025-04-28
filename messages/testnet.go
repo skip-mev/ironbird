@@ -44,6 +44,7 @@ type LaunchTestnetRequest struct {
 type LaunchTestnetResponse struct {
 	ProviderState []byte
 	ChainState    []byte
+	ChainID       string
 	Nodes         []testnet.Node
 }
 
@@ -63,6 +64,7 @@ type TestnetWorkflowRequest struct {
 	ChainConfig    types.ChainsConfig
 	RunnerType     testnet.RunnerType
 	LoadTestSpec   *catalysttypes.LoadTestSpec
+	GrafanaConfig  types.GrafanaConfig
 }
 
 func (r TestnetWorkflowRequest) Validate() error {

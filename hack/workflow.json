@@ -40,5 +40,16 @@
         "TxTimeout": "30s"
       }
     ]
+  },
+  "GrafanaConfig": {
+      "URL": "https://skipprotocol.grafana.net",
+      "Dashboards": [
+          {
+              "ID": "b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436",
+              "Name": "comet-performance",
+              "HumanName": "CometBFT Performance",
+              "ChainIdVariable": "chain_id"
+          }
+      ]
   }
 }
