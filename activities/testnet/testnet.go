@@ -137,7 +137,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		logger,
 		p,
 		types.ChainConfig{
-			Name:          opts.Name,
+			Name:          req.Name,
 			Denom:         cosmosDenom,
 			Decimals:      cosmosDecimals,
 			NumValidators: int(req.NumOfValidators),
