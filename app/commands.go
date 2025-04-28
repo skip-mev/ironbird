@@ -297,6 +297,7 @@ func (a *App) commandStart(ctx context.Context, comment *Comment, command string
 		ChainConfig:    chain,
 		LoadTestSpec:   &loadTest,
 		RunnerType:     runnerType,
+		GrafanaConfig:  a.cfg.Grafana,
 	})
 
 	if err != nil {

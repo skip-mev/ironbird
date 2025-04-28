@@ -21,6 +21,7 @@ type AppConfig struct {
 	Github    githubapp.Config
 	Chains    map[string]ChainsConfig       `yaml:"chains"`
 	Temporal  TemporalConfig                `yaml:"temporal"`
+	Grafana   GrafanaConfig                 `yaml:"grafana"`
 	LoadTests map[string]types.LoadTestSpec `yaml:"load_tests"`
 }
 
@@ -30,6 +31,17 @@ type WorkerConfig struct {
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+}
+
+type GrafanaConfig struct {
+	URL        string             `yaml:"url"`
+	Dashboards []GrafanaDashboard `yaml:"dashboards"`
+}
+
+type GrafanaDashboard struct {
+	ID        string `yaml:"id"`
+	Name      string `yaml:"name"`
+	HumanName string `yaml:"human_name"`
 }
 
 type TemporalConfig struct {

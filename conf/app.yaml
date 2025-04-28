@@ -80,6 +80,13 @@ chains:
       - key: consensus.params.block.max_gas
         value: "75000000"
 
+grafana:
+  url: "https://skipprotocol.grafana.net"
+  dashboards:
+    - id: b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436
+      name: "comet-performance"
+      human_name: "CometBFT Performance"
+
 load_tests:
   normal:
     name: normal

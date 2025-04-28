@@ -3,12 +3,11 @@ package testnet
 import (
 	"bytes"
 	"fmt"
-	"time"
-
-	"github.com/skip-mev/catalyst/pkg/types"
+	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/messages"
-	"html"
+	"github.com/skip-mev/ironbird/types"
+	"time"
 
 	"github.com/nao1215/markdown"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
@@ -18,20 +17,21 @@ import (
 
 type Report struct {
 	workflowRequest messages.TestnetWorkflowRequest
-	start           time.Time
-	checkId         int64
-	name            string
-	status          string
-	title           string
-	summary         string
-	conclusion      string
 
-	nodes            []testnettypes.Node
-	observabilityURL string
-	buildResult      messages.BuildDockerImageResponse
-	loadTestResults  *types.LoadTestResult
-	loadTestStatus   string
-	loadTestSpec     string
+	start      time.Time
+	checkId    int64
+	name       string
+	status     string
+	title      string
+	summary    string
+	conclusion string
+
+	nodes           []testnettypes.Node
+	buildResult     messages.BuildDockerImageResponse
+	dashboards      map[string]string
+	loadTestResults *catalysttypes.LoadTestResult
+	loadTestStatus  string
+	loadTestSpec    string
 }
 
 func GenerateCheckOptions(req messages.TestnetWorkflowRequest, name, status, title, summary, text string, conclusion *string) github.CheckRunOptions {
@@ -148,15 +148,23 @@ func (r *Report) SetNodes(ctx workflow.Context, nodes []testnettypes.Node) error
 	return r.UpdateCheck(ctx)
 }
 
-func (r *Report) SetObservabilityURL(ctx workflow.Context, url string) error {
-	r.observabilityURL = url
-	return r.UpdateCheck(ctx)
-}
-
-func (r *Report) UpdateLoadTest(ctx workflow.Context, status string, config string, results *types.LoadTestResult) error {
+func (r *Report) UpdateLoadTest(ctx workflow.Context, status string, config string, results *catalysttypes.LoadTestResult) error {
 	r.loadTestStatus = status
 	r.loadTestSpec = config
 	r.loadTestResults = results
+	return r.UpdateCheck(ctx)
+}
+
+func (r *Report) SetDashboards(ctx workflow.Context, grafanaConfig types.GrafanaConfig, chainId string) error {
+	urls := make(map[string]string)
+
+	for _, dashboard := range grafanaConfig.Dashboards {
+		url := fmt.Sprintf("%s/d/%s/%s?orgId=1&var-chain_id=%s&from=%d&to=%s&refresh=auto", grafanaConfig.URL, dashboard.ID, dashboard.Name, chainId, r.start.UnixMilli(), "now")
+		urls[dashboard.HumanName] = url
+	}
+
+	r.dashboards = urls
+
 	return r.UpdateCheck(ctx)
 }
 
@@ -307,6 +315,23 @@ func (r *Report) addBuildResultToMarkdown(md *markdown.Markdown) {
 	md.PlainText(htmlContent)
 }
 
+func (r *Report) addDashboardsToMarkdown(md *markdown.Markdown) {
+	md.LF()
+	md.HorizontalRule()
+	md.LF()
+	md.H1("Dashboards")
+	md.LF()
+
+	markdownLinks := make([]string, 0, len(r.dashboards))
+
+	for name, url := range r.dashboards {
+		markdownLinks = append(markdownLinks, markdown.Link(name, url))
+	}
+
+	md.BulletList(markdownLinks...)
+	md.LF()
+}
+
 func (r *Report) Markdown() (string, error) {
 	var buf bytes.Buffer
 
@@ -320,10 +345,8 @@ func (r *Report) Markdown() (string, error) {
 		r.addBuildResultToMarkdown(md)
 	}
 
-	if r.observabilityURL != "" {
-		md.HorizontalRule()
-		md.H1("Observability")
-		md.PlainText(fmt.Sprintf("Grafana: [%s](%s)", r.observabilityURL, r.observabilityURL))
+	if len(r.dashboards) != 0 {
+		r.addDashboardsToMarkdown(md)
 	}
 
 	if r.loadTestStatus != "" || r.loadTestResults != nil {
