@@ -7,7 +7,6 @@ import (
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"go.temporal.io/sdk/temporal"
@@ -17,7 +16,6 @@ import (
 
 var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
-var observabilityActivities *observability.Activity
 var loadTestActivities *loadtest.Activity
 
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
@@ -131,46 +129,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
 		return "", err
 	}
-
-	var metricsIps []string
-
-	for _, node := range testnetResp.Nodes {
-		metricsIps = append(metricsIps, node.Metrics)
-	}
-
-	var prometheusResp messages.LaunchPrometheusResponse
-
-	if err := workflow.ExecuteActivity(
-		ctx,
-		observabilityActivities.LaunchPrometheus,
-		messages.LaunchPrometheusRequest{
-			PrometheusTargets:      metricsIps,
-			ProviderState:          providerState,
-			ProviderSpecificConfig: providerSpecificOptions,
-			RunnerType:             string(req.RunnerType),
-		},
-	).Get(ctx, &prometheusResp); err != nil {
-		return "", err
-	}
-
-	providerState = prometheusResp.ProviderState
-
-	var grafanaResp messages.LaunchGrafanaResponse
-
-	if err := workflow.ExecuteActivity(
-		ctx,
-		observabilityActivities.LaunchGrafana,
-		messages.LaunchGrafanaRequest{
-			PrometheusURL:          prometheusResp.PrometheusURL,
-			ProviderState:          providerState,
-			ProviderSpecificConfig: providerSpecificOptions,
-			RunnerType:             string(req.RunnerType),
-		},
-	).Get(ctx, &grafanaResp); err != nil {
-		return "", err
-	}
-
-	providerState = grafanaResp.ProviderState
 
 	var loadTestRuntime time.Duration
 	if req.LoadTestSpec != nil {
