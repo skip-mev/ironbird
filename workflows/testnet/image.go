@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	SDK_REPO = "cosmos-sdk"
+	SDK_REPO          = "cosmos-sdk"
+	IRONBIRD_SDK_REPO = "ironbird-cosmos-sdk"
 )
 
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
@@ -42,7 +43,7 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 	var chainTag string
 	replaces := ""
 	// Skip replace script in the SDK repo because its not needed
-	if req.Repo == SDK_REPO {
+	if req.Repo == SDK_REPO || req.Repo == IRONBIRD_SDK_REPO {
 		chainTag = req.SHA
 	} else {
 		chainTag = req.ChainConfig.Version
@@ -53,7 +54,7 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, messages.BuildDockerImageRequest{
 		Tag: tag,
 		Files: map[string][]byte{
-			"Dockerfile":  dockerFileBz,
+			"Dockerfile": dockerFileBz,
 		},
 		BuildArguments: map[string]string{
 			"CHAIN_TAG":   chainTag,
