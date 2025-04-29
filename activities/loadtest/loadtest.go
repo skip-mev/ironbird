@@ -200,7 +200,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		},
 		ProviderSpecificConfig: map[string]string{
 			"region":   "ams3",
-			"image_id": "185210261",
+			"image_id": "185517855",
 			"size":     "s-4vcpu-8gb",
 		},
 		Command: []string{"/tmp/catalyst/loadtest.yml"},

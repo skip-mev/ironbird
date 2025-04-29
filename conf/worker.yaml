@@ -9,3 +9,13 @@ tailscale:
     - ironbird-nodes
   server_tags:
     - ironbird
+
+telemetry:
+  prometheus:
+    url: "https://mimir.overseer.skip.build/api/v1/push"
+    username: "overseer"
+    password: "testytest"
+  loki:
+    url: "https://loki.overseer.skip.build/loki/api/v1/push"
+    username: "overseer"
+    password: "testytest"

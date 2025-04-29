@@ -115,11 +115,15 @@ func main() {
 
 	telemetrySettings := digitalocean.TelemetrySettings{
 		Prometheus: digitalocean.PrometheusSettings{
-			URL:      "https://mimir.overseer.skip.build/api/v1/push",
-			Username: "overseer",
-			Password: "testytest",
+			URL:      cfg.Telemetry.Prometheus.URL,
+			Username: cfg.Telemetry.Prometheus.Username,
+			Password: cfg.Telemetry.Prometheus.Password,
 		},
-		Loki: digitalocean.LokiSettings{},
+		Loki: digitalocean.LokiSettings{
+			URL:      cfg.Telemetry.Loki.URL,
+			Username: cfg.Telemetry.Loki.Username,
+			Password: cfg.Telemetry.Loki.Password,
+		},
 	}
 
 	testnetActivity := testnetactivity.Activity{

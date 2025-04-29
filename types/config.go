@@ -29,8 +29,26 @@ type WorkerConfig struct {
 	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
+	Telemetry    TelemetryConfig    `yaml:"telemetry"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+}
+
+type TelemetryConfig struct {
+	Prometheus PrometheusConfig `yaml:"prometheus"`
+	Loki       LokiConfig       `yaml:"loki"`
+}
+
+type PrometheusConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
+}
+
+type LokiConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
 }
 
 type GrafanaConfig struct {
