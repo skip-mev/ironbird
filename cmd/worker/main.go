@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"time"
 
@@ -50,7 +51,7 @@ func main() {
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
-		MetricsHandler: sdktally.NewMetricsHandler(observability.NewPrometheusScope(prometheus.Configuration{
+		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
 			ListenAddress: "0.0.0.0:9090",
 			TimerType:     "histogram",
 		})),

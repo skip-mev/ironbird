@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/skip-mev/ironbird/util"
 	"net/http"
 	"strings"
 
 	"github.com/palantir/go-githubapp/githubapp"
-	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/uber-go/tally/v4/prometheus"
 	temporalclient "go.temporal.io/sdk/client"
@@ -32,7 +32,7 @@ func NewApp(cfg types.AppConfig) (*App, error) {
 	temporalClient, err := temporalclient.Dial(temporalclient.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
-		MetricsHandler: sdktally.NewMetricsHandler(observability.NewPrometheusScope(prometheus.Configuration{
+		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
 			ListenAddress: "0.0.0.0:9090",
 			TimerType:     "histogram",
 		})),

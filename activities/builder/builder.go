@@ -22,7 +22,6 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
-	"go.uber.org/zap"
 )
 
 type Activity struct {

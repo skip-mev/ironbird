@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
@@ -30,27 +29,27 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 }
 
-func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.ProviderI, chain *chain.Chain, originalErr error, errMsg string) (RunLoadTestResponse, error) {
-	packagedState := PackagedState{}
+func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.ProviderI, chain *chain.Chain, originalErr error, errMsg string) (messages.RunLoadTestResponse, error) {
+	res := messages.RunLoadTestResponse{}
 	wrappedErr := fmt.Errorf("%s: %w", errMsg, originalErr)
 
 	newProviderState, serializeErr := p.SerializeProvider(ctx)
 	if serializeErr != nil {
 		logger.Error("failed to serialize provider after error", zap.Error(wrappedErr), zap.Error(serializeErr))
-		return packagedState, fmt.Errorf("%w; also failed to serialize provider: %v", wrappedErr, serializeErr)
+		return res, fmt.Errorf("%w; also failed to serialize provider: %v", wrappedErr, serializeErr)
 	}
-	packagedState.ProviderState = newProviderState
+	res.ProviderState = newProviderState
 
 	if chain != nil {
 		newChainState, chainErr := chain.Serialize(ctx, p)
 		if chainErr != nil {
 			logger.Error("failed to serialize chain after error", zap.Error(wrappedErr), zap.Error(chainErr))
-			return packagedState, fmt.Errorf("%w; also failed to serialize chain: %v", wrappedErr, chainErr)
+			return res, fmt.Errorf("%w; also failed to serialize chain: %v", wrappedErr, chainErr)
 		}
-		packagedState.ChainState = newChainState
+		res.ChainState = newChainState
 	}
 
-	return packagedState, wrappedErr
+	return res, wrappedErr
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
@@ -177,7 +176,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	}
 
 	if err != nil {
-		return PackagedState{}, fmt.Errorf("failed to restore provider: %w", err)
+		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
 	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, testnet.CosmosWalletConfig)
@@ -258,13 +257,13 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			newProviderState, err := p.SerializeProvider(ctx)
 			if err != nil {
 				logger.Error("failed to serialize provider after successful run", zap.Error(err))
-				return PackagedState{Result: result}, fmt.Errorf("load test succeeded, but failed to serialize provider: %w", err)
+				return messages.RunLoadTestResponse{Result: result}, fmt.Errorf("load test succeeded, but failed to serialize provider: %w", err)
 			}
 
 			newChainState, err := chain.Serialize(ctx, p)
 			if err != nil {
 				logger.Error("failed to serialize chain after successful run", zap.Error(err))
-				return PackagedState{ProviderState: newProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to serialize chain: %w", err)
+				return messages.RunLoadTestResponse{ProviderState: newProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to serialize chain: %w", err)
 			}
 
 			return messages.RunLoadTestResponse{

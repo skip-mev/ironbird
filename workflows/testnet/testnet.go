@@ -128,7 +128,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	var metricsIps []string
 
-
 	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
 
 	var loadTestRuntime time.Duration
@@ -165,12 +164,12 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 			if loadTestResp.Result.Error != "" {
 				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", loadTestResp.Result.Error))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+loadTestResp.Result.Error, configStr, &loadTestResp.Result)
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+loadTestResp.Result.Error, "", &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
 			} else {
-				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", configStr, &loadTestResp.Result)
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
