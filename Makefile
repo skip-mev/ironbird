@@ -12,9 +12,12 @@ do-reset:
 test-workflow:
 	temporal workflow start --task-queue TESTNET_TASK_QUEUE --name Workflow --input-file hack/workflow.json
 
+cancel-workflows:
+	temporal workflow list -o json | jq -r '.[] | select (.status == "WORKFLOW_EXECUTION_STATUS_RUNNING") | .execution.workflowId' | xargs -I{} temporal workflow cancel -w {}
+
 reset: do-reset temporal-reset
 
-.PHONY: reset temporal-reset do-reset test-workflow
+.PHONY: reset temporal-reset do-reset test-workflow cancel-workflows
 
 ###############################################################################
 ###                                 Builds                                  ###

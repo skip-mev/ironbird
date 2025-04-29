@@ -21,6 +21,7 @@ type AppConfig struct {
 	Github    githubapp.Config
 	Chains    map[string]ChainsConfig       `yaml:"chains"`
 	Temporal  TemporalConfig                `yaml:"temporal"`
+	Grafana   GrafanaConfig                 `yaml:"grafana"`
 	LoadTests map[string]types.LoadTestSpec `yaml:"load_tests"`
 }
 
@@ -28,8 +29,37 @@ type WorkerConfig struct {
 	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
+	Telemetry    TelemetryConfig    `yaml:"telemetry"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+}
+
+type TelemetryConfig struct {
+	Prometheus PrometheusConfig `yaml:"prometheus"`
+	Loki       LokiConfig       `yaml:"loki"`
+}
+
+type PrometheusConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
+}
+
+type LokiConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
+}
+
+type GrafanaConfig struct {
+	URL        string             `yaml:"url"`
+	Dashboards []GrafanaDashboard `yaml:"dashboards"`
+}
+
+type GrafanaDashboard struct {
+	ID        string `yaml:"id"`
+	Name      string `yaml:"name"`
+	HumanName string `yaml:"human_name"`
 }
 
 type TemporalConfig struct {

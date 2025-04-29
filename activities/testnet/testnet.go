@@ -21,6 +21,7 @@ import (
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
+	TelemetrySettings digitalocean.TelemetrySettings
 }
 
 var (
@@ -57,6 +58,7 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -88,6 +90,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -116,6 +119,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 
@@ -177,6 +181,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
+
+	resp.ChainID = req.Name
 
 	initErr := chain.Init(ctx, types.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
@@ -259,6 +265,7 @@ func (a *Activity) MonitorTestnet(ctx context.Context, req messages.MonitorTestn
 			a.DOToken,
 			a.TailscaleSettings,
 			digitalocean.WithLogger(logger),
+			digitalocean.WithTelemetry(a.TelemetrySettings),
 		)
 	}
 

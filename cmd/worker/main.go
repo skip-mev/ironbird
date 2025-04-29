@@ -113,14 +113,29 @@ func main() {
 		LocalClient: lc,
 	}
 
+	telemetrySettings := digitalocean.TelemetrySettings{
+		Prometheus: digitalocean.PrometheusSettings{
+			URL:      cfg.Telemetry.Prometheus.URL,
+			Username: cfg.Telemetry.Prometheus.Username,
+			Password: cfg.Telemetry.Prometheus.Password,
+		},
+		Loki: digitalocean.LokiSettings{
+			URL:      cfg.Telemetry.Loki.URL,
+			Username: cfg.Telemetry.Loki.Username,
+			Password: cfg.Telemetry.Loki.Password,
+		},
+	}
+
 	testnetActivity := testnetactivity.Activity{
 		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
 	}
 
 	loadTestActivity := loadtest.Activity{
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
 	}
 
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})

@@ -74,7 +74,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	if req.RunnerType == testnettypes.DigitalOcean {
 		providerSpecificOptions = map[string]string{
 			"region":   "ams3",
-			"image_id": "177869680",
+			"image_id": "185517855",
 			"size":     "s-4vcpu-8gb",
 		}
 	}
@@ -126,9 +126,9 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	var metricsIps []string
-
-	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
+	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
+		return "", err
+	}
 
 	var loadTestRuntime time.Duration
 	if req.LoadTestSpec != nil {
