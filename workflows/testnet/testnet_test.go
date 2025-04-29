@@ -39,6 +39,7 @@ var (
 		InstallationID: 57729708,
 		Owner:          "skip-mev",
 		ChainConfig: types.ChainsConfig{
+			Name: "stake-1",
 			Image: types.ImageConfig{
 				UID:        "1000",
 				GID:        "1000",
@@ -191,6 +192,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
+
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -199,7 +201,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		BuildKitAddress: "tcp://localhost:1234",
 		Registry: types.RegistryConfig{
 			URL:       "public.ecr.aws",
-			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
+			ImageName: "n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 
