@@ -8,6 +8,7 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	"time"
+    "html"
 
 	"github.com/nao1215/markdown"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
