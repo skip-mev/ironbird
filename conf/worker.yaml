@@ -9,5 +9,3 @@ tailscale:
     - ironbird-nodes
   server_tags:
     - ironbird
-
-screenshot_bucket_name: "ironbird-demo-screenshots"

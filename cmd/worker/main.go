@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/observability"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
@@ -51,7 +51,7 @@ func main() {
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
-		MetricsHandler: sdktally.NewMetricsHandler(observability.NewPrometheusScope(prometheus.Configuration{
+		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
 			ListenAddress: "0.0.0.0:9090",
 			TimerType:     "histogram",
 		})),
@@ -118,11 +118,6 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 	}
 
-	observabilityActivity := observability.Activity{
-		TailscaleSettings: tailscaleSettings,
-		DOToken:           cfg.DigitalOcean.Token,
-	}
-
 	loadTestActivity := loadtest.Activity{
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
@@ -136,11 +131,10 @@ func main() {
 	w.RegisterActivity(testnetActivity.MonitorTestnet)
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
-	w.RegisterActivity(observabilityActivity.LaunchObservabilityStack)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 
-	w.RegisterActivity(notifier.UpdateCheck)
-	w.RegisterActivity(notifier.CreateCheck)
+	w.RegisterActivity(notifier.UpdateGitHubCheck)
+	w.RegisterActivity(notifier.CreateGitHubCheck)
 
 	w.RegisterActivity(builderActivity.BuildDockerImage)
 

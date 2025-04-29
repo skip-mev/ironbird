@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/go-github/v66/github"
 	"github.com/palantir/go-githubapp/githubapp"
+	"github.com/skip-mev/ironbird/messages"
 )
 
 type NotifierActivity struct {
@@ -23,26 +24,26 @@ type CheckRunOptions struct {
 	Text           string
 }
 
-func (s *NotifierActivity) CreateCheck(ctx context.Context, opts CheckRunOptions) (int64, error) {
-	client, err := s.GithubClient.NewInstallationClient(opts.InstallationID)
+func (s *NotifierActivity) CreateGitHubCheck(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
+	client, err := s.GithubClient.NewInstallationClient(req.InstallationID)
 	if err != nil {
 		return -1, err
 	}
 
 	var output *github.CheckRunOutput
 
-	if opts.Title != nil || opts.Summary != nil {
+	if req.Title != nil || req.Summary != nil {
 		output = &github.CheckRunOutput{
-			Title:   opts.Title,
-			Summary: opts.Summary,
+			Title:   req.Title,
+			Summary: req.Summary,
 		}
 	}
 
-	checkRun, _, err := client.Checks.CreateCheckRun(ctx, opts.Owner, opts.Repo, github.CreateCheckRunOptions{
-		Name:       opts.Name,
-		HeadSHA:    opts.SHA,
-		Status:     opts.Status,
-		Conclusion: opts.Conclusion,
+	checkRun, _, err := client.Checks.CreateCheckRun(ctx, req.Owner, req.Repo, github.CreateCheckRunOptions{
+		Name:       req.Name,
+		HeadSHA:    req.SHA,
+		Status:     req.Status,
+		Conclusion: req.Conclusion,
 		Output:     output,
 	})
 
@@ -50,29 +51,29 @@ func (s *NotifierActivity) CreateCheck(ctx context.Context, opts CheckRunOptions
 		return -1, err
 	}
 
-	return checkRun.GetID(), nil
+	return messages.CreateGitHubCheckResponse(checkRun.GetID()), nil
 }
 
-func (s *NotifierActivity) UpdateCheck(ctx context.Context, id int64, opts CheckRunOptions) (int64, error) {
-	client, err := s.GithubClient.NewInstallationClient(opts.InstallationID)
+func (s *NotifierActivity) UpdateGitHubCheck(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
+	client, err := s.GithubClient.NewInstallationClient(req.InstallationID)
 	if err != nil {
 		return -1, err
 	}
 
 	var output *github.CheckRunOutput
 
-	if opts.Title != nil && opts.Summary != nil {
+	if req.Title != nil && req.Summary != nil {
 		output = &github.CheckRunOutput{
-			Title:   opts.Title,
-			Summary: opts.Summary,
-			Text:    &opts.Text,
+			Title:   req.Title,
+			Summary: req.Summary,
+			Text:    &req.Text,
 		}
 	}
 
-	checkRun, _, err := client.Checks.UpdateCheckRun(ctx, opts.Owner, opts.Repo, id, github.UpdateCheckRunOptions{
-		Name:       opts.Name,
-		Status:     opts.Status,
-		Conclusion: opts.Conclusion,
+	checkRun, _, err := client.Checks.UpdateCheckRun(ctx, req.Owner, req.Repo, req.CheckID, github.UpdateCheckRunOptions{
+		Name:       req.Name,
+		Status:     req.Status,
+		Conclusion: req.Conclusion,
 		Output:     output,
 	})
 
@@ -80,5 +81,5 @@ func (s *NotifierActivity) UpdateCheck(ctx context.Context, id int64, opts Check
 		return -1, err
 	}
 
-	return checkRun.GetID(), nil
+	return messages.UpdateGitHubCheckResponse(checkRun.GetID()), nil
 }

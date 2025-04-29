@@ -2,11 +2,11 @@ package testnet
 
 import (
 	"fmt"
+	"github.com/skip-mev/ironbird/messages"
 	"time"
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/observability"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"go.temporal.io/sdk/temporal"
@@ -16,11 +16,10 @@ import (
 
 var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
-var observabilityActivities *observability.Activity
 var loadTestActivities *loadtest.Activity
 
-func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
-	if err := opts.Validate(); err != nil {
+func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
+	if err := req.Validate(); err != nil {
 		return "", temporal.NewApplicationErrorWithOptions(
 			"invalid workflow options",
 			err.Error(),
@@ -28,15 +27,16 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		)
 	}
 
-	name := fmt.Sprintf("Testnet (%s) bake", opts.ChainConfig.Name)
+	name := fmt.Sprintf("Testnet (%s) bake", req.ChainConfig.Name)
 
-	if opts.LoadTestSpec != nil {
-		name = fmt.Sprintf("%s/loadtest-%s", opts.ChainConfig.Name, opts.LoadTestSpec.Name)
+	if req.LoadTestSpec != nil {
+		name = fmt.Sprintf("%s/loadtest-%s", req.ChainConfig.Name, req.LoadTestSpec.Name)
 	}
 
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-	runName := fmt.Sprintf("ib-%s-%s", opts.ChainConfig.Name, runID[:6])
+	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, runID[:6])
+
 	options := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 30,
 		RetryPolicy: &temporal.RetryPolicy{
@@ -51,14 +51,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		checkName,
 		"Launching testnet",
 		"",
-		&opts,
+		req,
 	)
 
 	if err != nil {
 		return "", err
 	}
 
-	buildResult, err := buildImage(ctx, opts)
+	buildResult, err := buildImage(ctx, req)
 
 	if err != nil {
 		return "", err
@@ -68,86 +68,70 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		return "", err
 	}
 
-	testnetOptions := testnet.TestnetOptions{
-		Name:                 runName,
-		Image:                buildResult.FQDNTag,
-		UID:                  opts.ChainConfig.Image.UID,
-		GID:                  opts.ChainConfig.Image.GID,
-		BinaryName:           opts.ChainConfig.Image.BinaryName,
-		HomeDir:              opts.ChainConfig.Image.HomeDir,
-		GenesisModifications: opts.ChainConfig.GenesisModifications,
-		RunnerType:           string(opts.RunnerType),
-		NumOfValidators:      opts.ChainConfig.NumOfValidators,
-		NumOfNodes:           opts.ChainConfig.NumOfNodes,
-	}
+	var providerState, chainState []byte
+	var providerSpecificOptions map[string]string
 
-	if opts.RunnerType == testnettypes.DigitalOcean {
-		testnetOptions.ProviderSpecificOptions = map[string]string{
+	if req.RunnerType == testnettypes.DigitalOcean {
+		providerSpecificOptions = map[string]string{
 			"region":   "ams3",
 			"image_id": "177869680",
 			"size":     "s-4vcpu-8gb",
 		}
 	}
 
-	var providerState string
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, testnetOptions).Get(ctx, &providerState); err != nil {
+	var createProviderResp messages.CreateProviderResponse
+	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
+		RunnerType: req.RunnerType,
+		Name:       runName,
+	}).Get(ctx, &createProviderResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ProviderState = []byte(providerState)
+	providerState = createProviderResp.ProviderState
 
 	defer func() {
 		newCtx, _ := workflow.NewDisconnectedContext(ctx)
-		err := workflow.ExecuteActivity(newCtx, testnetActivities.TeardownProvider, testnetOptions).Get(newCtx, nil)
+		err := workflow.ExecuteActivity(newCtx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+			RunnerType:    req.RunnerType,
+			ProviderState: providerState,
+		}).Get(newCtx, nil)
 		if err != nil {
 			workflow.GetLogger(ctx).Error("failed to teardown provider", "error", err)
 		}
 	}()
 
-	var chainState testnet.PackagedState
+	var testnetResp messages.LaunchTestnetResponse
 
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, testnetOptions).Get(ctx, &chainState); err != nil {
+	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
+		Name:                    runName,
+		Image:                   buildResult.FQDNTag,
+		UID:                     req.ChainConfig.Image.UID,
+		GID:                     req.ChainConfig.Image.GID,
+		BinaryName:              req.ChainConfig.Image.BinaryName,
+		HomeDir:                 req.ChainConfig.Image.HomeDir,
+		GenesisModifications:    req.ChainConfig.GenesisModifications,
+		RunnerType:              req.RunnerType,
+		NumOfValidators:         req.ChainConfig.NumOfValidators,
+		NumOfNodes:              req.ChainConfig.NumOfNodes,
+		ProviderSpecificOptions: providerSpecificOptions,
+		ProviderState:           providerState,
+	}).Get(ctx, &testnetResp); err != nil {
 		return "", err
 	}
 
-	testnetOptions.ChainState = chainState.ChainState
-	testnetOptions.ProviderState = chainState.ProviderState
+	chainState = testnetResp.ChainState
+	providerState = testnetResp.ProviderState
 
-	if err := report.SetNodes(ctx, chainState.Nodes); err != nil {
+	if err := report.SetNodes(ctx, testnetResp.Nodes); err != nil {
 		return "", err
 	}
 
-	var observabilityPackagedState observability.PackagedState
 	var metricsIps []string
-
-	for _, node := range chainState.Nodes {
-		metricsIps = append(metricsIps, fmt.Sprintf("%s:26660", node.Metrics))
-		metricsIps = append(metricsIps, fmt.Sprintf("%s:1317", node.Metrics))
-	}
 
 	workflow.GetLogger(ctx).Info("metrics ips", zap.Strings("ips", metricsIps))
 
-	if err := workflow.ExecuteActivity(
-		ctx,
-		observabilityActivities.LaunchObservabilityStack,
-		observability.Options{
-			PrometheusTargets:      metricsIps,
-			ProviderState:          testnetOptions.ProviderState,
-			ProviderSpecificConfig: testnetOptions.ProviderSpecificOptions,
-			RunnerType:             string(opts.RunnerType),
-		},
-	).Get(ctx, &observabilityPackagedState); err != nil {
-		return "", err
-	}
-
-	testnetOptions.ProviderState = observabilityPackagedState.ProviderState
-
-	if err := report.SetObservabilityURL(ctx, observabilityPackagedState.ExternalGrafanaURL); err != nil {
-		return "", err
-	}
-
 	var loadTestRuntime time.Duration
-	if opts.LoadTestSpec != nil {
+	if req.LoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			updateErr := report.UpdateLoadTest(ctx, "Load test in progress", "", nil)
 			if updateErr != nil {
@@ -155,19 +139,21 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 			}
 
 			// assume ~ 2 sec block times
-			loadTestRuntime = time.Duration(opts.LoadTestSpec.NumOfBlocks*2) * time.Second
+			loadTestRuntime = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
 			// buffer for load test run & wallets creating
 			loadTestRuntime += 30 * time.Minute
 
-			var state loadtest.PackagedState
+			var loadTestResp messages.RunLoadTestResponse
 			if err := workflow.ExecuteActivity(
 				workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
 				loadTestActivities.RunLoadTest,
-				testnetOptions.ChainState,
-				opts.LoadTestSpec,
-				opts.RunnerType,
-				testnetOptions.ProviderState,
-			).Get(ctx, &state); err != nil {
+				messages.RunLoadTestRequest{
+					ChainState:    chainState,
+					ProviderState: providerState,
+					LoadTestSpec:  *req.LoadTestSpec,
+					RunnerType:    req.RunnerType,
+				},
+			).Get(ctx, &loadTestResp); err != nil {
 				workflow.GetLogger(ctx).Error("Load test failed with error", zap.Error(err))
 				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+err.Error(), "", nil)
 				if updateErr != nil {
@@ -176,14 +162,14 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 				return
 			}
 
-			if state.Result.Error != "" {
-				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", state.Result.Error))
-				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+state.Result.Error, "", &state.Result)
+			if loadTestResp.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+loadTestResp.Result.Error, "", &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
 			} else {
-				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &state.Result)
+				updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &loadTestResp.Result)
 				if updateErr != nil {
 					workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 				}
@@ -191,7 +177,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 		})
 	}
 
-	if err := monitorTestnet(ctx, testnetOptions, report, loadTestRuntime, observabilityPackagedState.ExternalGrafanaURL); err != nil {
+	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, loadTestRuntime); err != nil {
 		return "", err
 	}
 
@@ -202,7 +188,7 @@ func Workflow(ctx workflow.Context, opts WorkflowOptions) (string, error) {
 	return "", nil
 }
 
-func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions, report *Report, loadTestRuntime time.Duration, grafanaUrl string) error {
+func monitorTestnet(ctx workflow.Context, chainState, providerState []byte, runnerType testnettypes.RunnerType, report *Report, loadTestRuntime time.Duration) error {
 	// Calculate number of iterations (each iteration is 10 seconds)
 	iterations := 360 // default to 1 hour (360 * 10 seconds)
 
@@ -218,9 +204,13 @@ func monitorTestnet(ctx workflow.Context, testnetOptions testnet.TestnetOptions,
 			return err
 		}
 
-		var status string
+		var monitorTestnetResp messages.MonitorTestnetResponse
 		// TODO: metrics checks
-		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, testnetOptions).Get(ctx, &status)
+		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, messages.MonitorTestnetRequest{
+			RunnerType:    runnerType,
+			ChainState:    chainState,
+			ProviderState: providerState,
+		}).Get(ctx, &monitorTestnetResp)
 
 		if err != nil {
 			return err
