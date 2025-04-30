@@ -170,7 +170,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
 	tsServerOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, tsServerOauthSecret,
-		nodeAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e-nodes"})
+		nodeAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
 	if err != nil {
 		panic(err)
 	}
@@ -200,9 +200,10 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		BuildKitAddress: "tcp://localhost:1234",
 		Registry: types.RegistryConfig{
 			URL:       "public.ecr.aws",
-			ImageName: "n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
+			ImageName: "skip-mev/ironbird-local",
 		},
 	}
+
 	builderActivity := builder.Activity{BuilderConfig: builderConfig, AwsConfig: &awsConfig}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
