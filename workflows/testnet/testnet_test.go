@@ -191,7 +191,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
-
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -199,7 +198,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	builderConfig := types.BuilderConfig{
 		BuildKitAddress: "tcp://localhost:1234",
 		Registry: types.RegistryConfig{
-			URL:       "public.ecr.aws",
+			URL:       "494494944992.dkr.ecr.us-east-2.amazonaws.com",
 			ImageName: "skip-mev/ironbird-local",
 		},
 	}
