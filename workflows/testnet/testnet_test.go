@@ -2,12 +2,14 @@ package testnet
 
 import (
 	"context"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
@@ -92,6 +94,7 @@ func (s *TestnetWorkflowTestSuite) SetupTest() {
 	}
 
 	s.env = s.NewTestWorkflowEnvironment()
+	s.env.SetTestTimeout(2 * time.Hour)
 }
 
 func (s *TestnetWorkflowTestSuite) AfterTest() {
