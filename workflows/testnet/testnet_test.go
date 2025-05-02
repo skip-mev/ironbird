@@ -198,8 +198,8 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	builderConfig := types.BuilderConfig{
 		BuildKitAddress: "tcp://localhost:1234",
 		Registry: types.RegistryConfig{
-			URL:       "494494944992.dkr.ecr.us-east-2.amazonaws.com",
-			ImageName: "skip-mev/ironbird-local",
+			URL:       "public.ecr.aws",
+			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 
