@@ -1034,8 +1034,10 @@ github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc h1:1dfYjIyNfJ3Oc
 github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc/go.mod h1:BQQX7YZW9FOszmab8emT5FWgF01f9eLvd2hBTnpznww=
 github.com/skip-mev/petri/core/v3 v3.0.3 h1:LZDM/yTBIvsPVLv06uZvY422sBjQGKi+HhH1I0keCEo=
 github.com/skip-mev/petri/core/v3 v3.0.3/go.mod h1:b4ZLez6UWVV1nN2gDIvnZjDACWc52SiIcRJNYq4rkaw=
+github.com/skip-mev/petri/core/v3 v3.0.4/go.mod h1:b4ZLez6UWVV1nN2gDIvnZjDACWc52SiIcRJNYq4rkaw=
 github.com/skip-mev/petri/cosmos/v3 v3.0.3 h1:t3AJCWHUoLQPCF43lRP8R2g1xTIPduiK+8wp9LEBh7E=
 github.com/skip-mev/petri/cosmos/v3 v3.0.3/go.mod h1:PgaDMQ9UJ+wZmzVj8CCFeP2EzCTdmQ1i2WEAkLJYUAI=
+github.com/skip-mev/petri/cosmos/v3 v3.0.4/go.mod h1:PgaDMQ9UJ+wZmzVj8CCFeP2EzCTdmQ1i2WEAkLJYUAI=
 github.com/sonatard/noctx v0.0.2 h1:L7Dz4De2zDQhW8S0t+KUjY0MAQJd6SgVwhzNIc4ok00=
 github.com/sonatard/noctx v0.0.2/go.mod h1:kzFz+CzWSjQ2OzIm46uJZoXuBpa2+0y3T36U18dWqIo=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
