@@ -14,6 +14,7 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
+	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc
 	github.com/skip-mev/petri/core/v3 v3.0.3
 	github.com/skip-mev/petri/cosmos/v3 v3.0.3
@@ -95,7 +96,6 @@ require (
 	github.com/cilium/ipam v0.0.0-20230509084518-fd66eae7909b // indirect
 	github.com/ckaznocha/intrange v0.1.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
@@ -294,7 +294,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/polyfloyd/go-errorlint v1.4.8 // indirect
 	github.com/prometheus-community/pro-bing v0.4.0 // indirect
-	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
