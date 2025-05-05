@@ -225,6 +225,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.ChainConfig.Name = "stake-" + petriutil.RandomString(5)
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
