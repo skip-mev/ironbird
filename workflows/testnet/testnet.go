@@ -2,8 +2,9 @@ package testnet
 
 import (
 	"fmt"
-	"github.com/skip-mev/ironbird/messages"
 	"time"
+
+	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
@@ -80,6 +81,8 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	var createProviderResp messages.CreateProviderResponse
+	logger, _ := zap.NewDevelopment()
+	logger.Info("run name", zap.String("name", name))
 	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
 		RunnerType: req.RunnerType,
 		Name:       runName,
