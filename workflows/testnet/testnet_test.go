@@ -170,7 +170,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
 	tsServerOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, tsServerOauthSecret,
-		nodeAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
+		nodeAuthKey, "ironbird-e2e", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
 	if err != nil {
 		panic(err)
 	}
