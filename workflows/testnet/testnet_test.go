@@ -20,6 +20,7 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	testnettype "github.com/skip-mev/ironbird/types/testnet"
+	petriutil "github.com/skip-mev/petri/core/v3/util"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -38,7 +39,6 @@ var (
 		InstallationID: 57729708,
 		Owner:          "skip-mev",
 		ChainConfig: types.ChainsConfig{
-			Name: "stake-1",
 			Image: types.ImageConfig{
 				UID:        "1000",
 				GID:        "1000",
@@ -240,6 +240,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.Repo = "ironbird-cometbft"
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = testnettype.DigitalOcean
+	doReq.ChainConfig.Name = "stake-" + petriutil.RandomString(5)
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
