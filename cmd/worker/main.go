@@ -69,7 +69,7 @@ func main() {
 	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
-		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
+		cfg.Tailscale.NodeAuthKey, "ironbird-tests", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
 	if err != nil {
 		panic(err)
 	}
