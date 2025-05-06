@@ -101,7 +101,6 @@ func main() {
 		if status.BackendState == "Running" {
 			break
 		}
-
 		time.Sleep(1 * time.Second)
 	}
 
