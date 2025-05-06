@@ -16,7 +16,7 @@ require (
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc
-	github.com/skip-mev/petri/core/v3 v3.0.5-0.20250505160728-bd5386e36353
+	github.com/skip-mev/petri/core/v3 v3.0.5-0.20250506154816-9a36855bd36e
 	github.com/skip-mev/petri/cosmos/v3 v3.0.4
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
