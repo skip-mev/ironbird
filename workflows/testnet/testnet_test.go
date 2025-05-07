@@ -241,7 +241,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.Repo = "ironbird-cometbft"
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = testnettype.DigitalOcean
-	doReq.ChainConfig.Name = "stake-" + petriutil.RandomString(5)
+	doReq.ChainConfig.Name = "stake-" + petriutil.RandomString(3)
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
