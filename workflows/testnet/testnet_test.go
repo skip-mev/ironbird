@@ -185,8 +185,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	if err != nil {
 		panic(err)
 	}
-	x
-:
+
 	testnetActivity := &testnettypes.Activity{
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
