@@ -106,7 +106,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	var testnetResp messages.LaunchTestnetResponse
 
 	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
-		Name:                    runName,
+		Name:                    req.ChainConfig.Name,
 		Image:                   buildResult.FQDNTag,
 		UID:                     req.ChainConfig.Image.UID,
 		GID:                     req.ChainConfig.Image.GID,
