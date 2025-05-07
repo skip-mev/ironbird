@@ -277,7 +277,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
-	dockerReq.TestnetDuration = 2 * time.Minute
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
