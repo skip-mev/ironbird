@@ -146,7 +146,7 @@ func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowReq
 
 	var testnetResp messages.LaunchTestnetResponse
 
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
+	if err := workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
 		Name:                    req.ChainConfig.Name,
 		Image:                   buildResult.FQDNTag,
 		UID:                     req.ChainConfig.Image.UID,
