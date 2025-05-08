@@ -2,6 +2,7 @@ package messages
 
 import (
 	"fmt"
+
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/types/testnet"

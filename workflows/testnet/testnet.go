@@ -2,8 +2,9 @@ package testnet
 
 import (
 	"fmt"
-	"github.com/skip-mev/ironbird/messages"
 	"time"
+
+	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
@@ -103,7 +104,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	var testnetResp messages.LaunchTestnetResponse
 
 	if err = workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
-		Name:                    runName,
+		Name:                    req.ChainConfig.Name,
 		Image:                   buildResult.FQDNTag,
 		UID:                     req.ChainConfig.Image.UID,
 		GID:                     req.ChainConfig.Image.GID,

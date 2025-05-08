@@ -5,13 +5,12 @@ import (
 	"flag"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
+	"tailscale.com/tsnet"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
-	"tailscale.com/tsnet"
-
 	"log"
 
 	"github.com/palantir/go-githubapp/githubapp"
@@ -102,7 +101,6 @@ func main() {
 		if status.BackendState == "Running" {
 			break
 		}
-
 		time.Sleep(1 * time.Second)
 	}
 

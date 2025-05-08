@@ -50,7 +50,7 @@ build: ${APP_BIN} ${WORKER_BIN}
 
 .PHONY: unit-test
 unit-test:
-	go test -p 1 -v -count 1 ./... -race
+	go test -p 1 -v -count 1 -timeout 30m ./... -race
 
 ###############################################################################
 ###                                Formatting                               ###

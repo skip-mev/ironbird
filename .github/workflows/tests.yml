@@ -19,12 +19,26 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      TS_NODE_AUTH_KEY: ${{ secrets.TS_NODE_AUTH_KEY }}
+      TS_SERVER_OAUTH_SECRET: ${{ secrets.TS_SERVER_OAUTH_SECRET }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
           go-version: '1.22'
+      - uses: depot/setup-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::494494944992:role/GithubImagePusher
+          role-session-name: ${{ github.job }}-${{ github.run_id }}
+          aws-region: us-east-2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
       - name: Install Latest Docker
         run: |
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -

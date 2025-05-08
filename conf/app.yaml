@@ -61,7 +61,7 @@ chains:
 
   simapp-v53:
     name: simapp-v53
-    version: v0.53.0-rc.2
+    version: v0.53.0
     dependencies:
       skip-mev/ironbird-cometbft: github.com/cometbft/cometbft
       skip-mev/ironbird-cosmos-sdk: github.com/cosmos/cosmos-sdk
