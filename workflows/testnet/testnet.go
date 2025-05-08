@@ -81,8 +81,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	var createProviderResp messages.CreateProviderResponse
-	logger, _ := zap.NewDevelopment()
-	logger.Info("run name", zap.String("name", name))
 	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
 		RunnerType: req.RunnerType,
 		Name:       runName,
