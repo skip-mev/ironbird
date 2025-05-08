@@ -216,7 +216,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		BuildKitAddress: "tcp://localhost:1234",
 		Registry: types.RegistryConfig{
 			URL:       "public.ecr.aws",
-			ImageName: "n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
+			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 
