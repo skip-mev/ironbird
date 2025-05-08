@@ -82,25 +82,18 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		testnetRuntime = loadTestRuntime
 	}
 
-	var createProviderResp messages.CreateProviderResponse
-	if err = workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
-		RunnerType: req.RunnerType,
-		Name:       runName,
-	}).Get(ctx, &createProviderResp); err != nil {
-		return "", err
-	}
-
 	// Teardown the provider after monitoring is complete (unless it's a long-running testnet)
 	if !req.LongRunningTestnet {
-		newCtx, _ := workflow.NewDisconnectedContext(ctx)
-		err := workflow.ExecuteActivity(newCtx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
-			RunnerType:    req.RunnerType,
-			ProviderState: providerState,
-		}).Get(newCtx, nil)
-		if err != nil {
-			// Log error but don't fail the workflow, as monitoring succeeded
-			workflow.GetLogger(newCtx).Error("Failed to teardown provider after monitoring", "error", err)
-		}
+		defer func() {
+			err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+				RunnerType:    req.RunnerType,
+				ProviderState: providerState,
+			}).Get(ctx, nil)
+			if err != nil {
+				// Log error but don't fail the workflow, as monitoring succeeded
+				workflow.GetLogger(ctx).Error("Failed to teardown provider after monitoring", "error", err)
+			}
+		}()
 	}
 
 	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet); err != nil {

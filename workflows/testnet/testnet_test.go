@@ -153,6 +153,11 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 			return loadTestActivities.RunLoadTest(ctx, req)
 		})
 
+	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
+			return testnetActivity.TeardownProvider(ctx, req)
+		})
+
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
@@ -248,6 +253,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
@@ -265,6 +271,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
@@ -282,7 +289,34 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNotCalled(s.T(), "RunLoadTest")
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
+	s.setupMockActivitiesDocker()
+
+	dockerReq := req
+	dockerReq.Repo = "ironbird-cosmos-sdk"
+	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.LoadTestSpec = nil
+	dockerReq.LongRunningTestnet = true
+	dockerReq.TestnetDuration = 0
+
+	// cancel the workflow after 30 seconds
+	go func() {
+		time.Sleep(30 * time.Second)
+		s.env.CancelWorkflow()
+	}()
+
+	s.env.ExecuteWorkflow(Workflow, dockerReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.Error(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
