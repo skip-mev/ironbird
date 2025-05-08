@@ -36,7 +36,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-	runName := fmt.Sprintf("ib-%s", runID[:6])
+	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, runID[:6])
 
 	options := workflow.ActivityOptions{
 		StartToCloseTimeout: time.Minute * 30,
