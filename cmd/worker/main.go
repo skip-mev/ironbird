@@ -5,8 +5,6 @@ import (
 	"flag"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
-	"tailscale.com/tsnet"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -70,45 +68,10 @@ func main() {
 
 	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
 
-	authKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, cfg.Tailscale.ServerOauthSecret, cfg.Tailscale.ServerTags)
-
+	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
+		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
 	if err != nil {
 		panic(err)
-	}
-
-	ts := tsnet.Server{
-		AuthKey:   authKey,
-		Ephemeral: true,
-		Hostname:  "ironbird-tests",
-	}
-
-	if err := ts.Start(); err != nil {
-		panic(err)
-	}
-
-	lc, err := ts.LocalClient()
-
-	if err != nil {
-		panic(err)
-	}
-
-	for {
-		status, err := lc.Status(context.Background())
-		if err != nil {
-			panic(err)
-		}
-
-		if status.BackendState == "Running" {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
-	tailscaleSettings := digitalocean.TailscaleSettings{
-		AuthKey:     cfg.Tailscale.NodeAuthKey,
-		Tags:        cfg.Tailscale.NodeTags,
-		Server:      &ts,
-		LocalClient: lc,
 	}
 
 	telemetrySettings := digitalocean.TelemetrySettings{

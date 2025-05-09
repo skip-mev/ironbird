@@ -36,9 +36,11 @@ type TestnetWorkflowTestSuite struct {
 
 var (
 	req = messages.TestnetWorkflowRequest{
-		InstallationID: 57729708,
-		Owner:          "skip-mev",
+		InstallationID:  57729708,
+		Owner:           "skip-mev",
+		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
+			Name: "stake-1",
 			Image: types.ImageConfig{
 				UID:        "1000",
 				GID:        "1000",
@@ -61,10 +63,10 @@ var (
 			NumOfNodes:      1,
 		},
 		LoadTestSpec: &catalysttypes.LoadTestSpec{
-			Name:        "e2e-test",
-			Description: "e2e test",
-			NumOfBlocks: 5,
-			NumOfTxs:    10,
+			Name:                "e2e-test",
+			Description:         "e2e test",
+			NumOfBlocks:         5,
+			BlockGasLimitTarget: 0.1,
 			Msgs: []catalysttypes.LoadTestMsg{
 				{Weight: 1, Type: catalysttypes.MsgSend},
 			},
@@ -132,6 +134,10 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	builderActivity := &builder.Activity{}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
+	githubActivities = githubActivity
+	testnetActivities = testnetActivity
+	loadTestActivities = loadTestActivity
+
 	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
 			return messages.CreateGitHubCheckResponse(123), nil
@@ -140,6 +146,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(githubActivity.UpdateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
 			return messages.UpdateGitHubCheckResponse(123), nil
+		})
+
+	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
+			return loadTestActivities.RunLoadTest(ctx, req)
+		})
+
+	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
+			return testnetActivity.TeardownProvider(ctx, req)
 		})
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
@@ -191,6 +207,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	awsConfig, err := config.LoadDefaultConfig(context.TODO())
+
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -206,6 +223,10 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	builderActivity := builder.Activity{BuilderConfig: builderConfig, AwsConfig: &awsConfig}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
+	githubActivities = githubActivity
+	testnetActivities = testnetActivity
+	loadTestActivities = loadTestActivity
+
 	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
 			return messages.CreateGitHubCheckResponse(123), nil
@@ -214,6 +235,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(githubActivity.UpdateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
 			return messages.UpdateGitHubCheckResponse(123), nil
+		})
+
+	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
+			return loadTestActivities.RunLoadTest(ctx, req)
+		})
+
+	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
+			return testnetActivity.TeardownProvider(ctx, req)
 		})
 }
 
@@ -231,6 +262,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
@@ -247,6 +280,53 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
+	s.setupMockActivitiesDocker()
+
+	dockerReq := req
+	dockerReq.Repo = "ironbird-cosmos-sdk"
+	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.LoadTestSpec = nil
+	dockerReq.LongRunningTestnet = false
+
+	s.env.ExecuteWorkflow(Workflow, dockerReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
+	s.setupMockActivitiesDocker()
+
+	dockerReq := req
+	dockerReq.Repo = "ironbird-cosmos-sdk"
+	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.LoadTestSpec = nil
+	dockerReq.LongRunningTestnet = true
+	dockerReq.TestnetDuration = 0
+
+	// cancel the workflow after 30 seconds
+	go func() {
+		time.Sleep(30 * time.Second)
+		s.env.CancelWorkflow()
+	}()
+
+	s.env.ExecuteWorkflow(Workflow, dockerReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.Error(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
