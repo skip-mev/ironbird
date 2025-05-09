@@ -236,6 +236,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		func(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
 			return messages.UpdateGitHubCheckResponse(123), nil
 		})
+
+	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
+			return loadTestActivities.RunLoadTest(ctx, req)
+		})
+
+	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
+			return testnetActivity.TeardownProvider(ctx, req)
+		})
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
