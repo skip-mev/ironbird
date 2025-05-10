@@ -19,3 +19,8 @@ telemetry:
     url: "https://loki.overseer.skip.build/loki/api/v1/push"
     username: "overseer"
     password: "testytest"
+
+load_balancer:
+  root_domain: ib-local.dev.skip.build
+  ssl_key_path: conf/ib-local-key.pem
+  ssl_cert_path: conf/ib-local-cert.pem

@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -99,6 +101,27 @@ func main() {
 		TelemetrySettings: telemetrySettings,
 	}
 
+	sslKey, err := os.ReadFile(cfg.LoadBalancer.SSLKeyPath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	sslCert, err := os.ReadFile(cfg.LoadBalancer.SSLCertPath)
+
+	if err != nil {
+		panic(err)
+	}
+
+	loadBalancerActivity := loadbalancer.Activity{
+		RootDomain:        cfg.LoadBalancer.RootDomain,
+		SSLKey:            sslKey,
+		SSLCertificate:    sslCert,
+		DOToken:           cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
+	}
+
 	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
@@ -108,6 +131,7 @@ func main() {
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
+	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
 
 	w.RegisterActivity(notifier.UpdateGitHubCheck)
 	w.RegisterActivity(notifier.CreateGitHubCheck)
