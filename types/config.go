@@ -29,9 +29,16 @@ type WorkerConfig struct {
 	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
 	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
+	LoadBalancer LoadBalancerConfig `yaml:"load_balancer"`
 	Telemetry    TelemetryConfig    `yaml:"telemetry"`
 	Builder      BuilderConfig      `yaml:"builder"`
 	Github       githubapp.Config
+}
+
+type LoadBalancerConfig struct {
+	RootDomain  string `yaml:"root_domain"`
+	SSLKeyPath  string `yaml:"ssl_key_path"`
+	SSLCertPath string `yaml:"ssl_cert_path"`
 }
 
 type TelemetryConfig struct {

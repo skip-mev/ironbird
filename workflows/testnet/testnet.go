@@ -11,6 +11,7 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/skip-mev/ironbird/activities/github"
@@ -25,6 +26,7 @@ import (
 var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
+var loadBalancerActivities *loadbalancer.Activity
 
 const (
 	defaultRuntime = time.Hour
@@ -171,6 +173,44 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	if err := report.SetNodes(ctx, testnetResp.Nodes); err != nil {
 		workflow.GetLogger(ctx).Error("failed to set nodes in report", zap.Error(err))
 	}
+
+	var loadBalancerResp messages.LaunchLoadBalancerResponse
+
+	var domains []apps.LoadBalancerDomain
+
+	for _, node := range testnetResp.Nodes {
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-grpc", node.Name),
+			IP:       fmt.Sprintf("%s:9090", node.Address),
+			Protocol: "grpc",
+		})
+
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-rpc", node.Name),
+			IP:       fmt.Sprintf("%s:26657", node.Address),
+			Protocol: "http",
+		})
+
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-lcd", node.Name),
+			IP:       fmt.Sprintf("%s:1317", node.Address),
+			Protocol: "http",
+		})
+	}
+
+	if err := workflow.ExecuteActivity(
+		ctx,
+		loadBalancerActivities.LaunchLoadBalancer,
+		messages.LaunchLoadBalancerRequest{
+			ProviderState: providerState,
+			RunnerType:    req.RunnerType,
+			Domains:       domains,
+		},
+	).Get(ctx, &loadBalancerResp); err != nil {
+		return "", err
+	}
+
+	providerState = loadBalancerResp.ProviderState
 
 	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
 		workflow.GetLogger(ctx).Error("failed to set dashboards in report", zap.Error(err))
