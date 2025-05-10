@@ -29,6 +29,12 @@ var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
 var loadBalancerActivities *loadbalancer.Activity
 
+type monitoringState struct {
+	cancelChan workflow.Channel
+	errChan    workflow.Channel
+	doneChan   workflow.Channel
+}
+
 const (
 	defaultRuntime = time.Hour
 	updateHandler  = "chain_update"

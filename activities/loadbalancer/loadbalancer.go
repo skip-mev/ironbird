@@ -26,7 +26,6 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		return messages.LaunchLoadBalancerResponse{}, fmt.Errorf("only digitalocean provider supported for load balancer")
 	}
 
-	//TODO: add back in TelemetrySettings
 	p, err := digitalocean.RestoreProvider(
 		ctx,
 		req.ProviderState,
