@@ -83,20 +83,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
 
-	// Teardown the provider after monitoring is complete (unless it's a long-running testnet)
-	if !req.LongRunningTestnet {
-		defer func() {
-			err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
-				RunnerType:    req.RunnerType,
-				ProviderState: providerState,
-			}).Get(ctx, nil)
-			if err != nil {
-				// Log error but don't fail the workflow, as monitoring succeeded
-				workflow.GetLogger(ctx).Error("Failed to teardown provider after monitoring", "error", err)
-			}
-		}()
-	}
-
 	monitorState := &monitoringState{
 		cancelChan: workflow.NewChannel(ctx),
 		errChan:    workflow.NewChannel(ctx),
@@ -123,6 +109,18 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	if err := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); err != nil {
 		return "", err
+	}
+
+	if !req.LongRunningTestnet {
+		workflow.GetLogger(ctx).Info("tearing down provider")
+		err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+			RunnerType:    req.RunnerType,
+			ProviderState: providerState,
+		}).Get(ctx, nil)
+		if err != nil {
+			workflow.GetLogger(ctx).Error("Failed to teardown provider after monitoring", "error", err)
+			return "", err
+		}
 	}
 
 	return "", nil
