@@ -26,6 +26,15 @@ var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
 
+type monitoringState struct {
+	cancelChan workflow.Channel
+	errChan    workflow.Channel
+}
+
+const (
+	defaultRuntime = time.Hour
+)
+
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
 	if err := req.Validate(); err != nil {
 		return "", temporal.NewApplicationErrorWithOptions("invalid workflow options", err.Error(),
@@ -72,7 +81,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		workflow.GetLogger(ctx).Error("Load test initiation failed", zap.Error(err))
 	}
 
-	testnetRuntime := max(time.Hour, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
+	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
 
 	// Teardown the provider after monitoring is complete (unless it's a long-running testnet)
 	if !req.LongRunningTestnet {
@@ -88,14 +97,28 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		}()
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState)
+	monitorState := &monitoringState{
+		cancelChan: workflow.NewChannel(ctx),
+		errChan:    workflow.NewChannel(ctx),
+	}
+
+	startMonitoring(ctx, monitorState, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet)
+
+	err = setUpdateHandler(ctx, &providerState, &chainState, monitorState, report)
 	if err != nil {
 		return "", err
 	}
 
-	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Testnet monitoring failed: %s", err.Error()))
-		return "", err
+	var receivedErr error
+	selector := workflow.NewSelector(ctx)
+	selector.AddReceive(monitorState.errChan, func(c workflow.ReceiveChannel, more bool) {
+		c.Receive(ctx, &receivedErr)
+	})
+	selector.Select(ctx)
+
+	if receivedErr != nil {
+		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Testnet monitoring failed: %s", receivedErr.Error()))
+		return "", receivedErr
 	}
 
 	if err := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); err != nil {
@@ -103,6 +126,25 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	return "", nil
+}
+
+func startMonitoring(ctx workflow.Context, state *monitoringState, chainState, providerState []byte, runnerType testnettypes.RunnerType, report *Report, testnetRuntime time.Duration, longRunningTestnet bool) {
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		monitorCtx, cancel := workflow.WithCancel(ctx)
+		defer cancel()
+
+		selector := workflow.NewSelector(monitorCtx)
+		selector.AddReceive(state.cancelChan, func(c workflow.ReceiveChannel, more bool) {
+			workflow.GetLogger(ctx).Info("Monitoring cancelled")
+		})
+		selector.AddDefault(func() {
+			err := monitorTestnet(monitorCtx, chainState, providerState, runnerType, report, testnetRuntime, longRunningTestnet)
+			if err != nil {
+				state.errChan.Send(ctx, err)
+			}
+		})
+		selector.Select(ctx)
+	})
 }
 
 func buildImageAndReport(ctx workflow.Context, req messages.TestnetWorkflowRequest, report *Report) (messages.BuildDockerImageResponse, error) {
@@ -232,7 +274,6 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 	return nil
 }
 
-// monitors testnet for specified duration, or until workflow is cancelled if longRunningTestnet is set to true
 func monitorTestnet(ctx workflow.Context, chainState, providerState []byte, runnerType testnettypes.RunnerType, report *Report,
 	runtime time.Duration, longRunningTestnet bool) error {
 	startTime := workflow.Now(ctx)
@@ -282,13 +323,16 @@ func monitorTestnet(ctx workflow.Context, chainState, providerState []byte, runn
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, monitorState *monitoringState, report *Report) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		"chain_update",
-		func(ctx workflow.Context, updateReq messages.LaunchTestnetRequest) error {
+		func(ctx workflow.Context, updateReq messages.TestnetWorkflowRequest) error {
 			logger, _ := zap.NewDevelopment()
 			stdCtx := context.Background()
+
+			monitorState.cancelChan.Send(ctx, struct{}{})
+			monitorState.cancelChan = workflow.NewChannel(ctx)
 
 			var p provider.ProviderI
 			var err error
@@ -324,8 +368,14 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte) e
 			if err != nil {
 				return fmt.Errorf("failed to teardown chain: %w", err)
 			}
-			updateReq.ProviderState = *providerState
+
+			// update provider and chain state here in case LaunchTestnet activity fails
 			*chainState = []byte{}
+			pState, err := p.SerializeProvider(stdCtx)
+			if err != nil {
+				return fmt.Errorf("failed to serialize provider: %w", err)
+			}
+			*providerState = pState
 
 			var testnetResp messages.LaunchTestnetResponse
 			if err := workflow.ExecuteActivity(
@@ -338,6 +388,18 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte) e
 
 			*providerState = testnetResp.ProviderState
 			*chainState = testnetResp.ChainState
+
+			var loadTestTimeout time.Duration
+			if updateReq.LoadTestSpec != nil {
+				loadTestTimeout, err = runLoadTest(ctx, updateReq, *chainState, *providerState, report)
+				if err != nil {
+					workflow.GetLogger(ctx).Error("Load test initiation failed during update", zap.Error(err))
+				}
+			}
+
+			testnetRuntime := max(defaultRuntime, updateReq.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
+
+			startMonitoring(ctx, monitorState, *chainState, *providerState, updateReq.RunnerType, report, testnetRuntime, updateReq.LongRunningTestnet)
 
 			return nil
 		},
