@@ -1,8 +1,15 @@
 package testnet
 
 import (
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/skip-mev/petri/core/v3/provider"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/petri/cosmos/v3/chain"
+	"github.com/skip-mev/petri/cosmos/v3/node"
 
 	"github.com/skip-mev/ironbird/messages"
 
@@ -21,11 +28,8 @@ var loadTestActivities *loadtest.Activity
 
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
 	if err := req.Validate(); err != nil {
-		return "", temporal.NewApplicationErrorWithOptions(
-			"invalid workflow options",
-			err.Error(),
-			temporal.ApplicationErrorOptions{NonRetryable: true},
-		)
+		return "", temporal.NewApplicationErrorWithOptions("invalid workflow options", err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	name := fmt.Sprintf("Testnet (%s) bake", req.ChainConfig.Name)
@@ -47,13 +51,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	ctx = workflow.WithActivityOptions(ctx, options)
 
-	report, err := NewReport(
-		ctx,
-		checkName,
-		"Launching testnet",
-		"",
-		req,
-	)
+	report, err := NewReport(ctx, checkName, "Launching testnet", "", req)
 
 	if err != nil {
 		return "", err
@@ -88,6 +86,11 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 				workflow.GetLogger(ctx).Error("Failed to teardown provider after monitoring", "error", err)
 			}
 		}()
+	}
+
+	err = setUpdateHandler(ctx, &providerState, &chainState)
+	if err != nil {
+		return "", err
 	}
 
 	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet); err != nil {
@@ -276,5 +279,75 @@ func monitorTestnet(ctx workflow.Context, chainState, providerState []byte, runn
 	}
 
 	workflow.GetLogger(ctx).Info("Monitoring finished.")
+	return nil
+}
+
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte) error {
+	if err := workflow.SetUpdateHandler(
+		ctx,
+		"chain_update",
+		func(ctx workflow.Context, updateReq messages.LaunchTestnetRequest) error {
+			logger, _ := zap.NewDevelopment()
+			stdCtx := context.Background()
+
+			var p provider.ProviderI
+			var err error
+
+			if updateReq.RunnerType == testnettypes.Docker {
+				p, err = docker.RestoreProvider(
+					stdCtx,
+					logger,
+					*providerState,
+				)
+			} else {
+				p, err = digitalocean.RestoreProvider(
+					stdCtx,
+					*providerState,
+					"",
+					testnetActivities.TailscaleSettings,
+					digitalocean.WithLogger(logger),
+				)
+			}
+
+			if err != nil {
+				return fmt.Errorf("failed to restore provider: %w", err)
+			}
+
+			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode,
+				testnet.CosmosWalletConfig)
+
+			if err != nil {
+				return fmt.Errorf("failed to create chain: %w", err)
+			}
+
+			err = chain.Teardown(stdCtx)
+			if err != nil {
+				return fmt.Errorf("failed to teardown chain: %w", err)
+			}
+			updateReq.ProviderState = *providerState
+			*chainState = []byte{}
+
+			var testnetResp messages.LaunchTestnetResponse
+			if err := workflow.ExecuteActivity(
+				ctx,
+				testnetActivities.LaunchTestnet,
+				updateReq,
+			).Get(ctx, &testnetResp); err != nil {
+				return err
+			}
+
+			*providerState = testnetResp.ProviderState
+			*chainState = testnetResp.ChainState
+
+			return nil
+		},
+	); err != nil {
+		return temporal.NewApplicationErrorWithOptions(
+			"failed to register update handler",
+			err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true},
+		)
+	}
+
 	return nil
 }
