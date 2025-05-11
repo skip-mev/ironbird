@@ -29,7 +29,12 @@ var loadTestActivities *loadtest.Activity
 type monitoringState struct {
 	cancelChan workflow.Channel
 	errChan    workflow.Channel
+	doneChan   workflow.Channel
 }
+
+const (
+	defaultRuntime = 1 * time.Hour
+)
 
 const (
 	defaultRuntime = time.Hour
@@ -86,6 +91,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	monitorState := &monitoringState{
 		cancelChan: workflow.NewChannel(ctx),
 		errChan:    workflow.NewChannel(ctx),
+		doneChan:   workflow.NewChannel(ctx),
 	}
 
 	startMonitoring(ctx, monitorState, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet)
@@ -99,6 +105,10 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	selector := workflow.NewSelector(ctx)
 	selector.AddReceive(monitorState.errChan, func(c workflow.ReceiveChannel, more bool) {
 		c.Receive(ctx, &receivedErr)
+	})
+	selector.AddReceive(monitorState.doneChan, func(c workflow.ReceiveChannel, more bool) {
+		var empty struct{}
+		c.Receive(ctx, &empty)
 	})
 	selector.Select(ctx)
 
@@ -139,6 +149,8 @@ func startMonitoring(ctx workflow.Context, state *monitoringState, chainState, p
 			err := monitorTestnet(monitorCtx, chainState, providerState, runnerType, report, testnetRuntime, longRunningTestnet)
 			if err != nil {
 				state.errChan.Send(ctx, err)
+			} else {
+				state.doneChan.Send(ctx, struct{}{})
 			}
 		})
 		selector.Select(ctx)
