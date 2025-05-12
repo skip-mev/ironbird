@@ -104,13 +104,15 @@ func main() {
 	sslKey, err := os.ReadFile(cfg.LoadBalancer.SSLKeyPath)
 
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to read SSL key from path %s: %v", cfg.LoadBalancer.SSLKeyPath, err)
+		os.Exit(1)
 	}
 
 	sslCert, err := os.ReadFile(cfg.LoadBalancer.SSLCertPath)
 
 	if err != nil {
-		panic(err)
+		log.Printf("Failed to read SSL certificate from path %s: %v", cfg.LoadBalancer.SSLCertPath, err)
+		os.Exit(1)
 	}
 
 	loadBalancerActivity := loadbalancer.Activity{
