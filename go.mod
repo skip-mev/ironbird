@@ -25,7 +25,6 @@ require (
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
-	tailscale.com v1.78.3
 )
 
 require (
@@ -422,4 +421,5 @@ require (
 	mvdan.cc/unparam v0.0.0-20240104100049-c549a3470d14 // indirect
 	pgregory.net/rapid v1.2.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
+	tailscale.com v1.78.3 // indirect
 )
