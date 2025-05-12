@@ -16,8 +16,8 @@ require (
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc
-	github.com/skip-mev/petri/core/v3 v3.0.4
-	github.com/skip-mev/petri/cosmos/v3 v3.0.4
+	github.com/skip-mev/petri/core/v3 v3.0.5
+	github.com/skip-mev/petri/cosmos/v3 v3.0.5
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.17
@@ -25,7 +25,6 @@ require (
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
-	tailscale.com v1.78.3
 )
 
 require (
@@ -422,4 +421,5 @@ require (
 	mvdan.cc/unparam v0.0.0-20240104100049-c549a3470d14 // indirect
 	pgregory.net/rapid v1.2.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
+	tailscale.com v1.78.3 // indirect
 )

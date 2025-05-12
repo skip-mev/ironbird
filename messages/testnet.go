@@ -6,6 +6,7 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/types/testnet"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	"time"
 )
 
 type CreateProviderRequest struct {
@@ -57,14 +58,16 @@ type MonitorTestnetRequest struct {
 type MonitorTestnetResponse string
 
 type TestnetWorkflowRequest struct {
-	InstallationID int64
-	Owner          string
-	Repo           string
-	SHA            string
-	ChainConfig    types.ChainsConfig
-	RunnerType     testnet.RunnerType
-	LoadTestSpec   *catalysttypes.LoadTestSpec
-	GrafanaConfig  types.GrafanaConfig
+	InstallationID     int64
+	Owner              string
+	Repo               string
+	SHA                string
+	ChainConfig        types.ChainsConfig
+	RunnerType         testnet.RunnerType
+	LoadTestSpec       *catalysttypes.LoadTestSpec
+	GrafanaConfig      types.GrafanaConfig
+	LongRunningTestnet bool
+	TestnetDuration    time.Duration
 }
 
 func (r TestnetWorkflowRequest) Validate() error {
@@ -98,6 +101,10 @@ func (r TestnetWorkflowRequest) Validate() error {
 
 	if r.RunnerType != testnet.DigitalOcean && r.RunnerType != testnet.Docker {
 		return fmt.Errorf("runner type must be one of: %s, %s", testnet.DigitalOcean, testnet.Docker)
+	}
+
+	if r.LongRunningTestnet && r.TestnetDuration > 0 {
+		return fmt.Errorf("can not set duration on long-running testnet")
 	}
 
 	return nil
