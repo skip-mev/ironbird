@@ -3,6 +3,7 @@ package testnet
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/messages"
@@ -10,9 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	SDK_REPO          = "cosmos-sdk"
-	IRONBIRD_SDK_REPO = "ironbird-cosmos-sdk"
+var (
+	SDK_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk"}
 )
 
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
@@ -43,7 +43,7 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 	var chainTag string
 	replaces := ""
 	// Skip replace script in the SDK repo because its not needed
-	if req.Repo == SDK_REPO || req.Repo == IRONBIRD_SDK_REPO {
+	if slices.Contains(SDK_REPOS, req.Repo) {
 		chainTag = req.SHA
 	} else {
 		chainTag = req.ChainConfig.Version
