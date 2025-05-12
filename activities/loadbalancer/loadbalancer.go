@@ -45,7 +45,7 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		SSLCertificate: a.SSLCertificate,
 		ProviderSpecificOptions: map[string]string{
 			"region":   "nyc1",
-			"size":     "s-1vcpu-1gb",
+			"size":     "s-4vcpu-8gb",
 			"image_id": "185517855",
 		},
 		Domains: req.Domains,
