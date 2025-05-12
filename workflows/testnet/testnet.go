@@ -64,23 +64,17 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	chainState, providerState, err := launchTestnetInternal(ctx, req, runName, buildResult, report)
+	chainState, providerState, err := launchTestnet(ctx, req, runName, buildResult, report)
 	if err != nil {
 		return "", err
 	}
 
-	loadTestRuntime, err := runLoadTestInternal(ctx, req, chainState, providerState, report)
+	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("Load test initiation failed", zap.Error(err))
 	}
 
-	testnetRuntime := 1 * time.Hour // default runtime to 1 hour
-	if req.TestnetDuration != 0 {
-		testnetRuntime = req.TestnetDuration
-	}
-	if loadTestRuntime > testnetRuntime {
-		testnetRuntime = loadTestRuntime
-	}
+	testnetRuntime := max(time.Hour, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
 
 	// Teardown the provider after monitoring is complete (unless it's a long-running testnet)
 	if !req.LongRunningTestnet {
@@ -122,7 +116,7 @@ func buildImageAndReport(ctx workflow.Context, req messages.TestnetWorkflowReque
 	return buildResult, nil
 }
 
-func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) ([]byte, []byte, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) ([]byte, []byte, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
@@ -132,7 +126,7 @@ func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowReq
 		Name:       runName,
 	}).Get(ctx, &createProviderResp); err != nil {
 		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Provider creation failed: %s", err.Error()))
-		return nil, nil, err
+		return nil, providerState, err
 	}
 
 	providerState = createProviderResp.ProviderState
@@ -154,7 +148,7 @@ func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowReq
 		ProviderState:           providerState,
 	}).Get(ctx, &testnetResp); err != nil {
 		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Testnet launch failed: %s", err.Error()))
-		return nil, nil, err
+		return nil, providerState, err
 	}
 
 	chainState = testnetResp.ChainState
@@ -171,8 +165,8 @@ func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowReq
 	return chainState, providerState, nil
 }
 
-func runLoadTestInternal(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, report *Report) (time.Duration, error) {
-	var loadTestRuntime time.Duration
+func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, report *Report) (time.Duration, error) {
+	var loadTestTimeout time.Duration
 	if req.LoadTestSpec == nil {
 		return 0, nil
 	}
@@ -183,12 +177,12 @@ func runLoadTestInternal(ctx workflow.Context, req messages.TestnetWorkflowReque
 			workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
 		}
 
-		loadTestRuntime = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
-		loadTestRuntime = loadTestRuntime + 30*time.Minute
+		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
+		loadTestTimeout = loadTestTimeout + 30*time.Minute
 
 		var loadTestResp messages.RunLoadTestResponse
 		activityErr := workflow.ExecuteActivity(
-			workflow.WithStartToCloseTimeout(ctx, loadTestRuntime),
+			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
 			messages.RunLoadTestRequest{
 				ChainState:    chainState,
@@ -221,9 +215,7 @@ func runLoadTestInternal(ctx workflow.Context, req messages.TestnetWorkflowReque
 		}
 	})
 
-	loadTestRuntime = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
-
-	return loadTestRuntime, nil
+	return loadTestTimeout, nil
 }
 
 func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]string {
