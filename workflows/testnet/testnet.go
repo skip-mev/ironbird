@@ -33,10 +33,6 @@ type monitoringState struct {
 }
 
 const (
-	defaultRuntime = 1 * time.Hour
-)
-
-const (
 	defaultRuntime = time.Hour
 )
 
