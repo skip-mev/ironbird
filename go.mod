@@ -15,7 +15,7 @@ require (
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc
+	github.com/skip-mev/catalyst v0.0.0-20250513005028-fe8c4e28f0d1
 	github.com/skip-mev/petri/core/v3 v3.0.5
 	github.com/skip-mev/petri/cosmos/v3 v3.0.5
 	github.com/stretchr/testify v1.10.0
