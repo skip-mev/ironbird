@@ -178,7 +178,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 		}
 
 		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
-		loadTestTimeout = loadTestTimeout + 30*time.Minute
+		loadTestTimeout = loadTestTimeout + 1*time.Hour
 
 		var loadTestResp messages.RunLoadTestResponse
 		activityErr := workflow.ExecuteActivity(
