@@ -49,14 +49,6 @@ type LaunchTestnetResponse struct {
 	Nodes         []testnet.Node
 }
 
-type MonitorTestnetRequest struct {
-	RunnerType    testnet.RunnerType
-	ChainState    []byte
-	ProviderState []byte
-}
-
-type MonitorTestnetResponse string
-
 type TestnetWorkflowRequest struct {
 	InstallationID     int64
 	Owner              string

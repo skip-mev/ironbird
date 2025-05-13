@@ -104,7 +104,6 @@ func main() {
 	w.RegisterWorkflow(testnetworkflow.Workflow)
 
 	w.RegisterActivity(testnetActivity.LaunchTestnet)
-	w.RegisterActivity(testnetActivity.MonitorTestnet)
 	w.RegisterActivity(testnetActivity.CreateProvider)
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
