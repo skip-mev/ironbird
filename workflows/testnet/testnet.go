@@ -35,6 +35,7 @@ type monitoringState struct {
 const (
 	defaultRuntime = time.Hour
 	updateHandler  = "chain_update"
+	shutdownSignal = "shutdown"
 )
 
 var (
@@ -46,17 +47,26 @@ var (
 	}
 )
 
+func teardownProvider(ctx workflow.Context, runnerType testnettypes.RunnerType, providerState []byte) error {
+	workflow.GetLogger(ctx).Info("tearing down provider")
+	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+		RunnerType:    runnerType,
+		ProviderState: providerState,
+	}).Get(ctx, nil)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("failed to teardown provider", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest, testnetRuntime time.Duration, providerState []byte) error {
 	if req.LongRunningTestnet {
-		signalChan := workflow.GetSignalChannel(ctx, "shutdown")
+		signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
 		workflow.GetLogger(ctx).Info("testnet is in long-running mode, waiting for shutdown signal")
 		signalChan.Receive(ctx, nil)
 
-		workflow.GetLogger(ctx).Info("received shutdown signal, waiting for update handlers to complete")
-		workflow.Await(ctx, func() bool {
-			return workflow.AllHandlersFinished(ctx)
-		})
-
+		workflow.GetLogger(ctx).Info("received shutdown signal for long running testnet, no resources will be deleted")
 		return nil
 	}
 
@@ -66,17 +76,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 		return err
 	}
 
-	workflow.GetLogger(ctx).Info("tearing down provider")
-	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
-		RunnerType:    req.RunnerType,
-		ProviderState: providerState,
-	}).Get(ctx, nil)
-	if err != nil {
-		workflow.GetLogger(ctx).Error("failed to teardown provider after monitoring", "error", err)
-		return err
-	}
-
-	return nil
+	return teardownProvider(ctx, req.RunnerType, providerState)
 }
 
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
@@ -110,10 +110,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	if err := runTestnet(ctx, req, runName, buildResult, report); err != nil {
 		return "", err
 	}
-
-	workflow.Await(ctx, func() bool {
-		return workflow.AllHandlersFinished(ctx)
-	})
 
 	return "", nil
 }
@@ -341,11 +337,8 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, r
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[:6])
 
-			if err := runTestnet(ctx, updateReq, runName, buildResult, report); err != nil {
-				return err
-			}
-
-			return nil
+			// Run the testnet with the updated configuration
+			return runTestnet(ctx, updateReq, runName, buildResult, report)
 		},
 	); err != nil {
 		return temporal.NewApplicationErrorWithOptions(
