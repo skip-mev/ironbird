@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/petri/core/v3/apps"
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -80,10 +81,10 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
-  if err != nil {
+	if err != nil {
 		return "", err
 	}
-  
+
 	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
 	if err != nil {
 		return "", err
@@ -463,7 +464,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, m
 
 			var loadTestRuntime time.Duration
 			if updateReq.LoadTestSpec != nil {
-				loadTestRuntime, err = runLoadTestInternal(ctx, updateReq, *chainState, *providerState, report)
+				loadTestRuntime, err = runLoadTest(ctx, updateReq, *chainState, *providerState, report)
 				if err != nil {
 					workflow.GetLogger(ctx).Error("Load test initiation failed during update", zap.Error(err))
 				}
