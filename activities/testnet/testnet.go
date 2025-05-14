@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -11,9 +12,12 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
+	"time"
+
 	"github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
+	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"
 )
@@ -243,53 +247,57 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.Nodes = testnetNodes
 
+	go func() {
+		emitHeartbeats(ctx, chain, logger)
+	}()
+
 	return resp, nil
 }
 
-func (a *Activity) MonitorTestnet(ctx context.Context, req messages.MonitorTestnetRequest) (messages.MonitorTestnetResponse, error) {
-	logger, _ := zap.NewDevelopment()
+func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Logger) {
+	heartbeatCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	var p provider.ProviderI
-	var err error
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 
-	if req.RunnerType == testnet.Docker {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState,
-		)
-	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
+	for {
+		select {
+		case <-heartbeatCtx.Done():
+			return
+		case <-ticker.C:
+			validators := chain.GetValidators()
+
+			// attempts to get a heartbeat from up to 3 validators
+			success := false
+			maxValidators := 3
+			if len(validators) < maxValidators {
+				maxValidators = len(validators)
+			}
+
+			for i := 0; i < maxValidators; i++ {
+				tmClient, err := validators[i].GetTMClient(ctx)
+				if err != nil {
+					logger.Error("Failed to get TM client", zap.Error(err), zap.Int("validator", i))
+					continue
+				}
+
+				_, err = tmClient.Status(ctx)
+				if err != nil {
+					logger.Error("Chain status check failed", zap.Error(err), zap.Int("validator", i))
+					continue
+				}
+
+				success = true
+				break
+			}
+
+			if !success {
+				logger.Error("All validator checks failed", zap.Int("validators_attempted", maxValidators))
+				continue
+			}
+
+			activity.RecordHeartbeat(ctx, "Chain status: healthy")
+		}
 	}
-
-	if err != nil {
-		return "", err
-	}
-
-	chain, err := petrichain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, CosmosWalletConfig)
-
-	if err != nil {
-		return "", err
-	}
-
-	tmClient, err := chain.GetValidators()[0].GetTMClient(ctx)
-
-	if err != nil {
-		return "", err
-	}
-
-	_, err = tmClient.Status(ctx)
-
-	if err != nil {
-		return "", err
-	}
-
-	return "ok", nil
 }

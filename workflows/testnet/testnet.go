@@ -1,8 +1,15 @@
 package testnet
 
 import (
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/skip-mev/petri/core/v3/provider"
+	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/petri/cosmos/v3/chain"
+	"github.com/skip-mev/petri/cosmos/v3/node"
 
 	"github.com/skip-mev/ironbird/messages"
 
@@ -19,13 +26,57 @@ var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
 
+const (
+	defaultRuntime = time.Hour
+	updateHandler  = "chain_update"
+	shutdownSignal = "shutdown"
+)
+
+var (
+	defaultWorkflowOptions = workflow.ActivityOptions{
+		StartToCloseTimeout: time.Minute * 30,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 1,
+		},
+	}
+)
+
+func teardownProvider(ctx workflow.Context, runnerType testnettypes.RunnerType, providerState []byte) error {
+	workflow.GetLogger(ctx).Info("tearing down provider")
+	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+		RunnerType:    runnerType,
+		ProviderState: providerState,
+	}).Get(ctx, nil)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("failed to teardown provider", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest, testnetRuntime time.Duration, providerState []byte) error {
+	if req.LongRunningTestnet {
+		signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
+		workflow.GetLogger(ctx).Info("testnet is in long-running mode, waiting for shutdown signal")
+		signalChan.Receive(ctx, nil)
+
+		workflow.GetLogger(ctx).Info("received shutdown signal for long running testnet, no resources will be deleted")
+		return nil
+	}
+
+	workflow.GetLogger(ctx).Info("setting testnet timer", zap.Duration("duration", testnetRuntime))
+	if err := workflow.NewTimer(ctx, testnetRuntime).Get(ctx, nil); err != nil {
+		workflow.GetLogger(ctx).Error("timer error", zap.Error(err))
+		return err
+	}
+
+	return teardownProvider(ctx, req.RunnerType, providerState)
+}
+
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
 	if err := req.Validate(); err != nil {
-		return "", temporal.NewApplicationErrorWithOptions(
-			"invalid workflow options",
-			err.Error(),
-			temporal.ApplicationErrorOptions{NonRetryable: true},
-		)
+		return "", temporal.NewApplicationErrorWithOptions("invalid workflow options", err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	name := fmt.Sprintf("Testnet (%s) bake", req.ChainConfig.Name)
@@ -37,23 +88,9 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, runID[:6])
+	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	options := workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute * 30,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 1,
-		},
-	}
-
-	ctx = workflow.WithActivityOptions(ctx, options)
-
-	report, err := NewReport(
-		ctx,
-		checkName,
-		"Launching testnet",
-		"",
-		req,
-	)
+	report, err := NewReport(ctx, checkName, "Launching testnet", "", req)
 
 	if err != nil {
 		return "", err
@@ -64,38 +101,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	chainState, providerState, err := launchTestnet(ctx, req, runName, buildResult, report)
-	if err != nil {
-		return "", err
-	}
-
-	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
-	if err != nil {
-		workflow.GetLogger(ctx).Error("Load test initiation failed", zap.Error(err))
-	}
-
-	testnetRuntime := max(time.Hour, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
-
-	// Teardown the provider after monitoring is complete (unless it's a long-running testnet)
-	if !req.LongRunningTestnet {
-		defer func() {
-			err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
-				RunnerType:    req.RunnerType,
-				ProviderState: providerState,
-			}).Get(ctx, nil)
-			if err != nil {
-				// Log error but don't fail the workflow, as monitoring succeeded
-				workflow.GetLogger(ctx).Error("Failed to teardown provider after monitoring", "error", err)
-			}
-		}()
-	}
-
-	if err := monitorTestnet(ctx, chainState, providerState, req.RunnerType, report, testnetRuntime, req.LongRunningTestnet); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Testnet monitoring failed: %s", err.Error()))
-		return "", err
-	}
-
-	if err := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); err != nil {
+	if err := runTestnet(ctx, req, runName, buildResult, report); err != nil {
 		return "", err
 	}
 
@@ -105,12 +111,12 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 func buildImageAndReport(ctx workflow.Context, req messages.TestnetWorkflowRequest, report *Report) (messages.BuildDockerImageResponse, error) {
 	buildResult, err := buildImage(ctx, req)
 	if err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Image build failed: %s", err.Error()))
+		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("image build failed: %s", err.Error()))
 		return messages.BuildDockerImageResponse{}, err
 	}
 
 	if err := report.SetBuildResult(ctx, buildResult); err != nil {
-		workflow.GetLogger(ctx).Error("Failed to set build result in report", zap.Error(err))
+		workflow.GetLogger(ctx).Error("failed to set build result in report", zap.Error(err))
 	}
 
 	return buildResult, nil
@@ -125,29 +131,37 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		RunnerType: req.RunnerType,
 		Name:       runName,
 	}).Get(ctx, &createProviderResp); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Provider creation failed: %s", err.Error()))
+		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("provider creation failed: %s", err.Error()))
 		return nil, providerState, err
 	}
 
 	providerState = createProviderResp.ProviderState
 
 	var testnetResp messages.LaunchTestnetResponse
+	activityOptions := workflow.ActivityOptions{
+		HeartbeatTimeout:    time.Second * 10,
+		StartToCloseTimeout: time.Hour * 24 * 365,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 3,
+		},
+	}
 
-	if err := workflow.ExecuteActivity(ctx, testnetActivities.LaunchTestnet, messages.LaunchTestnetRequest{
-		Name:                    req.ChainConfig.Name,
-		Image:                   buildResult.FQDNTag,
-		UID:                     req.ChainConfig.Image.UID,
-		GID:                     req.ChainConfig.Image.GID,
-		BinaryName:              req.ChainConfig.Image.BinaryName,
-		HomeDir:                 req.ChainConfig.Image.HomeDir,
-		GenesisModifications:    req.ChainConfig.GenesisModifications,
-		RunnerType:              req.RunnerType,
-		NumOfValidators:         req.ChainConfig.NumOfValidators,
-		NumOfNodes:              req.ChainConfig.NumOfNodes,
-		ProviderSpecificOptions: providerSpecificOptions,
-		ProviderState:           providerState,
-	}).Get(ctx, &testnetResp); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("Testnet launch failed: %s", err.Error()))
+	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
+		messages.LaunchTestnetRequest{
+			Name:                    req.ChainConfig.Name,
+			Image:                   buildResult.FQDNTag,
+			UID:                     req.ChainConfig.Image.UID,
+			GID:                     req.ChainConfig.Image.GID,
+			BinaryName:              req.ChainConfig.Image.BinaryName,
+			HomeDir:                 req.ChainConfig.Image.HomeDir,
+			GenesisModifications:    req.ChainConfig.GenesisModifications,
+			RunnerType:              req.RunnerType,
+			NumOfValidators:         req.ChainConfig.NumOfValidators,
+			NumOfNodes:              req.ChainConfig.NumOfNodes,
+			ProviderSpecificOptions: providerSpecificOptions,
+			ProviderState:           providerState,
+		}).Get(ctx, &testnetResp); err != nil {
+		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("testnet launch failed: %s", err.Error()))
 		return nil, providerState, err
 	}
 
@@ -155,11 +169,11 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	providerState = testnetResp.ProviderState
 
 	if err := report.SetNodes(ctx, testnetResp.Nodes); err != nil {
-		workflow.GetLogger(ctx).Error("Failed to set nodes in report", zap.Error(err))
+		workflow.GetLogger(ctx).Error("failed to set nodes in report", zap.Error(err))
 	}
 
 	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
-		workflow.GetLogger(ctx).Error("Failed to set dashboards in report", zap.Error(err))
+		workflow.GetLogger(ctx).Error("failed to set dashboards in report", zap.Error(err))
 	}
 
 	return chainState, providerState, nil
@@ -174,7 +188,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		updateErr := report.UpdateLoadTest(ctx, "Load test in progress", "", nil)
 		if updateErr != nil {
-			workflow.GetLogger(ctx).Error("Failed to update load test status", zap.Error(updateErr))
+			workflow.GetLogger(ctx).Error("failed to update load test status", zap.Error(updateErr))
 		}
 
 		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
@@ -193,24 +207,24 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 		).Get(ctx, &loadTestResp)
 
 		if activityErr != nil {
-			workflow.GetLogger(ctx).Error("Load test activity failed", zap.Error(activityErr))
+			workflow.GetLogger(ctx).Error("load test activity failed", zap.Error(activityErr))
 			updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+activityErr.Error(), "", nil)
 			if updateErr != nil {
-				workflow.GetLogger(ctx).Error("Failed to update load test failure status", zap.Error(updateErr))
+				workflow.GetLogger(ctx).Error("failed to update load test failure status", zap.Error(updateErr))
 			}
 			return
 		}
 
 		if loadTestResp.Result.Error != "" {
-			workflow.GetLogger(ctx).Error("Load test reported an error", zap.String("error", loadTestResp.Result.Error))
+			workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
 			updateErr := report.UpdateLoadTest(ctx, "❌ Load test failed: "+loadTestResp.Result.Error, "", &loadTestResp.Result)
 			if updateErr != nil {
-				workflow.GetLogger(ctx).Error("Failed to update load test result error status", zap.Error(updateErr))
+				workflow.GetLogger(ctx).Error("failed to update load test result error status", zap.Error(updateErr))
 			}
 		} else {
 			updateErr := report.UpdateLoadTest(ctx, "✅ Load test completed successfully!", "", &loadTestResp.Result)
 			if updateErr != nil {
-				workflow.GetLogger(ctx).Error("Failed to update load test success status", zap.Error(updateErr))
+				workflow.GetLogger(ctx).Error("failed to update load test success status", zap.Error(updateErr))
 			}
 		}
 	})
@@ -229,52 +243,103 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 	return nil
 }
 
-// monitors testnet for specified duration, or until workflow is cancelled if longRunningTestnet is set to true
-func monitorTestnet(ctx workflow.Context, chainState, providerState []byte, runnerType testnettypes.RunnerType, report *Report,
-	runtime time.Duration, longRunningTestnet bool) error {
-	startTime := workflow.Now(ctx)
-	sleepDuration := 10 * time.Second
-
-	for {
-		if !longRunningTestnet && workflow.Now(ctx).Sub(startTime) >= runtime {
-			break
-		}
-
-		if err := workflow.Sleep(ctx, sleepDuration); err != nil {
-			if temporal.IsCanceledError(err) {
-				workflow.GetLogger(ctx).Info("Monitoring loop cancelled.")
-				return nil
-			}
-			workflow.GetLogger(ctx).Error("workflow failed to sleep", zap.Error(err))
-			continue
-		}
-
-		var monitorTestnetResp messages.MonitorTestnetResponse
-		err := workflow.ExecuteActivity(ctx, testnetActivities.MonitorTestnet, messages.MonitorTestnetRequest{
-			RunnerType:    runnerType,
-			ChainState:    chainState,
-			ProviderState: providerState,
-		}).Get(ctx, &monitorTestnetResp)
-
-		if err != nil {
-			if temporal.IsCanceledError(err) {
-				workflow.GetLogger(ctx).Info("Monitoring activity cancelled.")
-				return nil
-			}
-			workflow.GetLogger(ctx).Error("MonitorTestnet error", zap.Error(err))
-		}
-
-		elapsedMinutes := int(workflow.Now(ctx).Sub(startTime).Minutes())
-		statusMsg := fmt.Sprintf("Monitoring the testnet - %d minutes elapsed", elapsedMinutes)
-		if longRunningTestnet {
-			statusMsg = fmt.Sprintf("Monitoring the testnet (long-running) - %d", elapsedMinutes)
-		}
-
-		if err := report.SetStatus(ctx, "in_progress", "Monitoring the testnet", statusMsg); err != nil {
-			workflow.GetLogger(ctx).Error("Failed to update report status", zap.Error(err))
-		}
+func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) error {
+	chainState, providerState, err := launchTestnet(ctx, req, runName, buildResult, report)
+	if err != nil {
+		return err
 	}
 
-	workflow.GetLogger(ctx).Info("Monitoring finished.")
+	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
+	}
+
+	err = setUpdateHandler(ctx, &providerState, &chainState, report, buildResult)
+	if err != nil {
+		return err
+	}
+
+	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
+
+	if err := waitForTestnetCompletion(ctx, req, testnetRuntime, providerState); err != nil {
+		reportErr := report.Conclude(ctx, "completed", "failed", fmt.Sprintf("Testnet bake failed: %v", err))
+		if reportErr != nil {
+			workflow.GetLogger(ctx).Error("failed to conclude report and testnet failed", zap.Error(err), zap.Error(reportErr))
+		}
+		return err
+	}
+
+	if reportErr := report.Conclude(ctx, "completed", "success", "Testnet bake completed"); reportErr != nil {
+		workflow.GetLogger(ctx).Error("failed to conclude report but testnet was successful", zap.Error(reportErr))
+	}
+
+	return nil
+}
+
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, report *Report,
+	buildResult messages.BuildDockerImageResponse) error {
+	if err := workflow.SetUpdateHandler(
+		ctx,
+		updateHandler,
+		func(ctx workflow.Context, updateReq messages.TestnetWorkflowRequest) error {
+			logger, _ := zap.NewDevelopment()
+			stdCtx := context.Background()
+			ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
+
+			var p provider.ProviderI
+			var err error
+
+			if updateReq.RunnerType == testnettypes.Docker {
+				p, err = docker.RestoreProvider(
+					stdCtx,
+					logger,
+					*providerState,
+				)
+			} else {
+				p, err = digitalocean.RestoreProvider(
+					stdCtx,
+					*providerState,
+					"",
+					testnetActivities.TailscaleSettings,
+					digitalocean.WithLogger(logger),
+				)
+			}
+
+			if err != nil {
+				return fmt.Errorf("failed to restore provider: %w", err)
+			}
+
+			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode,
+				testnet.CosmosWalletConfig)
+
+			if err != nil {
+				return fmt.Errorf("failed to create chain: %w", err)
+			}
+
+			err = chain.Teardown(stdCtx)
+			if err != nil {
+				return fmt.Errorf("failed to teardown chain: %w", err)
+			}
+
+			// update provider and chain state here in case LaunchTestnet activity fails
+			*chainState = []byte{}
+			*providerState, err = p.SerializeProvider(stdCtx)
+			if err != nil {
+				return fmt.Errorf("failed to serialize provider: %w", err)
+			}
+
+			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[:6])
+
+			return runTestnet(ctx, updateReq, runName, buildResult, report)
+		},
+	); err != nil {
+		return temporal.NewApplicationErrorWithOptions(
+			"failed to register update handler",
+			err.Error(),
+			temporal.ApplicationErrorOptions{NonRetryable: true},
+		)
+	}
+
 	return nil
 }
