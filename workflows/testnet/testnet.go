@@ -244,7 +244,7 @@ func launchTestnetInternal(ctx workflow.Context, req messages.TestnetWorkflowReq
 			Domains:       domains,
 		},
 	).Get(ctx, &loadBalancerResp); err != nil {
-		return "", err
+		return nil, nil, err
 	}
 
 	providerState = loadBalancerResp.ProviderState
