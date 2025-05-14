@@ -197,7 +197,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		TailscaleSettings: tailscaleSettings,
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
-		RootDomain:        "test",
+		RootDomain:        "ib-local.dev.skip.build",
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
