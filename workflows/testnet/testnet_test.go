@@ -213,8 +213,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
 		RootDomain:        "test",
-		SSLCertificate:    []byte("ASD"),
-		SSLKey:            []byte("ASD"),
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
