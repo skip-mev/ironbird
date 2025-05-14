@@ -346,12 +346,11 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.TestnetDuration = 0
 
 	done := make(chan struct{})
-	go func() {
-		time.Sleep(1 * time.Minute)
+	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow("shutdown", nil)
 		time.Sleep(5 * time.Second)
 		close(done)
-	}()
+	}, 15*time.Second)
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -381,6 +380,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	updatedReq.ChainConfig.Name = "updated-stake"
 
 	done := make(chan struct{})
+
 	go func() {
 		time.Sleep(1 * time.Minute) // give time for load test to run
 		s.env.UpdateWorkflow(updateHandler, "1", callbacks, updatedReq)
