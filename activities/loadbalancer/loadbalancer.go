@@ -68,5 +68,5 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		}, fmt.Errorf("failed to serialize load balancer task: %w", err)
 	}
 
-	return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState, LoadBalancerState: loadBalancerState}, nil
+	return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState, LoadBalancerState: loadBalancerState, RootDomain: a.RootDomain}, nil
 }

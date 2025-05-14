@@ -11,6 +11,7 @@ require (
 	github.com/docker/cli v27.4.0-rc.2+incompatible
 	github.com/golangci/golangci-lint v1.57.1
 	github.com/google/go-github/v66 v66.0.0
+	github.com/manifoldco/promptui v0.9.0
 	github.com/moby/buildkit v0.18.0
 	github.com/nao1215/markdown v0.7.0
 	github.com/palantir/go-githubapp v0.30.0
@@ -18,6 +19,7 @@ require (
 	github.com/skip-mev/catalyst v0.0.0-20250502184547-4f61820c8bbc
 	github.com/skip-mev/petri/core/v3 v3.0.6
 	github.com/skip-mev/petri/cosmos/v3 v3.0.6
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.17
@@ -92,6 +94,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charithe/durationcheck v0.0.10 // indirect
 	github.com/chavacava/garif v0.1.0 // indirect
+	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cilium/ipam v0.0.0-20230509084518-fd66eae7909b // indirect
 	github.com/ckaznocha/intrange v0.1.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
@@ -328,7 +331,6 @@ require (
 	github.com/sourcegraph/go-diff v0.7.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/ssgreg/nlreturn/v2 v2.2.1 // indirect

@@ -11,8 +11,10 @@ ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
 RUN apk add --no-cache $PACKAGES
 
 ARG CHAIN_TAG
+ARG CHAIN_SRC=https://github.com/cosmos/cosmos-sdk
 ARG REPLACE_CMD
-RUN git clone https://github.com/cosmos/cosmos-sdk /src/app && \
+
+RUN git clone $CHAIN_SRC /src/app && \
     cd /src/app && \
     git checkout $CHAIN_TAG
 

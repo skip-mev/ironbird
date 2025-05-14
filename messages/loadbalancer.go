@@ -14,4 +14,5 @@ type LaunchLoadBalancerRequest struct {
 type LaunchLoadBalancerResponse struct {
 	ProviderState     []byte
 	LoadBalancerState []byte
+	RootDomain        string
 }
