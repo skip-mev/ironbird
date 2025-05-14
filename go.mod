@@ -423,7 +423,3 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 	tailscale.com v1.78.3 // indirect
 )
-
-replace github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
-
-replace github.com/skip-mev/petri/core/v3 => ../petri/core
