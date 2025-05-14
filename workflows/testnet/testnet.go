@@ -26,12 +26,6 @@ var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
 
-type monitoringState struct {
-	cancelChan workflow.Channel
-	errChan    workflow.Channel
-	doneChan   workflow.Channel
-}
-
 const (
 	defaultRuntime = time.Hour
 	updateHandler  = "chain_update"
@@ -337,7 +331,6 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, r
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[:6])
 
-			// Run the testnet with the updated configuration
 			return runTestnet(ctx, updateReq, runName, buildResult, report)
 		},
 	); err != nil {
