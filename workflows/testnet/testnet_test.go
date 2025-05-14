@@ -2,6 +2,7 @@ package testnet
 
 import (
 	"context"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"log"
 	"os"
 	"os/exec"
@@ -195,10 +196,19 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
+	loadBalancerActivity := &loadbalancer.Activity{
+		RootDomain:        "test",
+		SSLCertificate:    []byte("ASD"),
+		SSLKey:            []byte("ASD"),
+		DOToken:           doToken,
+		TailscaleSettings: tailscaleSettings,
+	}
+
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(testnetActivity.MonitorTestnet)
+	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
@@ -226,6 +236,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	githubActivities = githubActivity
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
+	loadBalancerActivities = loadBalancerActivity
 
 	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
@@ -240,6 +251,11 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 			return loadTestActivities.RunLoadTest(ctx, req)
+		})
+
+	s.env.OnActivity(loadBalancerActivity.LaunchLoadBalancer, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.LaunchLoadBalancerRequest) (messages.LaunchLoadBalancerResponse, error) {
+			return loadBalancerActivities.LaunchLoadBalancer(ctx, req)
 		})
 
 	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
