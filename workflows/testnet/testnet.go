@@ -80,16 +80,16 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
+  if err != nil {
+		return "", err
+	}
+  
+	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
 	if err != nil {
 		return "", err
 	}
 
-	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
-	if err != nil {
-		workflow.GetLogger(ctx).Error("Load test initiation failed", zap.Error(err))
-	}
-
-	testnetRuntime := calculateTestnetRuntime(req.TestnetDuration, loadTestRuntime)
+	testnetRuntime := max(time.Hour, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
 
 	monitorState := &monitoringState{
 		cancelChan: workflow.NewChannel(ctx),
@@ -219,7 +219,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	return chainState, providerState, testnetResp.Nodes, nil
 }
 
-func launchLoadBalancerInternal(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node, report *Report) ([]byte, error) {
+func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node, report *Report) ([]byte, error) {
 	if req.RunnerType != testnettypes.DigitalOcean {
 		if err := report.SetNodes(ctx, nodes); err != nil {
 			workflow.GetLogger(ctx).Error("Failed to set nodes in report", zap.Error(err))
