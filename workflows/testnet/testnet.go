@@ -329,7 +329,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, r
 			}
 
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[:6])
+			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[len(runID)-6:])
 
 			return runTestnet(ctx, updateReq, runName, buildResult, report)
 		},
