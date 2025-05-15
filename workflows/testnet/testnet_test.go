@@ -2,6 +2,7 @@ package testnet
 
 import (
 	"context"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"fmt"
 	"log"
 	"os"
@@ -210,11 +211,18 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
+	loadBalancerActivity := &loadbalancer.Activity{
+		RootDomain:        "ib-local.dev.skip.build",
+		DOToken:           doToken,
+		TailscaleSettings: tailscaleSettings,
+	}
+
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
+	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
 
-	loadTestActivity := &loadtest.Activity{
+  loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
@@ -240,6 +248,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	githubActivities = githubActivity
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
+	loadBalancerActivities = loadBalancerActivity
 
 	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
@@ -256,6 +265,10 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 			return loadTestActivities.RunLoadTest(ctx, req)
 		})
 
+	s.env.OnActivity(loadBalancerActivity.LaunchLoadBalancer, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.LaunchLoadBalancerRequest) (messages.LaunchLoadBalancerResponse, error) {
+			return loadBalancerActivities.LaunchLoadBalancer(ctx, req)
+    })
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
