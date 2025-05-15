@@ -3,6 +3,8 @@ ARG IMG_TAG=latest
 
 # Compile the gaiad binary
 FROM --platform=linux/amd64 golang:1.23-alpine AS gaiad-builder
+ARG GIT_SHA
+RUN echo "Ironbird building with SHA: $GIT_SHA"
 WORKDIR /src/
 ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
 RUN apk add --no-cache $PACKAGES
@@ -15,14 +17,12 @@ RUN sha256sum /lib/libwasmvm_muslc.aarch64.a | grep faea4e15390e046d2ca8441c21a8
 RUN sha256sum /lib/libwasmvm_muslc.x86_64.a | grep 8dab08434a5fe57a6fbbcb8041794bc3c31846d31f8ff5fb353ee74e0fcd3093
 RUN cp "/lib/libwasmvm_muslc.$(uname -m).a" /lib/libwasmvm_muslc.a
 
-ARG CHAIN_TAG=main
-RUN git clone --depth 1 --branch $CHAIN_TAG https://github.com/cosmos/gaia /src/app
+ARG CHAIN_TAG
+ARG REPLACE_CMD
+RUN git clone https://github.com/cosmos/gaia /src/app && \
+    cd /src/app && \
+    git checkout $CHAIN_TAG
 WORKDIR /src/app
-
-COPY replaces.sh .
-RUN chmod +x replaces.sh && sh replaces.sh
-RUN cat go.mod
-RUN go mod tidy
 
 RUN LEDGER_ENABLED=false LINK_STATICALLY=true BUILD_TAGS=muslc make build
 RUN echo "Ensuring binary is statically linked ..."  \
