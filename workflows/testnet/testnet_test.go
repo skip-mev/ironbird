@@ -459,7 +459,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
-	s.setupMockActivitiesDocker()
+	s.setupMockActivitiesDigitalOcean()
 	s.env.ExecuteWorkflow(Workflow, gaiaReq)
 
 	s.True(s.env.IsWorkflowCompleted())
