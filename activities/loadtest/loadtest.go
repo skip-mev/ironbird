@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/messages"
 	"sync"
 	"time"
+
+	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/messages"
 
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
@@ -102,7 +103,6 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
 			}
-			logger.Debug("load test wallet created", zap.String("address", w.FormattedAddress()))
 
 			walletsMutex.Lock()
 			mnemonics = append(mnemonics, w.Mnemonic())
