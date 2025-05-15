@@ -460,6 +460,29 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
 	s.setupMockActivitiesDigitalOcean()
+
+	builderActivity := &builder.Activity{}
+	s.env.RegisterActivity(builderActivity.BuildDockerImage)
+
+	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
+			imageTag := "ghcr.io/cosmos/simapp:v0.50"
+			if strings.Contains(req.Tag, gaiaReq.SHA) {
+				imageTag = "ghcr.io/cosmos/gaia:feature-evm"
+			}
+
+			cmd := exec.Command("docker", "pull", imageTag)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				return messages.BuildDockerImageResponse{}, err
+			}
+
+			return messages.BuildDockerImageResponse{
+				FQDNTag: imageTag,
+				Logs:    output,
+			}, nil
+		})
+
 	s.env.ExecuteWorkflow(Workflow, gaiaReq)
 
 	s.True(s.env.IsWorkflowCompleted())
