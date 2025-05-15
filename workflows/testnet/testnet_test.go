@@ -36,7 +36,7 @@ type TestnetWorkflowTestSuite struct {
 }
 
 var (
-	req = messages.TestnetWorkflowRequest{
+	simappReq = messages.TestnetWorkflowRequest{
 		InstallationID:  57729708,
 		Owner:           "skip-mev",
 		TestnetDuration: 1 * time.Minute,
@@ -86,6 +86,53 @@ var (
 			} else {
 				log.Println("Chain update completed successfully")
 			}
+		},
+	}
+	gaiaReq = messages.TestnetWorkflowRequest{
+		InstallationID:  57729708,
+		Owner:           "cosmos",
+		Repo:            "gaia",
+		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
+		RunnerType:      testnettype.DigitalOcean,
+		TestnetDuration: 1 * time.Minute,
+		ChainConfig: types.ChainsConfig{
+			Name: "gaia-1",
+			Image: types.ImageConfig{
+				UID:        "1000",
+				GID:        "1000",
+				BinaryName: "gaiad",
+				HomeDir:    "/gaia",
+				Dockerfile: "../../hack/gaia.Dockerfile",
+			},
+			Version: "feature/evm",
+			GenesisModifications: []petrichain.GenesisKV{
+				{
+					Key:   "consensus.params.block.max_gas",
+					Value: "75000000",
+				},
+			},
+			Dependencies: map[string]string{
+				"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+				"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
+			},
+			NumOfValidators: 1,
+			NumOfNodes:      1,
+		},
+		LoadTestSpec: &catalysttypes.LoadTestSpec{
+			Name:        "e2e-test",
+			Description: "e2e test",
+			NumOfBlocks: 5,
+			NumOfTxs:    10,
+			Msgs: []catalysttypes.LoadTestMsg{
+				{Weight: 1, Type: catalysttypes.MsgSend},
+			},
+		},
+	}
+	builderConfig = types.BuilderConfig{
+		BuildKitAddress: "tcp://localhost:1234",
+		Registry: types.RegistryConfig{
+			URL:       "public.ecr.aws",
+			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 )
@@ -176,6 +223,9 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
+			if strings.Contains(req.Tag, gaiaReq.SHA) {
+				imageTag = "ghcr.io/cosmos/gaia:feature-evm"
+			}
 
 			cmd := exec.Command("docker", "pull", imageTag)
 			output, err := cmd.CombinedOutput()
@@ -282,7 +332,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	s.setupMockActivitiesDocker()
 
 	// use sdk repo here to test skipping replace workflow
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -300,7 +350,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	s.setupMockActivitiesDigitalOcean()
 
 	// use cometbft repo here to test replace workflow
-	doReq := req
+	doReq := simappReq
 	doReq.Repo = "ironbird-cometbft"
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = testnettype.DigitalOcean
@@ -317,7 +367,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -336,7 +386,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -346,12 +396,11 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.TestnetDuration = 0
 
 	done := make(chan struct{})
-	go func() {
-		time.Sleep(1 * time.Minute)
+	s.env.RegisterDelayedCallback(func() {
 		s.env.SignalWorkflow("shutdown", nil)
 		time.Sleep(5 * time.Second)
 		close(done)
-	}()
+	}, 15*time.Second)
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -368,7 +417,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -407,6 +456,16 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 		"ib-updated-stake-defaul-updated-stake-node-0"}
 	cleanupResources(expectedContainers, "petri-ib-updated-stake-defaul", s)
 	cleanupResources(nil, "petri-ib-stake-defaul", s)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
+	s.setupMockActivitiesDocker()
+	s.env.ExecuteWorkflow(Workflow, gaiaReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
