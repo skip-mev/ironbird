@@ -490,6 +490,82 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
+// func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
+// 	s.setupMockActivitiesDocker()
+
+// 	dockerReq := req
+// 	dockerReq.Repo = "ironbird-cosmos-sdk"
+// 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+// 	dockerReq.RunnerType = testnettype.Docker
+// 	dockerReq.ChainConfig.Name = "stake"
+// 	dockerReq.LoadTestSpec = nil
+// 	dockerReq.LongRunningTestnet = true
+// 	dockerReq.TestnetDuration = 0
+
+// 	done := make(chan struct{})
+// 	s.env.RegisterDelayedCallback(func() {
+// 		s.env.SignalWorkflow("shutdown", nil)
+// 		time.Sleep(5 * time.Second)
+// 		close(done)
+// 	}, 15*time.Second)
+
+// 	s.env.ExecuteWorkflow(Workflow, dockerReq)
+
+// 	<-done
+// 	s.True(s.env.IsWorkflowCompleted())
+// 	s.NoError(s.env.GetWorkflowError())
+// 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
+// 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
+
+// 	expectedContainers := []string{"ib-stake-defaul-stake-node-0", "ib-stake-defaul-stake-validator-0"}
+// 	cleanupResources(expectedContainers, "petri-ib-stake-defaul", s)
+// }
+
+// func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
+// 	s.setupMockActivitiesDocker()
+
+// 	dockerReq := req
+// 	dockerReq.Repo = "ironbird-cosmos-sdk"
+// 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+// 	dockerReq.RunnerType = testnettype.Docker
+// 	dockerReq.ChainConfig.Name = "stake"
+// 	dockerReq.LongRunningTestnet = true
+// 	dockerReq.TestnetDuration = 0
+
+// 	updatedReq := dockerReq
+// 	updatedReq.ChainConfig.Version = "0.50.12"
+// 	updatedReq.ChainConfig.Name = "updated-stake"
+
+// 	done := make(chan struct{})
+
+// 	go func() {
+// 		time.Sleep(1 * time.Minute) // give time for load test to run
+// 		s.env.UpdateWorkflow(updateHandler, "1", callbacks, updatedReq)
+
+// 		oldCatalystContainer := "ib-stake-defaul-catalyst"
+// 		rmCmd := exec.Command("docker", "rm", "-f", oldCatalystContainer)
+// 		_, err := rmCmd.CombinedOutput()
+// 		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
+
+// 		time.Sleep(2 * time.Minute) // wait for new chain to startup
+// 		s.env.SignalWorkflow("shutdown", nil)
+// 		time.Sleep(5 * time.Second)
+// 		close(done)
+// 	}()
+// 	s.env.ExecuteWorkflow(Workflow, dockerReq)
+// 	<-done
+
+// 	s.True(s.env.IsWorkflowCompleted())
+// 	s.NoError(s.env.GetWorkflowError())
+// 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 2)
+// 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
+
+// 	expectedContainers := []string{"ib-updated-stake-defaul-updated-stake-validator-0",
+// 		"ib-updated-stake-defaul-updated-stake-node-0"}
+// 	cleanupResources(expectedContainers, "petri-ib-updated-stake-defaul", s)
+// 	cleanupResources(nil, "petri-ib-stake-defaul", s)
+// }
+
 func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
 }
