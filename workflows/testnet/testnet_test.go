@@ -92,7 +92,7 @@ var (
 		Owner:           "cosmos",
 		Repo:            "gaia",
 		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
-		RunnerType:      testnettype.DigitalOcean,
+		RunnerType:      testnettype.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
 			Name: "gaia-1",
@@ -223,7 +223,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
 			if strings.Contains(req.Tag, gaiaReq.SHA) {
-				imageTag = "ghcr.io/cosmos/gaia:feature-evm"
+				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
 
 			cmd := exec.Command("docker", "pull", imageTag)
@@ -309,7 +309,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
 			if strings.Contains(req.Tag, gaiaReq.SHA) {
-				imageTag = "ghcr.io/cosmos/gaia:feature-evm"
+				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
 			cmd := exec.Command("docker", "pull", imageTag)
 			output, err := cmd.CombinedOutput()
@@ -460,7 +460,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 //}
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
-	s.setupMockActivitiesDigitalOcean()
+	s.setupMockActivitiesDocker()
 	s.env.ExecuteWorkflow(Workflow, gaiaReq)
 
 	s.True(s.env.IsWorkflowCompleted())
