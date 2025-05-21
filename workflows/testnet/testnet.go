@@ -88,6 +88,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, runID[len(runID)-6:])
+	workflow.GetLogger(ctx).Info("runID", zap.String("run_id", runID), zap.String("run_name", runName))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
 	report, err := NewReport(ctx, checkName, "Launching testnet", "", req)
