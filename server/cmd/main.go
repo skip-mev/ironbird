@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/skip-mev/ironbird/types"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/skip-mev/ironbird/types"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -14,6 +15,7 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	_ "github.com/caddyserver/caddy/v2/modules/standard"
 	"github.com/skip-mev/ironbird/server"
+	"google.golang.org/grpc/grpclog"
 )
 
 type CaddyModule struct {
@@ -27,7 +29,7 @@ func (CaddyModule) CaddyModule() caddy.ModuleInfo {
 		New: func() caddy.Module {
 			m := &CaddyModule{
 				config: types.TemporalConfig{
-					Host:      "localhost:7233", // Default Temporal server address
+					Host:      "127.0.0.1:7233", // Use IPv4 address instead of localhost
 					Namespace: "default",        // Default Temporal namespace
 				},
 			}
@@ -80,13 +82,14 @@ var (
 
 func init() {
 	caddy.RegisterModule(CaddyModule{})
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stderr))
 }
 
 // startAPIServer starts a standard HTTP server that uses the existing IronbirdServer
 func startAPIServer() {
 	// Create a default temporal config
 	temporalConfig := types.TemporalConfig{
-		Host:      "localhost:7233", // Default Temporal server address
+		Host:      "127.0.0.1:7233", // Use IPv4 address instead of localhost
 		Namespace: "default",        // Default Temporal namespace
 	}
 
@@ -96,9 +99,6 @@ func startAPIServer() {
 		fmt.Fprintf(os.Stderr, "Error creating Ironbird server: %v\n", err)
 		os.Exit(1)
 	}
-
-	// Ensure server is closed when application exits
-	defer ironbirdServer.Close()
 
 	// Create a handler that uses the shared server instance
 	ironbirdHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

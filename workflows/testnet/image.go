@@ -19,6 +19,18 @@ var (
 	// based on the commit SHA passed to ironbird. To test cometbft on the other hand, we use a base simapp image
 	// and then replace the cometbft dependency with the intended commit version)
 	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia"}
+	dependencies = map[string]string{
+		"ironbird-cometbft":   "github.com/cometbft/cometbft",
+		"ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+		"cometbft":            "github.com/cometbft/cometbft",
+		"cosmos-sdk":          "github.com/cosmos/cosmos-sdk",
+	}
+	repoOwners = map[string]string{
+		"ironbird-cometbft":   "skip-mev",
+		"ironbird-cosmos-sdk": "skip-mev",
+		"cometbft":            "cometbft",
+		"cosmos-sdk":          "cosmos",
+	}
 )
 
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
@@ -43,14 +55,14 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 
 	var buildResult messages.BuildDockerImageResponse
 	buildArguments := make(map[string]string)
-	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
+	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, req.ChainConfig.Version, repoOwners[req.Repo], req.Repo, req.SHA)
 
 	if slices.Contains(SKIP_REPLACE_REPOS, req.Repo) {
 		buildArguments["CHAIN_TAG"] = req.SHA
-		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", req.Owner, req.Repo)
+		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", repoOwners[req.Repo], req.Repo)
 	} else {
 		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
-		buildArguments["REPLACE_CMD"] = generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
+		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
 	}
 
 	logger := workflow.GetLogger(ctx)

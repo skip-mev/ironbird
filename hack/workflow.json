@@ -5,10 +5,6 @@
     "Name": "cosmos",
     "NumOfNodes": 1,
     "NumOfValidators": 6,
-    "Dependencies": {
-      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft",
-      "skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk"
-    },
     "Image": {
       "Dockerfile": "./hack/simapp.Dockerfile",
       "GID": "1025",
@@ -39,16 +35,5 @@
         "TxTimeout": "5m"
       }
     ]
-  },
-  "GrafanaConfig": {
-      "URL": "https://skipprotocol.grafana.net",
-      "Dashboards": [
-          {
-              "ID": "b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436",
-              "Name": "comet-performance",
-              "HumanName": "CometBFT Performance",
-              "ChainIdVariable": "chain_id"
-          }
-      ]
   }
 }

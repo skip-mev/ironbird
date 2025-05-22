@@ -62,10 +62,12 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 		ID:        workflowID,
 		TaskQueue: testnet.TaskQueue,
 	}
-	workflowRun, err := s.temporalClient.ExecuteWorkflow(context.Background(), options, testnet.Workflow, req)
+
+	workflowRun, err := s.temporalClient.ExecuteWorkflow(context.TODO(), options, testnet.Workflow, req)
 	if err != nil {
-		fmt.Println("Error executing workflow", err)
-		return fmt.Errorf("failed to execute workflow: %w", err)
+		fmt.Printf("Error executing workflow: %+v\n", err)
+		http.Error(w, fmt.Sprintf("failed to execute workflow: %v", err), http.StatusInternalServerError)
+		return err
 	}
 	fmt.Println("workflowrun.GetID", workflowRun.GetID())
 

@@ -1,0 +1,69 @@
+chains:
+  gaia-evm:
+    name: gaia-evm
+    version: na/build-arm-64
+    image:
+      dockerfile: "./hack/gaia.Dockerfile"
+      gid: "1025"
+      uid: "1025"
+      binary_name: "gaiad"
+      home_dir: "/gaiad"
+      gas_prices: "0.00025uatom"
+    num_of_validators: 4
+    num_of_nodes: 0
+
+  simapp-v47:
+    name: simapp-v47
+    version: v0.47.17
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 4
+    num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus_params.block.max_gas
+        value: "75000000"
+
+  simapp-v50:
+    name: simapp-v50
+    version: v0.50.13
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 4
+    num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus.params.block.max_gas
+        value: "75000000"
+
+  simapp-v53:
+    name: simapp-v53
+    version: v0.53.0
+    image:
+      dockerfile: "./hack/simapp.Dockerfile"
+      gid: "1000"
+      uid: "1000"
+      binary_name: "/usr/bin/simd"
+      home_dir: "/simd"
+      gas_prices: "0.0005stake"
+    num_of_validators: 4
+    num_of_nodes: 0
+    genesis_modifications:
+      - key: consensus.params.block.max_gas
+        value: "75000000"
+
+
+grafana:
+  url: "https://skipprotocol.grafana.net"
+  dashboards:
+    - id: b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436
+      name: "comet-performance"
+      human_name: "CometBFT Performance"

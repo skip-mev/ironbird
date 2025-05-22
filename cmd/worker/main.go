@@ -13,9 +13,7 @@ import (
 	"github.com/uber-go/tally/v4/prometheus"
 	"log"
 
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
@@ -38,14 +36,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	cc, err := githubapp.NewDefaultCachingClientCreator(cfg.Github)
-
-	if err != nil {
-		panic(err)
-	}
-
-	notifier := github.NotifierActivity{GithubClient: cc}
 
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
@@ -133,9 +123,6 @@ func main() {
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-
-	w.RegisterActivity(notifier.UpdateGitHubCheck)
-	w.RegisterActivity(notifier.CreateGitHubCheck)
 
 	w.RegisterActivity(builderActivity.BuildDockerImage)
 

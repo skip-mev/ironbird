@@ -56,7 +56,6 @@ type TestnetWorkflowRequest struct {
 	ChainConfig        types.ChainsConfig
 	RunnerType         testnet.RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec
-	GrafanaConfig      types.GrafanaConfig
 	LongRunningTestnet bool
 	TestnetDuration    time.Duration
 }

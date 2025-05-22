@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
@@ -56,10 +55,6 @@ var (
 					Key:   "consensus.params.block.max_gas",
 					Value: "75000000",
 				},
-			},
-			Dependencies: map[string]string{
-				"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
-				"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
 			},
 			NumOfValidators: 1,
 			NumOfNodes:      1,
@@ -256,10 +251,6 @@ func (s *TestnetWorkflowTestSuite) TearDownSuite() {
 }
 
 func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
-	githubActivity := &github.NotifierActivity{}
-	s.env.RegisterActivity(githubActivity.CreateGitHubCheck)
-	s.env.RegisterActivity(githubActivity.UpdateGitHubCheck)
-
 	testnetActivity := &testnettypes.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
@@ -271,19 +262,8 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	builderActivity := &builder.Activity{}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
-	githubActivities = githubActivity
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
-
-	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
-			return messages.CreateGitHubCheckResponse(123), nil
-		})
-
-	s.env.OnActivity(githubActivity.UpdateGitHubCheck, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
-			return messages.UpdateGitHubCheckResponse(123), nil
-		})
 
 	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
@@ -317,9 +297,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 
 func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	ctx := context.Background()
-	githubActivity := &github.NotifierActivity{}
-	s.env.RegisterActivity(githubActivity.CreateGitHubCheck)
-	s.env.RegisterActivity(githubActivity.UpdateGitHubCheck)
 
 	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
 
@@ -369,20 +346,9 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	builderActivity := builder.Activity{BuilderConfig: builderConfig, AwsConfig: &awsConfig}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
-	githubActivities = githubActivity
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
 	loadBalancerActivities = loadBalancerActivity
-
-	s.env.OnActivity(githubActivity.CreateGitHubCheck, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.CreateGitHubCheckRequest) (messages.CreateGitHubCheckResponse, error) {
-			return messages.CreateGitHubCheckResponse(123), nil
-		})
-
-	s.env.OnActivity(githubActivity.UpdateGitHubCheck, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.UpdateGitHubCheckRequest) (messages.UpdateGitHubCheckResponse, error) {
-			return messages.UpdateGitHubCheckResponse(123), nil
-		})
 
 	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
