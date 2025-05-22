@@ -85,3 +85,15 @@ govulncheck: tidy
 	@go run golang.org/x/vuln/cmd/govulncheck -test ./...
 
 .PHONY: lint lint-fix lint-markdown govulncheck ⏎
+
+.PHONY: start-frontend
+start-frontend:
+	cd frontend && npm install --legacy-peer-deps && npm run dev
+
+.PHONY: start-backend
+start-backend:
+	go run ./server/cmd/main.go
+
+.PHONY: dev
+dev:
+	make -j2 start-frontend start-backend
