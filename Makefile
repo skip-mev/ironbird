@@ -31,10 +31,6 @@ deps:
 	go env
 	go mod download
 
-${APP_BIN}: ${GO_FILES} ${GO_DEPS}
-	@echo "Building application binary..."
-	@mkdir -p ./build
-	go build -o ./build/ github.com/skip-mev/ironbird/cmd/app
 
 ${WORKER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@echo "Building worker binary..."
@@ -42,7 +38,7 @@ ${WORKER_BIN}: ${GO_FILES} ${GO_DEPS}
 	go build -o ./build/ github.com/skip-mev/ironbird/cmd/worker
 
 .PHONY: build
-build: ${APP_BIN} ${WORKER_BIN}
+build: ${WORKER_BIN}
 
 ###############################################################################
 ###                                  Testing                                ###

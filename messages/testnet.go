@@ -51,8 +51,6 @@ type LaunchTestnetResponse struct {
 }
 
 type TestnetWorkflowRequest struct {
-	InstallationID     int64
-	Owner              string
 	Repo               string
 	SHA                string
 	ChainConfig        types.ChainsConfig
@@ -64,14 +62,6 @@ type TestnetWorkflowRequest struct {
 }
 
 func (r TestnetWorkflowRequest) Validate() error {
-	if r.InstallationID == 0 {
-		return fmt.Errorf("installationID is required")
-	}
-
-	if r.Owner == "" {
-		return fmt.Errorf("owner is required")
-	}
-
 	if r.Repo == "" {
 		return fmt.Errorf("repo is required")
 	}

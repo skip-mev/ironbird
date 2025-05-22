@@ -40,8 +40,6 @@ type TestnetWorkflowTestSuite struct {
 
 var (
 	simappReq = messages.TestnetWorkflowRequest{
-		InstallationID:  57729708,
-		Owner:           "skip-mev",
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
 			Name: "stake-1",

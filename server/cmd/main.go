@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/skip-mev/ironbird/types"
 	"net/http"
 	"os"
 	"strings"
@@ -17,7 +18,7 @@ import (
 
 type CaddyModule struct {
 	server *server.IronbirdServer
-	config server.TemporalConfig
+	config types.TemporalConfig
 }
 
 func (CaddyModule) CaddyModule() caddy.ModuleInfo {
@@ -25,7 +26,7 @@ func (CaddyModule) CaddyModule() caddy.ModuleInfo {
 		ID: "http.handlers.ironbird",
 		New: func() caddy.Module {
 			m := &CaddyModule{
-				config: server.TemporalConfig{
+				config: types.TemporalConfig{
 					Host:      "localhost:7233", // Default Temporal server address
 					Namespace: "default",        // Default Temporal namespace
 				},
@@ -57,8 +58,8 @@ func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 	switch {
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 		m.server.HandleCreateWorkflow(w, r)
-	case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-		m.server.HandleUpdateWorkflow(w, r)
+	//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
+	//	m.server.HandleUpdateWorkflow(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 		m.server.HandleGetWorkflow(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
@@ -84,7 +85,7 @@ func init() {
 // startAPIServer starts a standard HTTP server that uses the existing IronbirdServer
 func startAPIServer() {
 	// Create a default temporal config
-	temporalConfig := server.TemporalConfig{
+	temporalConfig := types.TemporalConfig{
 		Host:      "localhost:7233", // Default Temporal server address
 		Namespace: "default",        // Default Temporal namespace
 	}
@@ -104,8 +105,8 @@ func startAPIServer() {
 		switch {
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 			ironbirdServer.HandleCreateWorkflow(w, r)
-		case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-			ironbirdServer.HandleUpdateWorkflow(w, r)
+		//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
+		//	ironbirdServer.HandleUpdateWorkflow(w, r)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 			ironbirdServer.HandleGetWorkflow(w, r)
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
