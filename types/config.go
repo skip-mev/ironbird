@@ -3,11 +3,11 @@ package types
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+
 	"github.com/palantir/go-githubapp/githubapp"
-	"github.com/skip-mev/catalyst/pkg/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
 type TailscaleConfig struct {
@@ -15,14 +15,6 @@ type TailscaleConfig struct {
 	ServerTags        []string `yaml:"server_tags"`
 	NodeAuthKey       string
 	NodeTags          []string `yaml:"node_tags"`
-}
-
-type AppConfig struct {
-	Github    githubapp.Config
-	Chains    map[string]ChainsConfig       `yaml:"chains"`
-	Temporal  TemporalConfig                `yaml:"temporal"`
-	Grafana   GrafanaConfig                 `yaml:"grafana"`
-	LoadTests map[string]types.LoadTestSpec `yaml:"load_tests"`
 }
 
 type WorkerConfig struct {
@@ -134,28 +126,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 
 	config.Tailscale.NodeAuthKey = os.Getenv("TS_NODE_AUTH_KEY")
 	config.Tailscale.ServerOauthSecret = os.Getenv("TS_SERVER_OAUTH_SECRET")
-
-	return config, nil
-}
-
-func ParseAppConfig(path string) (AppConfig, error) {
-	file, err := os.ReadFile(path)
-
-	if err != nil {
-		return AppConfig{}, fmt.Errorf("failed to read config: %w", err)
-	}
-
-	var config AppConfig
-	if err := yaml.Unmarshal(file, &config); err != nil {
-		return AppConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-	config.Github.SetValuesFromEnv("")
-
-	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
-		config.Github.App.PrivateKey = string(decodedGithubKey)
-	} else {
-		return AppConfig{}, err
-	}
 
 	return config, nil
 }
