@@ -232,7 +232,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			return resp, err
 		}
 
-		metricsIp, err := validator.GetIP(ctx)
+		ip, err := validator.GetIP(ctx)
 		if err != nil {
 			return resp, err
 		}
@@ -241,7 +241,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			Name:    validator.GetDefinition().Name,
 			Rpc:     fmt.Sprintf("http://%s", cometIp),
 			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
-			Metrics: metricsIp,
+			Address: ip,
+			Metrics: ip,
 		})
 	}
 

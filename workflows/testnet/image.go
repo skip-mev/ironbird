@@ -36,31 +36,27 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 	}
 
 	var builderActivity *builder.Activity
-	tag := generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
 
 	var buildResult messages.BuildDockerImageResponse
 
-	var chainTag string
-	replaces := ""
-	// Skip replace script in the SDK repo because its not needed
+	buildArguments := make(map[string]string)
+	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
+
 	if slices.Contains(SDK_REPOS, req.Repo) {
-		chainTag = req.SHA
+		buildArguments["CHAIN_TAG"] = req.SHA
+		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", req.Owner, req.Repo)
 	} else {
-		chainTag = req.ChainConfig.Version
-		replaces = generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
-		logger.Info("replaces", zap.String("", replaces))
+		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
+		buildArguments["REPLACE_CMD"] = generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
+		logger.Info("replaces", zap.String("", buildArguments["REPLACE_CMD"]))
 	}
 
 	err = workflow.ExecuteActivity(ctx, builderActivity.BuildDockerImage, messages.BuildDockerImageRequest{
-		Tag: tag,
+		Tag: buildArguments["GIT_SHA"],
 		Files: map[string][]byte{
 			"Dockerfile": dockerFileBz,
 		},
-		BuildArguments: map[string]string{
-			"CHAIN_TAG":   chainTag,
-			"GIT_SHA":     tag,
-			"REPLACE_CMD": replaces,
-		},
+		BuildArguments: buildArguments,
 	}).Get(ctx, &buildResult)
 
 	if err != nil {

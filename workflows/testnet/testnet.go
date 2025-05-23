@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/petri/core/v3/apps"
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -11,6 +12,7 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/skip-mev/ironbird/activities/github"
@@ -25,6 +27,13 @@ import (
 var testnetActivities *testnet.Activity
 var githubActivities *github.NotifierActivity
 var loadTestActivities *loadtest.Activity
+var loadBalancerActivities *loadbalancer.Activity
+
+type monitoringState struct {
+	cancelChan workflow.Channel
+	errChan    workflow.Channel
+	doneChan   workflow.Channel
+}
 
 const (
 	defaultRuntime = time.Hour
@@ -102,8 +111,24 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	if err := runTestnet(ctx, req, runName, buildResult, report); err != nil {
+		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
+
+	//chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
+	//if err != nil {
+	//	return "", err
+	//}
 
 	return "", nil
 }
@@ -111,7 +136,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 func buildImageAndReport(ctx workflow.Context, req messages.TestnetWorkflowRequest, report *Report) (messages.BuildDockerImageResponse, error) {
 	buildResult, err := buildImage(ctx, req)
 	if err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("image build failed: %s", err.Error()))
+		_ = report.Conclude(ctx, "completed", "failure", fmt.Sprintf("Image build failed: %s", err.Error()))
 		return messages.BuildDockerImageResponse{}, err
 	}
 
@@ -122,7 +147,7 @@ func buildImageAndReport(ctx workflow.Context, req messages.TestnetWorkflowReque
 	return buildResult, nil
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) ([]byte, []byte, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) ([]byte, []byte, []testnettypes.Node, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
@@ -131,8 +156,8 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		RunnerType: req.RunnerType,
 		Name:       runName,
 	}).Get(ctx, &createProviderResp); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("provider creation failed: %s", err.Error()))
-		return nil, providerState, err
+		_ = report.Conclude(ctx, "completed", "failure", fmt.Sprintf("Provider creation failed: %s", err.Error()))
+		return nil, nil, nil, err
 	}
 
 	providerState = createProviderResp.ProviderState
@@ -161,22 +186,81 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			ProviderSpecificOptions: providerSpecificOptions,
 			ProviderState:           providerState,
 		}).Get(ctx, &testnetResp); err != nil {
-		_ = report.Conclude(ctx, "failed", "error", fmt.Sprintf("testnet launch failed: %s", err.Error()))
-		return nil, providerState, err
+		_ = report.Conclude(ctx, "completed", "failure", fmt.Sprintf("Testnet launch failed: %s", err.Error()))
+		return nil, nil, nil, err
 	}
 
 	chainState = testnetResp.ChainState
 	providerState = testnetResp.ProviderState
 
-	if err := report.SetNodes(ctx, testnetResp.Nodes); err != nil {
-		workflow.GetLogger(ctx).Error("failed to set nodes in report", zap.Error(err))
-	}
-
 	if err := report.SetDashboards(ctx, req.GrafanaConfig, testnetResp.ChainID); err != nil {
-		workflow.GetLogger(ctx).Error("failed to set dashboards in report", zap.Error(err))
+		workflow.GetLogger(ctx).Error("Failed to set dashboards in report", zap.Error(err))
 	}
 
-	return chainState, providerState, nil
+	return chainState, providerState, testnetResp.Nodes, nil
+}
+
+func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node, report *Report) ([]byte, error) {
+	if req.RunnerType != testnettypes.DigitalOcean {
+		if err := report.SetNodes(ctx, nodes); err != nil {
+			workflow.GetLogger(ctx).Error("Failed to set nodes in report", zap.Error(err))
+		}
+
+		return providerState, nil
+	}
+
+	var loadBalancerResp messages.LaunchLoadBalancerResponse
+
+	var domains []apps.LoadBalancerDomain
+	for _, node := range nodes {
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-grpc", node.Name),
+			IP:       fmt.Sprintf("%s:9090", node.Address),
+			Protocol: "grpc",
+		})
+
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-rpc", node.Name),
+			IP:       fmt.Sprintf("%s:26657", node.Address),
+			Protocol: "http",
+		})
+
+		domains = append(domains, apps.LoadBalancerDomain{
+			Domain:   fmt.Sprintf("%s-lcd", node.Name),
+			IP:       fmt.Sprintf("%s:1317", node.Address),
+			Protocol: "http",
+		})
+	}
+
+	if err := workflow.ExecuteActivity(
+		ctx,
+		loadBalancerActivities.LaunchLoadBalancer,
+		messages.LaunchLoadBalancerRequest{
+			ProviderState: providerState,
+			RunnerType:    req.RunnerType,
+			Domains:       domains,
+		},
+	).Get(ctx, &loadBalancerResp); err != nil {
+		return providerState, err
+	}
+
+	var reformedNodes []testnettypes.Node
+
+	for _, node := range nodes {
+		reformedNodes = append(reformedNodes, testnettypes.Node{
+			Name:    node.Name,
+			Address: node.Address,
+			Rpc:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
+			Lcd:     fmt.Sprintf("https://%s-lcd.%s", node.Name, loadBalancerResp.RootDomain),
+			Metrics: node.Address,
+		})
+	}
+
+	if err := report.SetNodes(ctx, reformedNodes); err != nil {
+		workflow.GetLogger(ctx).Error("Failed to set loadbalanced nodes in report", zap.Error(err))
+	}
+
+	return loadBalancerResp.ProviderState, nil
 }
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, report *Report) (time.Duration, error) {
@@ -244,7 +328,7 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 }
 
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) error {
-	chainState, providerState, err := launchTestnet(ctx, req, runName, buildResult, report)
+	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
 	if err != nil {
 		return err
 	}
@@ -252,6 +336,11 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
+	}
+
+	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
+	if err != nil {
+		return err
 	}
 
 	err = setUpdateHandler(ctx, &providerState, &chainState, report, buildResult)
