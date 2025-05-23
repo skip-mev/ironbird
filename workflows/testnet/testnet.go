@@ -104,20 +104,25 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
-	if err != nil {
+	if err := runTestnet(ctx, req, runName, buildResult, report); err != nil {
+		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
-	if err != nil {
-		return "", err
-	}
-
-	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
-	if err != nil {
-		return "", err
-	}
+	//chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
+	//if err != nil {
+	//	return "", err
+	//}
+	//
+	//loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
+	//if err != nil {
+	//	return "", err
+	//}
 
 	return "", nil
 }
@@ -317,7 +322,7 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 }
 
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) error {
-	chainState, providerState, _, err := launchTestnet(ctx, req, runName, buildResult, report)
+	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
 	if err != nil {
 		return err
 	}
@@ -325,6 +330,11 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
+	}
+
+	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
+	if err != nil {
+		return err
 	}
 
 	err = setUpdateHandler(ctx, &providerState, &chainState, report, buildResult)
@@ -404,22 +414,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, r
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[:6])
 
-			*providerState = testnetResp.ProviderState
-			*chainState = testnetResp.ChainState
-
-			var loadTestRuntime time.Duration
-			if updateReq.LoadTestSpec != nil {
-				loadTestRuntime, err = runLoadTest(ctx, updateReq, *chainState, *providerState, report)
-				if err != nil {
-					workflow.GetLogger(ctx).Error("Load test initiation failed during update", zap.Error(err))
-				}
-			}
-
-			testnetRuntime := calculateTestnetRuntime(updateReq.TestnetDuration, loadTestRuntime)
-
-			startMonitoring(ctx, monitorState, *chainState, *providerState, updateReq.RunnerType, report, testnetRuntime, updateReq.LongRunningTestnet)
-
-			return nil
+			return runTestnet(ctx, updateReq, runName, buildResult, report)
 		},
 	); err != nil {
 		return temporal.NewApplicationErrorWithOptions(
