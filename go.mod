@@ -16,8 +16,8 @@ require (
 	github.com/palantir/go-githubapp v0.30.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250513005028-fe8c4e28f0d1
-	github.com/skip-mev/petri/core/v3 v3.0.8-0.20250528032630-5c9f41bc77a5
-	github.com/skip-mev/petri/cosmos/v3 v3.0.7-0.20250528032630-5c9f41bc77a5
+	github.com/skip-mev/petri/core/v3 v3.0.8
+	github.com/skip-mev/petri/cosmos/v3 v3.0.7
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.17
@@ -218,7 +218,6 @@ require (
 	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
-	github.com/icza/dyno v0.0.0-20230330125955-09f820a8d9c0 // indirect
 	github.com/illarion/gonotify/v2 v2.0.3 // indirect
 	github.com/in-toto/in-toto-golang v0.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
