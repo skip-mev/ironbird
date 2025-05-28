@@ -26,6 +26,11 @@ RUN git clone $CHAIN_SRC /src/app && \
     git checkout $CHAIN_TAG
 WORKDIR /src/app
 
+COPY replaces.sh .
+RUN chmod +x replaces.sh && sh replaces.sh
+RUN cat go.mod
+RUN go mod tidy
+
 RUN LEDGER_ENABLED=false LINK_STATICALLY=true BUILD_TAGS=muslc make build
 RUN echo "Ensuring binary is statically linked ..."  \
     && file /src/app/build/gaiad | grep "statically linked"
