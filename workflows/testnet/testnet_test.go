@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	petriutil "github.com/skip-mev/petri/core/v3/util"
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-  
+	petriutil "github.com/skip-mev/petri/core/v3/util"
+
 	"log"
 	"os"
 	"os/exec"
@@ -544,7 +544,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 
 	cleanupResources(s)
-	cleanupResources(s)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
@@ -578,6 +577,20 @@ func cleanupResources(s *TestnetWorkflowTestSuite) {
 			s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
 
 			volumeName := containerName + "-data"
+			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
+			if output, err := rmVolCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			}
+		}
+	}
+
+	volCmd := exec.Command("docker", "volume", "ls", "--filter", "name=ib-", "--format", "{{.Name}}")
+	volOutput, err := volCmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker volumes")
+
+	volumeList := strings.Split(strings.TrimSpace(string(volOutput)), "\n")
+	for _, volumeName := range volumeList {
+		if volumeName != "" && strings.HasPrefix(volumeName, "ib-") {
 			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
 			if output, err := rmVolCmd.CombinedOutput(); err != nil {
 				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
