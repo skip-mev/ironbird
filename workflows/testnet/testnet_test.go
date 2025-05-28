@@ -3,7 +3,10 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	petriutil "github.com/skip-mev/petri/core/v3/util"
+
 	"log"
 	"os"
 	"os/exec"
@@ -22,7 +25,6 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	testnettype "github.com/skip-mev/ironbird/types/testnet"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -37,7 +39,7 @@ type TestnetWorkflowTestSuite struct {
 }
 
 var (
-	req = messages.TestnetWorkflowRequest{
+	simappReq = messages.TestnetWorkflowRequest{
 		InstallationID:  57729708,
 		Owner:           "skip-mev",
 		TestnetDuration: 1 * time.Minute,
@@ -87,6 +89,127 @@ var (
 			} else {
 				log.Println("Chain update completed successfully")
 			}
+		},
+	}
+	gaiaReq = messages.TestnetWorkflowRequest{
+		InstallationID:  57729708,
+		Owner:           "cosmos",
+		Repo:            "gaia",
+		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
+		RunnerType:      testnettype.Docker,
+		TestnetDuration: 1 * time.Minute,
+		ChainConfig: types.ChainsConfig{
+			Name: "cosmos_22222-1",
+			Image: types.ImageConfig{
+				UID:        "1025",
+				GID:        "1025",
+				BinaryName: "gaiad",
+				HomeDir:    "/gaia",
+				Dockerfile: "../../hack/gaia.Dockerfile",
+			},
+			Version: "feature/evm",
+			GenesisModifications: []petrichain.GenesisKV{
+				{
+					Key:   "app_state.staking.params.bond_denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.gov.deposit_params.min_deposit.0.denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.gov.params.min_deposit.0.denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.evm.params.evm_denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.mint.params.mint_denom",
+					Value: "atest",
+				},
+				{
+					Key: "app_state.bank.denom_metadata",
+					Value: []map[string]interface{}{
+						{
+							"description": "The native staking token for evmd.",
+							"denom_units": []map[string]interface{}{
+								{
+									"denom":    "atest",
+									"exponent": 0,
+									"aliases":  []string{"attotest"},
+								},
+								{
+									"denom":    "test",
+									"exponent": 18,
+									"aliases":  []string{},
+								},
+							},
+							"base":     "atest",
+							"display":  "test",
+							"name":     "Test Token",
+							"symbol":   "TEST",
+							"uri":      "",
+							"uri_hash": "",
+						},
+					},
+				},
+				{
+					Key: "app_state.evm.params.active_static_precompiles",
+					Value: []string{
+						"0x0000000000000000000000000000000000000100",
+						"0x0000000000000000000000000000000000000400",
+						"0x0000000000000000000000000000000000000800",
+						"0x0000000000000000000000000000000000000801",
+						"0x0000000000000000000000000000000000000802",
+						"0x0000000000000000000000000000000000000803",
+						"0x0000000000000000000000000000000000000804",
+						"0x0000000000000000000000000000000000000805",
+					},
+				},
+				{
+					Key:   "app_state.erc20.params.native_precompiles",
+					Value: []string{"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+				},
+				{
+					Key: "app_state.erc20.token_pairs",
+					Value: []map[string]interface{}{
+						{
+							"contract_owner": 1,
+							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+							"denom":          "atest",
+							"enabled":        true,
+						},
+					},
+				},
+				{
+					Key:   "consensus.params.block.max_gas",
+					Value: "75000000",
+				},
+			},
+			Dependencies: map[string]string{
+				"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+				"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
+			},
+			NumOfValidators: 1,
+			NumOfNodes:      1,
+		},
+		LoadTestSpec: &catalysttypes.LoadTestSpec{
+			Name:        "e2e-test",
+			Description: "e2e test",
+			NumOfBlocks: 5,
+			NumOfTxs:    10,
+			Msgs: []catalysttypes.LoadTestMsg{
+				{Weight: 1, Type: catalysttypes.MsgSend},
+			},
+		},
+	}
+	builderConfig = types.BuilderConfig{
+		BuildKitAddress: "tcp://localhost:1234",
+		Registry: types.RegistryConfig{
+			URL:       "public.ecr.aws",
+			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 )
@@ -177,6 +300,9 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
+			if strings.Contains(req.Tag, gaiaReq.SHA) {
+				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+			}
 
 			cmd := exec.Command("docker", "pull", imageTag)
 			output, err := cmd.CombinedOutput()
@@ -268,7 +394,9 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
-
+			if strings.Contains(req.Tag, gaiaReq.SHA) {
+				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+			}
 			cmd := exec.Command("docker", "pull", imageTag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -296,7 +424,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	s.setupMockActivitiesDocker()
 
 	// use sdk repo here to test skipping replace workflow
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -314,7 +442,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	s.setupMockActivitiesDigitalOcean()
 
 	// use cometbft repo here to test replace workflow
-	doReq := req
+	doReq := simappReq
 	doReq.Repo = "ironbird-cometbft"
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = testnettype.DigitalOcean
@@ -331,7 +459,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -350,7 +478,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -374,14 +502,13 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 
-	expectedContainers := []string{"ib-stake-defaul-stake-node-0", "ib-stake-defaul-stake-validator-0"}
-	cleanupResources(expectedContainers, "petri-ib-stake-defaul", s)
+	cleanupResources(s)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.setupMockActivitiesDocker()
 
-	dockerReq := req
+	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = testnettype.Docker
@@ -394,7 +521,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	updatedReq.ChainConfig.Name = "updated-stake"
 
 	done := make(chan struct{})
-
 	go func() {
 		time.Sleep(1 * time.Minute) // give time for load test to run
 		s.env.UpdateWorkflow(updateHandler, "1", callbacks, updatedReq)
@@ -417,41 +543,72 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 2)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 
-	expectedContainers := []string{"ib-updated-stake-defaul-updated-stake-validator-0",
-		"ib-updated-stake-defaul-updated-stake-node-0"}
-	cleanupResources(expectedContainers, "petri-ib-updated-stake-defaul", s)
-	cleanupResources(nil, "petri-ib-stake-defaul", s)
+	cleanupResources(s)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
+	s.setupMockActivitiesDocker()
+	s.env.ExecuteWorkflow(Workflow, gaiaReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
 }
 
-func cleanupResources(containerNames []string, networkName string, s *TestnetWorkflowTestSuite) {
-	for _, containerName := range containerNames {
-		// check that the container still exists and has not been torndown first
-		cmd := exec.Command("docker", "ps", "--filter", "name="+containerName, "--format", "{{.Names}}")
-		output, err := cmd.CombinedOutput()
-		s.NoError(err, "failed to find Docker container: "+containerName)
-		s.Contains(string(output), containerName, fmt.Sprintf("docker container %s not found", containerName))
+func cleanupResources(s *TestnetWorkflowTestSuite) {
+	cmd := exec.Command("docker", "ps", "-a", "--filter", "name=ib-", "--format", "{{.Names}}")
+	output, err := cmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker containers")
 
-		stopCmd := exec.Command("docker", "stop", containerName)
-		_, err = stopCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to stop container: %s", containerName))
+	containerList := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, containerName := range containerList {
+		if containerName != "" && strings.HasPrefix(containerName, "ib-") {
+			stopCmd := exec.Command("docker", "stop", containerName)
+			_, err = stopCmd.CombinedOutput()
+			s.NoError(err, fmt.Sprintf("failed to stop container: %s", containerName))
 
-		rmCmd := exec.Command("docker", "rm", "-f", containerName)
-		_, err = rmCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
+			rmCmd := exec.Command("docker", "rm", "-f", containerName)
+			_, err = rmCmd.CombinedOutput()
+			s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
 
-		volumeName := containerName + "-data"
-		rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
-		if output, err := rmVolCmd.CombinedOutput(); err != nil {
-			s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			volumeName := containerName + "-data"
+			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
+			if output, err := rmVolCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			}
 		}
 	}
 
-	rmNetCmd := exec.Command("docker", "network", "rm", networkName)
-	if output, err := rmNetCmd.CombinedOutput(); err != nil {
-		s.NoError(err, "failed to remove network", output)
+	volCmd := exec.Command("docker", "volume", "ls", "--filter", "name=ib-", "--format", "{{.Name}}")
+	volOutput, err := volCmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker volumes")
+
+	volumeList := strings.Split(strings.TrimSpace(string(volOutput)), "\n")
+	for _, volumeName := range volumeList {
+		if volumeName != "" && strings.HasPrefix(volumeName, "ib-") {
+			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
+			if output, err := rmVolCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			}
+		}
+	}
+
+	netCmd := exec.Command("docker", "network", "ls", "--filter", "name=petri", "--format", "{{.Name}}")
+	netOutput, err := netCmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker networks")
+
+	networkList := strings.Split(strings.TrimSpace(string(netOutput)), "\n")
+	for _, networkName := range networkList {
+		if networkName != "" && strings.HasPrefix(networkName, "petri") {
+			rmNetCmd := exec.Command("docker", "network", "rm", networkName)
+			if output, err := rmNetCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove network %s, output: %s", networkName, output))
+			}
+		}
 	}
 }

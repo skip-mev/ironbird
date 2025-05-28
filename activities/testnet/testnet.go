@@ -40,6 +40,7 @@ var (
 
 const (
 	cosmosDenom    = "stake"
+	gaiaEvmDenom   = "atest"
 	cosmosDecimals = 6
 )
 
@@ -140,13 +141,22 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
+	// TODO(nadim-az): refactor denom setting in ui/server
+	denom := cosmosDenom
+	for _, modification := range req.GenesisModifications {
+		if modification.Key == "app_state.evm.params.evm_denom" {
+			denom = gaiaEvmDenom
+			break
+		}
+	}
+
 	chain, chainErr := petrichain.CreateChain(
 		ctx,
 		logger,
 		p,
 		types.ChainConfig{
 			Name:          req.Name,
-			Denom:         cosmosDenom,
+			Denom:         denom,
 			Decimals:      cosmosDecimals,
 			NumValidators: int(req.NumOfValidators),
 			NumNodes:      int(req.NumOfNodes),
