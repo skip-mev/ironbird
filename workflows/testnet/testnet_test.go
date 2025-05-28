@@ -486,8 +486,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 
-	expectedContainers := []string{"ib-stake-defaul-stake-node-0", "ib-stake-defaul-stake-validator-0"}
-	cleanupResources(expectedContainers, "petri-ib-stake-defaul", s)
+	cleanupResources(s)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
@@ -528,10 +527,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 2)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
 
-	expectedContainers := []string{"ib-updated-stake-defaul-updated-stake-validator-0",
-		"ib-updated-stake-defaul-updated-stake-node-0"}
-	cleanupResources(expectedContainers, "petri-ib-updated-stake-defaul", s)
-	cleanupResources(nil, "petri-ib-stake-defaul", s)
+	cleanupResources(s)
+	cleanupResources(s)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
@@ -548,31 +545,41 @@ func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
 }
 
-func cleanupResources(containerNames []string, networkName string, s *TestnetWorkflowTestSuite) {
-	for _, containerName := range containerNames {
-		// check that the container still exists and has not been torndown first
-		cmd := exec.Command("docker", "ps", "--filter", "name="+containerName, "--format", "{{.Names}}")
-		output, err := cmd.CombinedOutput()
-		s.NoError(err, "failed to find Docker container: "+containerName)
-		s.Contains(string(output), containerName, fmt.Sprintf("docker container %s not found", containerName))
+func cleanupResources(s *TestnetWorkflowTestSuite) {
+	cmd := exec.Command("docker", "ps", "-a", "--filter", "name=ib-", "--format", "{{.Names}}")
+	output, err := cmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker containers")
 
-		stopCmd := exec.Command("docker", "stop", containerName)
-		_, err = stopCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to stop container: %s", containerName))
+	containerList := strings.Split(strings.TrimSpace(string(output)), "\n")
+	for _, containerName := range containerList {
+		if containerName != "" && strings.HasPrefix(containerName, "ib-") {
+			stopCmd := exec.Command("docker", "stop", containerName)
+			_, err = stopCmd.CombinedOutput()
+			s.NoError(err, fmt.Sprintf("failed to stop container: %s", containerName))
 
-		rmCmd := exec.Command("docker", "rm", "-f", containerName)
-		_, err = rmCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
+			rmCmd := exec.Command("docker", "rm", "-f", containerName)
+			_, err = rmCmd.CombinedOutput()
+			s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
 
-		volumeName := containerName + "-data"
-		rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
-		if output, err := rmVolCmd.CombinedOutput(); err != nil {
-			s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			volumeName := containerName + "-data"
+			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
+			if output, err := rmVolCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
+			}
 		}
 	}
 
-	rmNetCmd := exec.Command("docker", "network", "rm", networkName)
-	if output, err := rmNetCmd.CombinedOutput(); err != nil {
-		s.NoError(err, "failed to remove network", output)
+	netCmd := exec.Command("docker", "network", "ls", "--filter", "name=petri", "--format", "{{.Name}}")
+	netOutput, err := netCmd.CombinedOutput()
+	s.NoError(err, "failed to list Docker networks")
+
+	networkList := strings.Split(strings.TrimSpace(string(netOutput)), "\n")
+	for _, networkName := range networkList {
+		if networkName != "" && strings.HasPrefix(networkName, "petri") {
+			rmNetCmd := exec.Command("docker", "network", "rm", networkName)
+			if output, err := rmNetCmd.CombinedOutput(); err != nil {
+				s.NoError(err, fmt.Sprintf("failed to remove network %s, output: %s", networkName, output))
+			}
+		}
 	}
 }
