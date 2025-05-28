@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/skip-mev/petri/core/v3/util"
 	"github.com/skip-mev/petri/core/v3/apps"
+	"github.com/skip-mev/petri/core/v3/util"
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -99,7 +99,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	checkName := fmt.Sprintf("Testnet (%s) bake", name)
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, util.RandomString(6))
-	workflow.GetLogger(ctx).Info("run_id", zap.String("run_id", runID), zap.String("run_name", runName))
+	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
 	report, err := NewReport(ctx, checkName, "Launching testnet", "", req)
@@ -421,7 +421,9 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, r
 			}
 
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, runID[len(runID)-6:])
+			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, util.RandomString(6))
+			workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID),
+				zap.String("run_name", runName))
 
 			return runTestnet(ctx, updateReq, runName, buildResult, report)
 		},
