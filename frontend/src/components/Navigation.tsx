@@ -1,7 +1,9 @@
-import { Box, VStack, Heading, Flex } from '@chakra-ui/react';
-import { Link } from 'react-router-dom';
+import { Box, VStack, Heading, Flex, Button } from '@chakra-ui/react';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 
 const Navigation = () => {
+  const location = useLocation();
+
   return (
     <Box 
       bg="gray.100" 
@@ -16,22 +18,30 @@ const Navigation = () => {
     >
       <VStack spacing={6} align="flex-start">
         <Heading size="md">
-          <Link to="/" style={{ color: '#2B6CB0' }}>
+          <RouterLink to="/" style={{ color: '#2B6CB0' }}>
             Ironbird
-          </Link>
+          </RouterLink>
         </Heading>
         
         <VStack spacing={4} align="flex-start" w="100%">
-          <Link to="/" style={{ color: '#4A5568', width: '100%' }}>
-            <Box p={2} _hover={{ bg: 'gray.200' }} borderRadius="md" w="100%">
-              Create Testnet
-            </Box>
-          </Link>
-          <Link to="/workflow" style={{ color: '#4A5568', width: '100%' }}>
-            <Box p={2} _hover={{ bg: 'gray.200' }} borderRadius="md" w="100%">
-              View Testnets
-            </Box>
-          </Link>
+          <Button
+            as={RouterLink}
+            to="/"
+            variant={location.pathname === '/' ? 'solid' : 'ghost'}
+            colorScheme="blue"
+            justifyContent="flex-start"
+          >
+            Create Testnet
+          </Button>
+          <Button
+            as={RouterLink}
+            to="/workflows"
+            variant={location.pathname.startsWith('/workflow') ? 'solid' : 'ghost'}
+            colorScheme="blue"
+            justifyContent="flex-start"
+          >
+            View Testnets
+          </Button>
         </VStack>
       </VStack>
     </Box>

@@ -9,6 +9,11 @@ export const workflowApi = {
     return response.data;
   },
 
+  listWorkflows: async (): Promise<{Workflows: Array<{WorkflowID: string; Status: string; StartTime: string; Repo?: string; SHA?: string}>; Count: number}> => {
+    const response = await axios.get(`${API_BASE_URL}/workflows`);
+    return response.data;
+  },
+
   updateWorkflow: async (workflowId: string, request: TestnetWorkflowRequest): Promise<WorkflowResponse> => {
     const response = await axios.put(`${API_BASE_URL}/workflow/${workflowId}`, request);
     return response.data;

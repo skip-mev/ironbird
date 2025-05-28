@@ -62,6 +62,8 @@ func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 		m.server.HandleCreateWorkflow(w, r)
 	//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 	//	m.server.HandleUpdateWorkflow(w, r)
+	case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
+		m.server.HandleListWorkflows(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 		m.server.HandleGetWorkflow(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
@@ -107,6 +109,8 @@ func startAPIServer() {
 			ironbirdServer.HandleCreateWorkflow(w, r)
 		//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 		//	ironbirdServer.HandleUpdateWorkflow(w, r)
+		case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
+			ironbirdServer.HandleListWorkflows(w, r)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
 			ironbirdServer.HandleGetWorkflow(w, r)
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
