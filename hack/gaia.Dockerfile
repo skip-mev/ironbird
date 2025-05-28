@@ -18,8 +18,10 @@ RUN sha256sum /lib/libwasmvm_muslc.x86_64.a | grep 8dab08434a5fe57a6fbbcb8041794
 RUN cp "/lib/libwasmvm_muslc.$(uname -m).a" /lib/libwasmvm_muslc.a
 
 ARG CHAIN_TAG
+ARG CHAIN_SRC=https://github.com/cosmos/gaia
 ARG REPLACE_CMD
-RUN git clone https://github.com/cosmos/gaia /src/app && \
+
+RUN git clone $CHAIN_SRC /src/app && \
     cd /src/app && \
     git checkout $CHAIN_TAG
 WORKDIR /src/app

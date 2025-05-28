@@ -219,7 +219,6 @@ require (
 	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
-	github.com/icza/dyno v0.0.0-20230330125955-09f820a8d9c0 // indirect
 	github.com/illarion/gonotify/v3 v3.0.2 // indirect
 	github.com/in-toto/in-toto-golang v0.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

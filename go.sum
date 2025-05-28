@@ -674,10 +674,6 @@ github.com/iancoleman/strcase v0.3.0 h1:nTXanmYxhfFAMjZL34Ov6gkzEsSJZ5DbhxWjvSAS
 github.com/iancoleman/strcase v0.3.0/go.mod h1:iwCmte+B7n89clKwxIoIXy/HfoL7AsD47ZCWhYzw7ho=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
-github.com/illarion/gonotify/v2 v2.0.3 h1:B6+SKPo/0Sw8cRJh1aLzNEeNVFfzE3c6N+o+vyxM+9A=
-github.com/illarion/gonotify/v2 v2.0.3/go.mod h1:38oIJTgFqupkEydkkClkbL6i5lXV/bxdH9do5TALPEE=
-github.com/icza/dyno v0.0.0-20230330125955-09f820a8d9c0 h1:nHoRIX8iXob3Y2kdt9KsjyIb7iApSvb3vgsd93xb5Ow=
-github.com/icza/dyno v0.0.0-20230330125955-09f820a8d9c0/go.mod h1:c1tRKs5Tx7E2+uHGSyyncziFjvGpgv4H2HrqXeUQ/Uk=
 github.com/illarion/gonotify/v3 v3.0.2 h1:O7S6vcopHexutmpObkeWsnzMJt/r1hONIEogeVNmJMk=
 github.com/illarion/gonotify/v3 v3.0.2/go.mod h1:HWGPdPe817GfvY3w7cx6zkbzNZfi3QjcBm/wgVvEL1U=
 github.com/improbable-eng/grpc-web v0.15.0 h1:BN+7z6uNXZ1tQGcNAuaU1YjsLTApzkjt2tzCixLaUPQ=
@@ -1040,10 +1036,6 @@ github.com/skip-mev/petri/core/v3 v3.0.8 h1:CQ09c6ZtxJWq8sFqBFJFFlFiDQkZc+OxfJi1
 github.com/skip-mev/petri/core/v3 v3.0.8/go.mod h1:BivTT/Wxxo3l9ZXY4g3OiA9bgIKEbtyMBtv6AKgICcU=
 github.com/skip-mev/petri/cosmos/v3 v3.0.7 h1:EYsN4dmjKo/Uc/U6BKl+54vP6zjVjiE3KGql0Od7OQs=
 github.com/skip-mev/petri/cosmos/v3 v3.0.7/go.mod h1:rr6gCbikshUQa5NLdoGEoVETiF2ivklI5Vz/Kks3A1A=
-github.com/skip-mev/petri/core/v3 v3.0.7 h1:s1AXHFJcIp9ADIJONmbUT1fHtBCtYIGRWguP+r5ruJ0=
-github.com/skip-mev/petri/core/v3 v3.0.7/go.mod h1:b4ZLez6UWVV1nN2gDIvnZjDACWc52SiIcRJNYq4rkaw=
-github.com/skip-mev/petri/cosmos/v3 v3.0.6 h1:oVdtDXNAtrQvyRMVUJ18hZpptvJF6HJoVKa+Yq4nWyA=
-github.com/skip-mev/petri/cosmos/v3 v3.0.6/go.mod h1:ZJNrMjTc8Ij0o8WBvWBkJ7pDa+BgmsR9WzNXzYHUDCk=
 github.com/sonatard/noctx v0.0.2 h1:L7Dz4De2zDQhW8S0t+KUjY0MAQJd6SgVwhzNIc4ok00=
 github.com/sonatard/noctx v0.0.2/go.mod h1:kzFz+CzWSjQ2OzIm46uJZoXuBpa2+0y3T36U18dWqIo=
 github.com/sourcegraph/conc v0.3.0 h1:OQTbbt6P72L20UqAkXXuLOj79LfEanQ+YQFNpLA9ySo=
