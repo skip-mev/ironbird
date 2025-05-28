@@ -78,14 +78,17 @@ type RegistryConfig struct {
 
 type ChainsConfig struct {
 	Name                 string                 `yaml:"name"`
-	Image                ImageConfig            `yaml:"image"`
-	Version              string                 `yaml:"version"`
+	Image                string                 `yaml:"image"`
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
 	NumOfValidators      uint64                 `yaml:"num_of_validators"`
 }
 
+type ChainImages map[string]ImageConfig
+
 type ImageConfig struct {
+	Name       string `yaml:"name"`
+	Version    string `yaml:"version"`
 	Dockerfile string `yaml:"dockerfile"`
 	GID        string `yaml:"gid"`
 	UID        string `yaml:"uid"`
@@ -114,16 +117,16 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	return config, nil
 }
 
-func ParseChainsConfig(path string) (ChainsConfig, error) {
+func ParseChainImagesConfig(path string) (ChainImages, error) {
 	file, err := os.ReadFile(path)
 
 	if err != nil {
-		return ChainsConfig{}, fmt.Errorf("failed to read config: %w", err)
+		return ChainImages{}, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	var config ChainsConfig
+	var config ChainImages
 	if err := yaml.Unmarshal(file, &config); err != nil {
-		return ChainsConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
+		return ChainImages{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	return config, nil

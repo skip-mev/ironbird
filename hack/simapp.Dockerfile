@@ -1,13 +1,13 @@
 ARG IMG_TAG=latest
 
 # Compile the simapp binary
-FROM --platform=linux/amd64 golang:1.23-alpine AS simd-builder
+FROM golang:1.23-alpine AS simd-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 
 WORKDIR /src/
 
-ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
+ENV PACKAGES="curl make git libc-dev bash file build-base linux-headers eudev-dev"
 RUN apk add --no-cache $PACKAGES
 
 ARG CHAIN_TAG
@@ -27,7 +27,7 @@ WORKDIR /src/app
 
 RUN make build
 
-FROM --platform=linux/amd64 alpine:$IMG_TAG
+FROM alpine:$IMG_TAG
 RUN apk add --no-cache build-base jq
 RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot

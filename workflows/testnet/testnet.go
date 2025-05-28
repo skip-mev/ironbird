@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"time"
+
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/util"
-	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -17,6 +18,7 @@ import (
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/messages"
 
+	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
@@ -27,13 +29,8 @@ import (
 
 var testnetActivities *testnet.Activity
 var loadTestActivities *loadtest.Activity
+var builderActivities *builder.Activity
 var loadBalancerActivities *loadbalancer.Activity
-
-type monitoringState struct {
-	cancelChan workflow.Channel
-	errChan    workflow.Channel
-	doneChan   workflow.Channel
-}
 
 const (
 	defaultRuntime = time.Hour
@@ -93,7 +90,25 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	buildResult, err := buildImage(ctx, req)
+	chainImageKey := req.ChainConfig.Image
+	if chainImageKey == "" {
+		switch req.Repo {
+		case "gaia":
+			chainImageKey = req.Repo
+		default:
+			chainImageKey = "simapp-v53"
+		}
+	}
+
+	var buildResult messages.BuildDockerImageResponse
+	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
+		Repo: req.Repo,
+		SHA:  req.SHA,
+		ChainConfig: messages.ChainConfig{
+			Name:  req.ChainConfig.Name,
+			Image: chainImageKey,
+		},
+	}).Get(ctx, &buildResult)
 	if err != nil {
 		return "", err
 	}
@@ -102,21 +117,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
-
-	//chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, report)
-	//if err != nil {
-	//	return "", err
-	//}
 
 	return "", nil
 }
@@ -148,10 +148,6 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		messages.LaunchTestnetRequest{
 			Name:                    req.ChainConfig.Name,
 			Image:                   buildResult.FQDNTag,
-			UID:                     req.ChainConfig.Image.UID,
-			GID:                     req.ChainConfig.Image.GID,
-			BinaryName:              req.ChainConfig.Image.BinaryName,
-			HomeDir:                 req.ChainConfig.Image.HomeDir,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
 			RunnerType:              req.RunnerType,
 			NumOfValidators:         req.ChainConfig.NumOfValidators,
@@ -168,7 +164,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	return chainState, providerState, testnetResp.Nodes, nil
 }
 
-func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node, report *Report) ([]byte, error) {
+func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node) ([]byte, error) {
 	if req.RunnerType != testnettypes.DigitalOcean {
 		return providerState, nil
 	}
@@ -270,10 +266,13 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 	return nil
 }
 
-func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, report *Report) error {
-	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult, report)
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) error {
-	chainState, providerState, err := launchTestnet(ctx, req, runName, buildResult)
+	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult)
+	if err != nil {
+		return err
+	}
+
+	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes)
 	if err != nil {
 		return err
 	}
@@ -283,12 +282,6 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, report)
-	if err != nil {
-		return err
-	}
-
-	err = setUpdateHandler(ctx, &providerState, &chainState, report, buildResult)
 	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult)
 	if err != nil {
 		return err

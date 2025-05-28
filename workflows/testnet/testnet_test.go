@@ -42,14 +42,6 @@ var (
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
 			Name: "stake-1",
-			Image: types.ImageConfig{
-				UID:        "1000",
-				GID:        "1000",
-				BinaryName: "/usr/bin/simd",
-				HomeDir:    "/simapp",
-				Dockerfile: "../../hack/simapp.Dockerfile",
-			},
-			Version: "v0.50.10",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "consensus.params.block.max_gas",
@@ -85,22 +77,12 @@ var (
 		},
 	}
 	gaiaReq = messages.TestnetWorkflowRequest{
-		InstallationID:  57729708,
-		Owner:           "cosmos",
 		Repo:            "gaia",
 		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
 		RunnerType:      testnettype.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
 			Name: "cosmos_22222-1",
-			Image: types.ImageConfig{
-				UID:        "1025",
-				GID:        "1025",
-				BinaryName: "gaiad",
-				HomeDir:    "/gaia",
-				Dockerfile: "../../hack/gaia.Dockerfile",
-			},
-			Version: "feature/evm",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
@@ -181,10 +163,6 @@ var (
 					Value: "75000000",
 				},
 			},
-			Dependencies: map[string]string{
-				"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
-				"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
-			},
 			NumOfValidators: 1,
 			NumOfNodes:      1,
 		},
@@ -251,6 +229,7 @@ func (s *TestnetWorkflowTestSuite) TearDownSuite() {
 }
 
 func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
+
 	testnetActivity := &testnettypes.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
@@ -278,7 +257,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
-			if strings.Contains(req.Tag, gaiaReq.SHA) {
+			if strings.Contains(req.SHA, gaiaReq.SHA) {
 				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
 
@@ -297,7 +276,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 
 func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	ctx := context.Background()
-
 	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
 
 	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
@@ -358,7 +336,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			imageTag := "ghcr.io/cosmos/simapp:v0.50"
-			if strings.Contains(req.Tag, gaiaReq.SHA) {
+			if strings.Contains(req.SHA, gaiaReq.SHA) {
 				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
 			cmd := exec.Command("docker", "pull", imageTag)

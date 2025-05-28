@@ -29,10 +29,6 @@ type TeardownProviderResponse struct{}
 type LaunchTestnetRequest struct {
 	Name                    string
 	Image                   string
-	UID                     string
-	GID                     string
-	BinaryName              string
-	HomeDir                 string
 	ProviderSpecificOptions map[string]string
 	GenesisModifications    []petrichain.GenesisKV
 	RunnerType              testnet.RunnerType
@@ -71,14 +67,6 @@ func (r TestnetWorkflowRequest) Validate() error {
 
 	if r.ChainConfig.Name == "" {
 		return fmt.Errorf("chain name is required")
-	}
-
-	if r.ChainConfig.Image.BinaryName == "" {
-		return fmt.Errorf("binary name is required")
-	}
-
-	if r.ChainConfig.Image.HomeDir == "" {
-		return fmt.Errorf("home directory is required")
 	}
 
 	if r.RunnerType != testnet.DigitalOcean && r.RunnerType != testnet.Docker {

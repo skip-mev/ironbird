@@ -16,6 +16,12 @@ import (
 	sdktally "go.temporal.io/sdk/contrib/tally"
 )
 
+// WorkflowResponse represents the response from workflow operations
+type WorkflowResponse struct {
+	WorkflowID string `json:"WorkflowID"`
+	Status     string `json:"Status"`
+}
+
 type IronbirdServer struct {
 	temporalClient temporalclient.Client
 	config         types.TemporalConfig
@@ -26,7 +32,7 @@ func NewIronbirdServer(config types.TemporalConfig) (*IronbirdServer, error) {
 		HostPort:  config.Host,
 		Namespace: config.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9090",
+			ListenAddress: "0.0.0.0:9091",
 			TimerType:     "histogram",
 		})),
 	})
@@ -71,7 +77,10 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	}
 	fmt.Println("workflowrun.GetID", workflowRun.GetID())
 
-	response := workflowRun.GetID()
+	response := WorkflowResponse{
+		WorkflowID: workflowRun.GetID(),
+		Status:     "in progress",
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {

@@ -24,6 +24,7 @@ import (
 
 var (
 	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
+	chainsFlag = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
 )
 
 func main() {
@@ -37,11 +38,16 @@ func main() {
 		panic(err)
 	}
 
+	chainImages, err := types.ParseChainImagesConfig(*chainsFlag)
+	if err != nil {
+		panic(err)
+	}
+
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9090",
+			ListenAddress: "0.0.0.0:9091",
 			TimerType:     "histogram",
 		})),
 	})
@@ -58,7 +64,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig, ChainImages: chainImages}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
 		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
@@ -83,6 +89,7 @@ func main() {
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
+		ChainImages:       chainImages,
 	}
 
 	loadTestActivity := loadtest.Activity{

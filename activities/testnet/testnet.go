@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	types2 "github.com/skip-mev/ironbird/types"
 
 	"github.com/skip-mev/ironbird/messages"
 
@@ -26,6 +27,7 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
+	ChainImages       types2.ChainImages
 }
 
 var (
@@ -141,11 +143,15 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
+	chainImage := a.ChainImages[req.Image]
+
 	// TODO(nadim-az): refactor denom setting in ui/server
 	denom := cosmosDenom
+	chainID := req.Name
 	for _, modification := range req.GenesisModifications {
 		if modification.Key == "app_state.evm.params.evm_denom" {
 			denom = gaiaEvmDenom
+			chainID = "cosmos_22222-1"
 			break
 		}
 	}
@@ -160,17 +166,17 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			Decimals:      cosmosDecimals,
 			NumValidators: int(req.NumOfValidators),
 			NumNodes:      int(req.NumOfNodes),
-			BinaryName:    req.BinaryName,
+			BinaryName:    chainImage.BinaryName,
 			Image: provider.ImageDefinition{
 				Image: req.Image,
-				UID:   req.UID,
-				GID:   req.GID,
+				UID:   chainImage.UID,
+				GID:   chainImage.GID,
 			},
 			GasPrices:            "0.0005stake",
 			Bech32Prefix:         "cosmos",
-			HomeDir:              req.HomeDir,
+			HomeDir:              chainImage.HomeDir,
 			CoinType:             "118",
-			ChainId:              req.Name,
+			ChainId:              chainID,
 			UseGenesisSubCommand: true,
 		},
 		types.ChainOptions{

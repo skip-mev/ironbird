@@ -28,7 +28,7 @@ telemetry:
   prometheus:
     username: prom-user
     password: prom-pass
-    url: http://prometheus:9090
+    url: http://prometheus:9091
   loki:
     username: loki-user
     password: loki-pass

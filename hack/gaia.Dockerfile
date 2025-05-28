@@ -2,11 +2,11 @@
 ARG IMG_TAG=latest
 
 # Compile the gaiad binary
-FROM --platform=linux/amd64 golang:1.23-alpine AS gaiad-builder
+FROM golang:1.23-alpine AS gaiad-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 WORKDIR /src/
-ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
+ENV PACKAGES="curl make git libc-dev bash file gcc g++ gcc-gnat linux-headers eudev-dev libstdc++"
 RUN apk add --no-cache $PACKAGES
 
 # See https://github.com/CosmWasm/wasmvm/releases
@@ -24,18 +24,22 @@ ARG REPLACE_CMD
 RUN git clone $CHAIN_SRC /src/app && \
     cd /src/app && \
     git checkout $CHAIN_TAG
-WORKDIR /src/app
 
-COPY replaces.sh .
-RUN chmod +x replaces.sh && sh replaces.sh
+WORKDIR /src/app
+RUN echo "$REPLACE_CMD" > replace_cmd.sh
+RUN chmod +x replace_cmd.sh && sh replace_cmd.sh
 RUN cat go.mod
 RUN go mod tidy
+    
+COPY . .
 
-RUN LEDGER_ENABLED=false LINK_STATICALLY=true BUILD_TAGS=muslc make build
+ENV CGO_ENABLED=1
+ENV CGO_LDFLAGS="-L/lib -lwasmvm_muslc"
+RUN LEDGER_ENABLED=false LINK_STATICALLY=true BUILD_TAGS="muslc netgo" make build
 RUN echo "Ensuring binary is statically linked ..."  \
     && file /src/app/build/gaiad | grep "statically linked"
 
-FROM --platform=linux/amd64 alpine:$IMG_TAG
+FROM alpine:$IMG_TAG
 RUN apk add --no-cache build-base jq
 RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot
