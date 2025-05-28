@@ -102,8 +102,8 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	if err != nil {
 		return messages.TeardownProviderResponse{}, err
 	}
-	fmt.Println(p)
-	//err = p.Teardown(ctx)
+
+	err = p.Teardown(ctx)
 	return messages.TeardownProviderResponse{}, err
 }
 
