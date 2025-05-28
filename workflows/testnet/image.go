@@ -2,9 +2,10 @@ package testnet
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"slices"
+
+	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/messages"
@@ -43,10 +44,10 @@ func buildImage(ctx workflow.Context, req messages.TestnetWorkflowRequest) (mess
 	var buildResult messages.BuildDockerImageResponse
 	buildArguments := make(map[string]string)
 	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, req.ChainConfig.Version, req.Owner, req.Repo, req.SHA)
-	buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", req.Owner, req.Repo)
 
 	if slices.Contains(SKIP_REPLACE_REPOS, req.Repo) {
 		buildArguments["CHAIN_TAG"] = req.SHA
+		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", req.Owner, req.Repo)
 	} else {
 		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
 		buildArguments["REPLACE_CMD"] = generateReplace(req.ChainConfig.Dependencies, req.Owner, req.Repo, req.SHA)
