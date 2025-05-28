@@ -2,11 +2,12 @@ package messages
 
 import (
 	"fmt"
+	"time"
+
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/types/testnet"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
-	"time"
 )
 
 type CreateProviderRequest struct {
