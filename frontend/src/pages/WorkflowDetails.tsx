@@ -52,8 +52,8 @@ const WorkflowDetails = () => {
     mutationFn: (spec: LoadTestSpec) => workflowApi.runLoadTest(id!, spec),
     onSuccess: () => {
       toast({
-        title: 'Load test started',
-        status: 'success',
+        title: 'Adhoc load test wen',
+        status: 'info',
         duration: 3000,
       });
       refetch();
