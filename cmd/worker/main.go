@@ -3,15 +3,20 @@ package main
 import (
 	"context"
 	"flag"
+	database_service "github.com/skip-mev/ironbird/database"
+	"os"
+
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
-	"os"
+	"go.uber.org/zap"
+
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
-	"log"
 
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
@@ -27,10 +32,36 @@ var (
 	chainsFlag = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
 )
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func main() {
 	ctx := context.Background()
+	logger, _ := zap.NewDevelopment()
 
 	flag.Parse()
+
+	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
+	logger.Info("Connecting to database", zap.String("path", dbPath))
+
+	database, err := db.NewSQLiteDB(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer database.Close()
+
+	migrationsPath := "./migrations"
+	if err := database.RunMigrations(migrationsPath); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	logger.Info("Database initialized successfully")
+
+	databaseService := database_service.NewDatabaseService(database, logger)
 
 	cfg, err := types.ParseWorkerConfig(*configFlag)
 
@@ -90,6 +121,7 @@ func main() {
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
 		ChainImages:       chainImages,
+		DatabaseService:   databaseService,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -130,7 +162,6 @@ func main() {
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-
 	w.RegisterActivity(builderActivity.BuildDockerImage)
 
 	err = w.Run(worker.InterruptCh())

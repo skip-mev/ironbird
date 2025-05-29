@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	types2 "github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/util"
@@ -58,9 +59,10 @@ type WorkflowListResponse struct {
 type IronbirdServer struct {
 	temporalClient temporalclient.Client
 	config         types.TemporalConfig
+	db             db.DB
 }
 
-func NewIronbirdServer(config types.TemporalConfig) (*IronbirdServer, error) {
+func NewIronbirdServer(config types.TemporalConfig, database db.DB) (*IronbirdServer, error) {
 	temporalClient, err := temporalclient.Dial(temporalclient.Options{
 		HostPort:  config.Host,
 		Namespace: config.Namespace,
@@ -77,6 +79,7 @@ func NewIronbirdServer(config types.TemporalConfig) (*IronbirdServer, error) {
 	return &IronbirdServer{
 		temporalClient: temporalClient,
 		config:         config,
+		db:             database,
 	}, nil
 }
 
@@ -94,11 +97,7 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 		fmt.Printf("Received workflow request:\n%s\n", string(prettyJSON))
 	}
 
-	workflowID := fmt.Sprintf("testnet-%s-%s", req.Repo, req.SHA)
-	fmt.Printf("workflowID:\n%s\n", string(workflowID))
-
 	options := temporalclient.StartWorkflowOptions{
-		ID:        workflowID,
 		TaskQueue: testnet.TaskQueue,
 	}
 
@@ -163,6 +162,72 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 		return nil
 	}
 
+	// Get workflow from database
+	workflow, err := s.db.GetWorkflow(workflowID)
+	if err != nil {
+		fmt.Printf("Error getting workflow from database %s: %v\n", workflowID, err)
+		// Fallback to Temporal for backward compatibility
+		return s.getWorkflowFromTemporal(w, workflowID)
+	}
+
+	// Convert database status to response format
+	var status string
+	switch workflow.Status {
+	case "pending":
+		status = "pending"
+	case "running":
+		status = "running"
+	case "completed":
+		status = "completed"
+	case "failed":
+		status = "failed"
+	case "canceled":
+		status = "canceled"
+	case "terminated":
+		status = "terminated"
+	default:
+		status = "unknown"
+	}
+
+	// Convert nodes from database format
+	var nodes []Node
+	for _, node := range workflow.Nodes {
+		nodes = append(nodes, Node{
+			Name:    node.Name,
+			RPC:     node.Rpc,
+			LCD:     node.Lcd,
+			Metrics: node.Metrics,
+		})
+	}
+
+	// Create monitoring links
+	monitoring := map[string]string{}
+	if workflow.MonitoringLinks != nil {
+		monitoring = workflow.MonitoringLinks
+	}
+
+	response := WorkflowStatus{
+		WorkflowID: workflowID,
+		Status:     status,
+		Nodes:      nodes,
+		Monitoring: monitoring,
+	}
+
+	fmt.Printf("Sending response from database: %+v\n", response)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+		return nil
+	}
+
+	fmt.Printf("Successfully sent response from database\n")
+	return nil
+}
+
+// getWorkflowFromTemporal is a fallback method for backward compatibility
+func (s *IronbirdServer) getWorkflowFromTemporal(w http.ResponseWriter, workflowID string) error {
 	// Get workflow status from Temporal
 	fmt.Printf("Attempting to describe workflow: %s\n", workflowID)
 	describe, err := s.temporalClient.DescribeWorkflowExecution(context.Background(), workflowID, "")

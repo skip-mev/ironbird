@@ -7,14 +7,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/skip-mev/ironbird/db"
+	"github.com/skip-mev/ironbird/server"
 	"github.com/skip-mev/ironbird/types"
+	"go.uber.org/zap"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	_ "github.com/caddyserver/caddy/v2/modules/standard"
-	"github.com/skip-mev/ironbird/server"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -44,7 +46,17 @@ func (m *CaddyModule) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 func (m *CaddyModule) Provision(ctx caddy.Context) error {
 	var err error
-	m.server, err = server.NewIronbirdServer(m.config)
+
+	// Database configuration for reading
+	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
+
+	// Initialize database for reading
+	database, err := db.NewSQLiteDB(dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	m.server, err = server.NewIronbirdServer(m.config, database)
 	return err
 }
 
@@ -60,8 +72,6 @@ func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next cad
 	switch {
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 		m.server.HandleCreateWorkflow(w, r)
-	//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-	//	m.server.HandleUpdateWorkflow(w, r)
 	case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
 		m.server.HandleListWorkflows(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
@@ -95,8 +105,18 @@ func startAPIServer() {
 		Namespace: "default",        // Default Temporal namespace
 	}
 
+	// Database configuration for reading
+	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
+
+	// Initialize database for reading
+	database, err := db.NewSQLiteDB(dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Create shared server instance to be reused by requests
-	ironbirdServer, err := server.NewIronbirdServer(temporalConfig)
+	ironbirdServer, err := server.NewIronbirdServer(temporalConfig, database)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating Ironbird server: %v\n", err)
 		os.Exit(1)
@@ -107,8 +127,6 @@ func startAPIServer() {
 		switch {
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 			ironbirdServer.HandleCreateWorkflow(w, r)
-		//case r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-		//	ironbirdServer.HandleUpdateWorkflow(w, r)
 		case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
 			ironbirdServer.HandleListWorkflows(w, r)
 		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
@@ -132,6 +150,8 @@ func startAPIServer() {
 }
 
 func main() {
+	logger, _ := zap.NewDevelopment()
+
 	caddyfileFlag := flag.String("caddyfile", "./server/Caddyfile", "Path to Caddyfile")
 	flag.Parse()
 
@@ -160,5 +180,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	logger.Info("Server started successfully - only reading from database")
+
 	select {}
+}
+
+// getEnvOrDefault returns the environment variable value or a default value if not set
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

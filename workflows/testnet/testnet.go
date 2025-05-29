@@ -3,7 +3,6 @@ package testnet
 import (
 	"context"
 	"fmt"
-
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/apps"
@@ -86,8 +85,9 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
+	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, util.RandomString(6))
-	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName))
+	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
 	chainImageKey := req.ChainConfig.Image
@@ -113,7 +113,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	if err := runTestnet(ctx, req, runName, buildResult); err != nil {
+	if err := runTestnet(ctx, req, runName, buildResult, workflowID); err != nil {
 		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
@@ -137,16 +137,18 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	var testnetResp messages.LaunchTestnetResponse
 	activityOptions := workflow.ActivityOptions{
-		HeartbeatTimeout:    time.Second * 10,
+		HeartbeatTimeout:    time.Second * 30,
 		StartToCloseTimeout: time.Hour * 24 * 365,
 		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 3,
+			MaximumAttempts: 1,
 		},
 	}
 
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
 		messages.LaunchTestnetRequest{
 			Name:                    req.ChainConfig.Name,
+			Repo:                    req.Repo,
+			SHA:                     req.SHA,
 			Image:                   buildResult.FQDNTag,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
 			RunnerType:              req.RunnerType,
@@ -266,7 +268,7 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 	return nil
 }
 
-func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) error {
+func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
 	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
@@ -282,7 +284,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult)
+	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, workflowID)
 	if err != nil {
 		return err
 	}
@@ -296,7 +298,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, workflowID string) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		updateHandler,
@@ -332,7 +334,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 				testnet.CosmosWalletConfig)
 
 			if err != nil {
-				return fmt.Errorf("failed to create chain: %w", err)
+				return fmt.Errorf("failed to restore chain: %w", err)
 			}
 
 			err = chain.Teardown(stdCtx)
@@ -352,7 +354,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID),
 				zap.String("run_name", runName))
 
-			return runTestnet(ctx, updateReq, runName, buildResult)
+			return runTestnet(ctx, updateReq, runName, buildResult, workflowID)
 		},
 	); err != nil {
 		return temporal.NewApplicationErrorWithOptions(

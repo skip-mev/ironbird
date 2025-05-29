@@ -28,6 +28,8 @@ type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
 	Name                    string
+	Repo                    string
+	SHA                     string
 	Image                   string
 	ProviderSpecificOptions map[string]string
 	GenesisModifications    []petrichain.GenesisKV

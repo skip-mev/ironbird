@@ -17,10 +17,6 @@ var createProviderReq = messages.CreateProviderRequest{
 var launchTestnetReq = messages.LaunchTestnetRequest{
 	Name:                    petriutil.RandomString(10),
 	Image:                   "ghcr.io/cosmos/simapp",
-	UID:                     "1025",
-	GID:                     "1025",
-	BinaryName:              "simd",
-	HomeDir:                 "/simd",
 	ProviderSpecificOptions: nil,
 	GenesisModifications: []petrichain.GenesisKV{
 		{

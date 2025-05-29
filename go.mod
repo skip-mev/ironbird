@@ -12,7 +12,9 @@ require (
 	github.com/caddyserver/caddy/v2 v2.10.0
 	github.com/cosmos/cosmos-sdk v0.53.0
 	github.com/docker/cli v27.4.1+incompatible
+	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/golangci/golangci-lint v1.57.1
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/moby/buildkit v0.18.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250513005028-fe8c4e28f0d1
@@ -21,10 +23,12 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.17
+	go.temporal.io/api v1.40.0
 	go.temporal.io/sdk v1.30.1
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.72.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -213,7 +217,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.24.1 // indirect
 	github.com/google/certificate-transparency-go v1.1.8-0.20240110162603-74a5dd331745 // indirect
-	github.com/google/flatbuffers v1.12.1 // indirect
+	github.com/google/flatbuffers v2.0.8+incompatible // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/go-tpm v0.9.4 // indirect
@@ -448,7 +452,6 @@ require (
 	go.step.sm/cli-utils v0.9.0 // indirect
 	go.step.sm/crypto v0.45.0 // indirect
 	go.step.sm/linkedca v0.20.1 // indirect
-	go.temporal.io/api v1.40.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
@@ -477,7 +480,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250422160041-2d3770c4ea7f // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 	gvisor.dev/gvisor v0.0.0-20250205023644-9414b50a5633 // indirect
 	honnef.co/go/tools v0.5.1 // indirect

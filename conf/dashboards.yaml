@@ -1,0 +1,6 @@
+grafana:
+  url: "https://skipprotocol.grafana.net"
+  dashboards:
+    - id: "b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436"
+      name: "comet-performance"
+      human_name: "CometBFT Performance" 

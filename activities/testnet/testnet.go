@@ -3,6 +3,9 @@ package testnet
 import (
 	"context"
 	"fmt"
+
+	"github.com/skip-mev/ironbird/database"
+
 	types2 "github.com/skip-mev/ironbird/types"
 
 	"github.com/skip-mev/ironbird/messages"
@@ -28,6 +31,7 @@ type Activity struct {
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
 	ChainImages       types2.ChainImages
+	DatabaseService   *database.DatabaseService
 }
 
 var (
@@ -112,6 +116,27 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnetRequest) (resp messages.LaunchTestnetResponse, err error) {
 	logger, _ := zap.NewDevelopment()
 
+	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
+
+	if a.DatabaseService != nil {
+		workflowReq := messages.TestnetWorkflowRequest{
+			Repo: req.Repo,
+			SHA:  req.SHA,
+			ChainConfig: types2.ChainsConfig{
+				Name:            req.Name,
+				Image:           req.Image,
+				NumOfNodes:      req.NumOfNodes,
+				NumOfValidators: req.NumOfValidators,
+			},
+			RunnerType:         req.RunnerType,
+			LongRunningTestnet: true, // Default assumption
+		}
+
+		if err := a.DatabaseService.CreateWorkflow(workflowID, workflowReq, "running"); err != nil {
+			logger.Error("Failed to create workflow record", zap.Error(err))
+		}
+	}
+
 	var p provider.ProviderI
 
 	if req.RunnerType == testnet.Docker {
@@ -143,15 +168,18 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
-	chainImage := a.ChainImages[req.Image]
+	chainImage := a.ChainImages[req.Repo]
+	logger.Info("chainImage", zap.Any("chainImage", chainImage), zap.Any("req", req))
 
-	// TODO(nadim-az): refactor denom setting in ui/server
+	// TODO(nadim-az): refactor evm specific setting
 	denom := cosmosDenom
 	chainID := req.Name
+	gasPrice := chainImage.GasPrices
 	for _, modification := range req.GenesisModifications {
 		if modification.Key == "app_state.evm.params.evm_denom" {
 			denom = gaiaEvmDenom
 			chainID = "cosmos_22222-1"
+			gasPrice = "0.0005atest"
 			break
 		}
 	}
@@ -172,7 +200,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 				UID:   chainImage.UID,
 				GID:   chainImage.GID,
 			},
-			GasPrices:            "0.0005stake",
+			GasPrices:            gasPrice,
 			Bech32Prefix:         "cosmos",
 			HomeDir:              chainImage.HomeDir,
 			CoinType:             "118",
@@ -263,6 +291,25 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	}
 
 	resp.Nodes = testnetNodes
+
+	// Update database with node information
+	if a.DatabaseService != nil {
+		// Separate validators and nodes (assuming first NumOfValidators are validators)
+		numValidators := int(req.NumOfValidators)
+		var validators []testnet.Node
+		var allNodes []testnet.Node
+
+		for i, node := range testnetNodes {
+			allNodes = append(allNodes, node)
+			if i < numValidators {
+				validators = append(validators, node)
+			}
+		}
+
+		if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, allNodes, validators); err != nil {
+			logger.Error("Failed to update workflow nodes", zap.Error(err))
+		}
+	}
 
 	go func() {
 		emitHeartbeats(ctx, chain, logger)
