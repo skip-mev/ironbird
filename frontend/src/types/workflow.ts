@@ -58,6 +58,18 @@ export interface WorkflowStatus {
   Status: string;
   Nodes: Node[];
   Monitoring: Record<string, string>;
+  Config?: TestnetWorkflowRequest;
+  
+  // Individual fields from the database
+  repo?: string;
+  sha?: string;
+  chainName?: string;
+  runnerType?: string;
+  numOfNodes?: number;
+  numOfValidators?: number;
+  longRunningTestnet?: boolean;
+  testnetDuration?: number;
+  loadTestSpec?: any;
 }
 
 export interface WorkflowResponse {

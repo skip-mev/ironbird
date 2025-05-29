@@ -35,10 +35,22 @@ type Node struct {
 
 // WorkflowStatus represents the complete status of a workflow
 type WorkflowStatus struct {
-	WorkflowID string            `json:"WorkflowID"`
-	Status     string            `json:"Status"`
-	Nodes      []Node            `json:"Nodes"`
-	Monitoring map[string]string `json:"Monitoring"`
+	WorkflowID string                          `json:"WorkflowID"`
+	Status     string                          `json:"Status"`
+	Nodes      []Node                          `json:"Nodes"`
+	Monitoring map[string]string               `json:"Monitoring"`
+	Config     messages.TestnetWorkflowRequest `json:"Config,omitempty"`
+
+	// Individual fields from the database
+	Repo               string          `json:"repo,omitempty"`
+	SHA                string          `json:"sha,omitempty"`
+	ChainName          string          `json:"chainName,omitempty"`
+	RunnerType         string          `json:"runnerType,omitempty"`
+	NumOfNodes         int             `json:"numOfNodes,omitempty"`
+	NumOfValidators    int             `json:"numOfValidators,omitempty"`
+	LongRunningTestnet bool            `json:"longRunningTestnet,omitempty"`
+	TestnetDuration    int64           `json:"testnetDuration,omitempty"`
+	LoadTestSpec       json.RawMessage `json:"loadTestSpec,omitempty"`
 }
 
 // WorkflowSummary represents a summary of a workflow for listing
@@ -207,10 +219,20 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 	}
 
 	response := WorkflowStatus{
-		WorkflowID: workflowID,
-		Status:     status,
-		Nodes:      nodes,
-		Monitoring: monitoring,
+		WorkflowID:         workflowID,
+		Status:             status,
+		Nodes:              nodes,
+		Monitoring:         monitoring,
+		Config:             workflow.Config,
+		Repo:               workflow.Repo,
+		SHA:                workflow.SHA,
+		ChainName:          workflow.ChainName,
+		RunnerType:         workflow.RunnerType,
+		NumOfNodes:         workflow.NumOfNodes,
+		NumOfValidators:    workflow.NumOfValidators,
+		LongRunningTestnet: workflow.LongRunningTestnet,
+		TestnetDuration:    workflow.TestnetDuration,
+		LoadTestSpec:       workflow.LoadTestSpec,
 	}
 
 	fmt.Printf("Sending response from database: %+v\n", response)
@@ -296,11 +318,29 @@ func (s *IronbirdServer) getWorkflowFromTemporal(w http.ResponseWriter, workflow
 		monitoring = map[string]string{}
 	}
 
+	// Extract repo and SHA from workflow ID if it follows the pattern "testnet-{repo}-{sha}"
+	var repo, sha string
+	if strings.HasPrefix(workflowID, "testnet-") {
+		parts := strings.Split(workflowID, "-")
+		if len(parts) >= 3 {
+			repo = parts[1]
+			sha = strings.Join(parts[2:], "-") // In case SHA contains dashes
+		}
+	}
+
 	response := WorkflowStatus{
-		WorkflowID: workflowID,
-		Status:     status,
-		Nodes:      nodes,
-		Monitoring: monitoring,
+		WorkflowID:         workflowID,
+		Status:             status,
+		Nodes:              nodes,
+		Monitoring:         monitoring,
+		Repo:               repo,
+		SHA:                sha,
+		ChainName:          "test-chain",
+		RunnerType:         "Docker",
+		NumOfNodes:         4,
+		NumOfValidators:    3,
+		LongRunningTestnet: false,
+		TestnetDuration:    0,
 	}
 
 	fmt.Printf("Sending response: %+v\n", response)
@@ -359,6 +399,65 @@ func (s *IronbirdServer) HandleRunLoadTest(w http.ResponseWriter, r *http.Reques
 func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Request) error {
 	fmt.Printf("HandleListWorkflows called\n")
 
+	// Get workflows from database
+	dbWorkflows, err := s.db.ListWorkflows(100, 0) // Limit to 100 workflows for now
+	if err != nil {
+		fmt.Printf("Error listing workflows from database: %v\n", err)
+		// Fallback to Temporal for backward compatibility
+		return s.listWorkflowsFromTemporal(w)
+	}
+
+	var workflows []WorkflowSummary
+	for _, workflow := range dbWorkflows {
+		// Convert database status to response format
+		var status string
+		switch workflow.Status {
+		case "pending":
+			status = "pending"
+		case "running":
+			status = "running"
+		case "completed":
+			status = "completed"
+		case "failed":
+			status = "failed"
+		case "canceled":
+			status = "canceled"
+		case "terminated":
+			status = "terminated"
+		default:
+			status = "unknown"
+		}
+
+		startTime := workflow.CreatedAt.Format("2006-01-02 15:04:05")
+
+		workflows = append(workflows, WorkflowSummary{
+			WorkflowID: workflow.WorkflowID,
+			Status:     status,
+			StartTime:  startTime,
+			Repo:       workflow.Repo,
+			SHA:        workflow.SHA,
+		})
+	}
+
+	response := WorkflowListResponse{
+		Workflows: workflows,
+		Count:     len(workflows),
+	}
+
+	fmt.Printf("Returning %d workflows\n", len(workflows))
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+		return nil
+	}
+
+	return nil
+}
+
+// listWorkflowsFromTemporal is a fallback method for backward compatibility
+func (s *IronbirdServer) listWorkflowsFromTemporal(w http.ResponseWriter) error {
 	// List workflows from Temporal
 	listRequest := &workflowservice.ListWorkflowExecutionsRequest{
 		Namespace: s.config.Namespace,
@@ -368,7 +467,7 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 	ctx := context.Background()
 	listResponse, err := s.temporalClient.ListWorkflow(ctx, listRequest)
 	if err != nil {
-		fmt.Printf("Error listing workflows: %v\n", err)
+		fmt.Printf("Error listing workflows from Temporal: %v\n", err)
 		http.Error(w, fmt.Sprintf("failed to list workflows: %v", err), http.StatusInternalServerError)
 		return nil
 	}
@@ -400,9 +499,11 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 			startTime = execution.StartTime.AsTime().Format("2006-01-02 15:04:05")
 		}
 
-		// Extract repo and SHA from workflow ID if it follows the pattern "testnet-{repo}-{sha}"
-		workflowID := execution.Execution.WorkflowId
+		// Get repo and SHA from workflow history
 		var repo, sha string
+
+		// First try to extract from workflow ID if it follows the pattern "testnet-{repo}-{sha}"
+		workflowID := execution.Execution.WorkflowId
 		if strings.HasPrefix(workflowID, "testnet-") {
 			parts := strings.Split(workflowID, "-")
 			if len(parts) >= 3 {
@@ -425,7 +526,7 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 		Count:     len(workflows),
 	}
 
-	fmt.Printf("Returning %d workflows\n", len(workflows))
+	fmt.Printf("Returning %d workflows from Temporal\n", len(workflows))
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {

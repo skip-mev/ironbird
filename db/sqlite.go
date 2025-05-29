@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/skip-mev/ironbird/types/testnet"
 )
 
 // DB interface defines the database operations
@@ -99,10 +101,41 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		return fmt.Errorf("failed to marshal monitoring links: %w", err)
 	}
 
+	loadTestSpecJSON, err := workflow.LoadTestSpecJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal load test spec: %w", err)
+	}
+
+	// Extract individual fields from config
+	if workflow.Config.Repo != "" {
+		workflow.Repo = workflow.Config.Repo
+	}
+	if workflow.Config.SHA != "" {
+		workflow.SHA = workflow.Config.SHA
+	}
+	if workflow.Config.ChainConfig.Name != "" {
+		workflow.ChainName = workflow.Config.ChainConfig.Name
+	}
+	if workflow.Config.RunnerType != "" {
+		workflow.RunnerType = string(workflow.Config.RunnerType)
+	}
+	if workflow.Config.ChainConfig.NumOfNodes > 0 {
+		workflow.NumOfNodes = int(workflow.Config.ChainConfig.NumOfNodes)
+	}
+	if workflow.Config.ChainConfig.NumOfValidators > 0 {
+		workflow.NumOfValidators = int(workflow.Config.ChainConfig.NumOfValidators)
+	}
+	workflow.LongRunningTestnet = workflow.Config.LongRunningTestnet
+	workflow.TestnetDuration = int64(workflow.Config.TestnetDuration)
+
 	now := time.Now()
 	query := `
-		INSERT INTO workflows (workflow_id, nodes, validators, monitoring_links, status, config, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO workflows (
+			workflow_id, nodes, validators, monitoring_links, status, config, 
+			repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
+			long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id`
 
 	err = s.db.QueryRow(
@@ -113,6 +146,15 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		string(monitoringLinksJSON),
 		workflow.Status,
 		string(configJSON),
+		workflow.Repo,
+		workflow.SHA,
+		workflow.ChainName,
+		workflow.RunnerType,
+		workflow.NumOfNodes,
+		workflow.NumOfValidators,
+		workflow.LongRunningTestnet,
+		workflow.TestnetDuration,
+		string(loadTestSpecJSON),
 		now,
 		now,
 	).Scan(&workflow.ID)
@@ -130,12 +172,14 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 // GetWorkflow retrieves a workflow by workflow ID
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
-		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, created_at, updated_at
+		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, 
+		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
+		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
 	var workflow Workflow
-	var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON string
+	var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 	err := s.db.QueryRow(query, workflowID).Scan(
 		&workflow.ID,
@@ -145,6 +189,15 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		&monitoringLinksJSON,
 		&workflow.Status,
 		&configJSON,
+		&workflow.Repo,
+		&workflow.SHA,
+		&workflow.ChainName,
+		&workflow.RunnerType,
+		&workflow.NumOfNodes,
+		&workflow.NumOfValidators,
+		&workflow.LongRunningTestnet,
+		&workflow.TestnetDuration,
+		&loadTestSpecJSON,
 		&workflow.CreatedAt,
 		&workflow.UpdatedAt,
 	)
@@ -171,6 +224,10 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 
 	if err := json.Unmarshal([]byte(monitoringLinksJSON), &workflow.MonitoringLinks); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal monitoring links: %w", err)
+	}
+
+	if loadTestSpecJSON != "" && loadTestSpecJSON != "{}" {
+		workflow.LoadTestSpec = json.RawMessage(loadTestSpecJSON)
 	}
 
 	return &workflow, nil
@@ -252,13 +309,20 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 
 // ListWorkflows retrieves a list of workflows with pagination
 func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
+	// Set a timeout for the query to prevent long-running operations
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	query := `
-		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, created_at, updated_at
+		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, 
+		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
+		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
 		FROM workflows
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
 
-	rows, err := s.db.Query(query, limit, offset)
+	// Use QueryContext instead of Query to respect the timeout
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workflows: %w", err)
 	}
@@ -267,7 +331,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	var workflows []Workflow
 	for rows.Next() {
 		var workflow Workflow
-		var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON string
+		var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 		err := rows.Scan(
 			&workflow.ID,
@@ -277,6 +341,15 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			&monitoringLinksJSON,
 			&workflow.Status,
 			&configJSON,
+			&workflow.Repo,
+			&workflow.SHA,
+			&workflow.ChainName,
+			&workflow.RunnerType,
+			&workflow.NumOfNodes,
+			&workflow.NumOfValidators,
+			&workflow.LongRunningTestnet,
+			&workflow.TestnetDuration,
+			&loadTestSpecJSON,
 			&workflow.CreatedAt,
 			&workflow.UpdatedAt,
 		)
@@ -284,21 +357,32 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			return nil, fmt.Errorf("failed to scan workflow: %w", err)
 		}
 
-		// Unmarshal JSON fields
+		// Unmarshal JSON fields with error handling
 		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal nodes: %w", err)
+			// Log the error but continue with empty nodes
+			fmt.Printf("Warning: failed to unmarshal nodes for workflow %s: %v\n", workflow.WorkflowID, err)
+			workflow.Nodes = make([]testnet.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal validators: %w", err)
+			// Log the error but continue with empty validators
+			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
+			workflow.Validators = make([]testnet.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+			// Log the error but continue with empty config
+			fmt.Printf("Warning: failed to unmarshal config for workflow %s: %v\n", workflow.WorkflowID, err)
 		}
 
 		if err := json.Unmarshal([]byte(monitoringLinksJSON), &workflow.MonitoringLinks); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal monitoring links: %w", err)
+			// Log the error but continue with empty monitoring links
+			fmt.Printf("Warning: failed to unmarshal monitoring links for workflow %s: %v\n", workflow.WorkflowID, err)
+			workflow.MonitoringLinks = map[string]string{}
+		}
+
+		if loadTestSpecJSON != "" && loadTestSpecJSON != "{}" {
+			workflow.LoadTestSpec = json.RawMessage(loadTestSpecJSON)
 		}
 
 		workflows = append(workflows, workflow)

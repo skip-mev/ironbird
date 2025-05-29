@@ -170,54 +170,68 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
-      <ModalContent>
-        <ModalHeader>Load Test Configuration</ModalHeader>
+      <ModalContent bg="surface">
+        <ModalHeader color="text">Load Test Configuration</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <VStack spacing={4} align="stretch">
             
             <FormControl>
-              <FormLabel>Test Name</FormLabel>
+              <FormLabel color="text">Test Name</FormLabel>
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. basic-load-test"
+                bg="surface"
+                color="text"
+                borderColor="divider"
               />
             </FormControl>
 
             <FormControl>
-              <FormLabel>Description</FormLabel>
+              <FormLabel color="text">Description</FormLabel>
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of this load test"
+                bg="surface"
+                color="text"
+                borderColor="divider"
               />
             </FormControl>
 
             <FormControl>
-              <FormLabel>Number of Transactions</FormLabel>
+              <FormLabel color="text">Number of Transactions</FormLabel>
               <NumberInput
                 value={formData.num_of_txs || 0}
                 min={1}
                 onChange={(_, value) => setFormData({ ...formData, num_of_txs: value })}
               >
-                <NumberInputField />
+                <NumberInputField 
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                />
               </NumberInput>
             </FormControl>
 
             <FormControl>
-              <FormLabel>Number of Blocks</FormLabel>
+              <FormLabel color="text">Number of Blocks</FormLabel>
               <NumberInput
                 value={formData.num_of_blocks}
                 min={1}
                 onChange={(_, value) => setFormData({ ...formData, num_of_blocks: value })}
               >
-                <NumberInputField />
+                <NumberInputField 
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                />
               </NumberInput>
             </FormControl>
 
             <FormControl display="flex" alignItems="center">
-              <FormLabel mb="0">Unordered Transactions</FormLabel>
+              <FormLabel mb="0" color="text">Unordered Transactions</FormLabel>
               <Switch
                 isChecked={formData.unordered_txs}
                 onChange={(e) => setFormData({ ...formData, unordered_txs: e.target.checked })}
@@ -226,32 +240,35 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
 
             {formData.unordered_txs && (
               <FormControl>
-                <FormLabel>Transaction Timeout</FormLabel>
+                <FormLabel color="text">Transaction Timeout</FormLabel>
                 <Input
                   value={formData.tx_timeout}
                   onChange={(e) => setFormData({ ...formData, tx_timeout: e.target.value })}
                   placeholder="e.g. 30s, 1m"
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
                 />
-                <FormHelperText>Only applicable for unordered transactions</FormHelperText>
+                <FormHelperText color="textSecondary">Only applicable for unordered transactions</FormHelperText>
               </FormControl>
             )}
             
-            <Divider my={2} />
+            <Divider my={2} borderColor="divider" />
 
-            <Text fontWeight="bold">Message Types</Text>
+            <Text fontWeight="bold" color="text">Message Types</Text>
             
             {formData.msgs.map((msg, index) => (
-              <HStack key={index} p={2} bg="gray.50" borderRadius="md">
-                <Text flex="1">{msg.type}</Text>
-                <Text>Weight: {msg.weight}</Text>
+              <HStack key={index} p={2} bg="surface" borderRadius="md" boxShadow="sm">
+                <Text flex="1" color="text">{msg.type}</Text>
+                <Text color="text">Weight: {msg.weight}</Text>
                 {msg.type === MsgType.MsgArr && (
                   <>
-                    <Text>Msgs: {msg.NumMsgs}</Text>
-                    <Text>Type: {msg.ContainedType}</Text>
+                    <Text color="text">Msgs: {msg.NumMsgs}</Text>
+                    <Text color="text">Type: {msg.ContainedType}</Text>
                   </>
                 )}
                 {msg.type === MsgType.MsgMultiSend && msg.NumOfRecipients && (
-                  <Text>Recipients: {msg.NumOfRecipients}</Text>
+                  <Text color="text">Recipients: {msg.NumOfRecipients}</Text>
                 )}
                 <IconButton
                   aria-label="Remove message"
@@ -266,7 +283,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               <VStack spacing={3} align="stretch">
                 <HStack>
                   <FormControl flex="1">
-                    <FormLabel fontSize="sm">Type</FormLabel>
+                    <FormLabel fontSize="sm" color="text">Type</FormLabel>
                     <Select
                       value={newMessage.type}
                       onChange={(e) => setNewMessage({ 
@@ -277,6 +294,9 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                         ContainedType: e.target.value === MsgType.MsgArr ? undefined : undefined,
                         NumOfRecipients: e.target.value === MsgType.MsgMultiSend ? 1 : undefined
                       })}
+                      bg="surface"
+                      color="text"
+                      borderColor="divider"
                     >
                       <option value={MsgType.MsgSend}>MsgSend</option>
                       <option value={MsgType.MsgMultiSend}>MsgMultiSend</option>
@@ -285,7 +305,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                   </FormControl>
 
                   <FormControl flex="1">
-                    <FormLabel fontSize="sm">Weight</FormLabel>
+                    <FormLabel fontSize="sm" color="text">Weight</FormLabel>
                     <NumberInput
                       value={newMessage.weight}
                       min={0.1}
@@ -297,6 +317,9 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                       <NumberInputField
                         pattern="[0-9]*(.[0-9]+)?"
                         inputMode="decimal"
+                        bg="surface"
+                        color="text"
+                        borderColor="divider"
                       />
                     </NumberInput>
                   </FormControl>
@@ -306,24 +329,31 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                 {newMessage.type === MsgType.MsgArr && (
                   <HStack>
                     <FormControl flex="1">
-                      <FormLabel fontSize="sm">Number of Messages</FormLabel>
+                      <FormLabel fontSize="sm" color="text">Number of Messages</FormLabel>
                       <NumberInput
                         value={newMessage.NumMsgs || 0}
                         min={1}
                         onChange={(_, value) => setNewMessage({ ...newMessage, NumMsgs: value })}
                       >
-                        <NumberInputField />
+                        <NumberInputField 
+                          bg="surface"
+                          color="text"
+                          borderColor="divider"
+                        />
                       </NumberInput>
                     </FormControl>
 
                     <FormControl flex="1">
-                      <FormLabel fontSize="sm">Contained Type</FormLabel>
+                      <FormLabel fontSize="sm" color="text">Contained Type</FormLabel>
                       <Select
                         value={newMessage.ContainedType || ''}
                         onChange={(e) => setNewMessage({ 
                           ...newMessage, 
                           ContainedType: e.target.value as MsgType 
                         })}
+                        bg="surface"
+                        color="text"
+                        borderColor="divider"
                       >
                         <option value="">Select type</option>
                         <option value={MsgType.MsgSend}>MsgSend</option>
@@ -336,26 +366,34 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                 {(newMessage.type === MsgType.MsgMultiSend || 
                   (newMessage.type === MsgType.MsgArr && newMessage.ContainedType === MsgType.MsgMultiSend)) && (
                   <FormControl>
-                    <FormLabel fontSize="sm">Number of Recipients</FormLabel>
+                    <FormLabel fontSize="sm" color="text">Number of Recipients</FormLabel>
                     <NumberInput
                       value={newMessage.NumOfRecipients || 1}
                       min={1}
                       onChange={(_, value) => setNewMessage({ ...newMessage, NumOfRecipients: value })}
                     >
-                      <NumberInputField />
+                      <NumberInputField 
+                        bg="surface"
+                        color="text"
+                        borderColor="divider"
+                      />
                     </NumberInput>
                   </FormControl>
                 )}
 
                 {newMessage.type === MsgType.MsgMultiSend && (
                   <FormControl>
-                    <FormLabel fontSize="sm">Number of Messages</FormLabel>
+                    <FormLabel fontSize="sm" color="text">Number of Messages</FormLabel>
                     <NumberInput
                       value={newMessage.NumMsgs || 1}
                       min={1}
                       onChange={(_, value) => setNewMessage({ ...newMessage, NumMsgs: value })}
                     >
-                      <NumberInputField />
+                      <NumberInputField 
+                        bg="surface"
+                        color="text"
+                        borderColor="divider"
+                      />
                     </NumberInput>
                   </FormControl>
                 )}
@@ -381,4 +419,4 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   );
 };
 
-export default LoadTestForm; 
+export default LoadTestForm;

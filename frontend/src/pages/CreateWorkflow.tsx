@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -111,6 +111,7 @@ const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
 
 const CreateWorkflow = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const [formData, setFormData] = useState<TestnetWorkflowRequest>({
     Repo: 'cosmos-sdk',
@@ -127,6 +128,130 @@ const CreateWorkflow = () => {
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
   });
+  
+  // Check for URL parameters (for cloning workflows)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    
+    console.log("URL parameters:", Object.fromEntries(params.entries()));
+    
+    // Only proceed if we have parameters
+    if (params.toString()) {
+      const newFormData = { ...formData };
+      let hasChanges = false;
+      
+      // Basic fields
+      if (params.get('repo')) {
+        newFormData.Repo = params.get('repo')!;
+        hasChanges = true;
+        console.log("Setting repo:", newFormData.Repo);
+      }
+      
+      if (params.get('sha')) {
+        newFormData.SHA = params.get('sha')!;
+        hasChanges = true;
+        console.log("Setting SHA:", newFormData.SHA);
+      }
+      
+      if (params.get('runnerType')) {
+        newFormData.RunnerType = params.get('runnerType')!;
+        hasChanges = true;
+        console.log("Setting runnerType:", newFormData.RunnerType);
+      }
+      
+      // Chain config
+      if (params.get('chainName')) {
+        newFormData.ChainConfig.Name = params.get('chainName')!;
+        hasChanges = true;
+        console.log("Setting chainName:", newFormData.ChainConfig.Name);
+      }
+      
+      if (params.get('image')) {
+        newFormData.ChainConfig.Image = params.get('image')!;
+        hasChanges = true;
+        console.log("Setting image:", newFormData.ChainConfig.Image);
+      }
+      
+      if (params.get('numOfNodes')) {
+        const numNodes = parseInt(params.get('numOfNodes')!, 10);
+        if (!isNaN(numNodes)) {
+          newFormData.ChainConfig.NumOfNodes = numNodes;
+          hasChanges = true;
+          console.log("Setting numOfNodes:", newFormData.ChainConfig.NumOfNodes);
+        }
+      }
+      
+      if (params.get('numOfValidators')) {
+        const numValidators = parseInt(params.get('numOfValidators')!, 10);
+        if (!isNaN(numValidators)) {
+          newFormData.ChainConfig.NumOfValidators = numValidators;
+          hasChanges = true;
+          console.log("Setting numOfValidators:", newFormData.ChainConfig.NumOfValidators);
+        }
+      }
+      
+      // Genesis modifications
+      const genesisModsParam = params.get('genesisModifications');
+      if (genesisModsParam) {
+        try {
+          const genesisMods = JSON.parse(genesisModsParam);
+          if (Array.isArray(genesisMods)) {
+            newFormData.ChainConfig.GenesisModifications = genesisMods;
+            hasChanges = true;
+            console.log("Setting genesisModifications:", newFormData.ChainConfig.GenesisModifications);
+          }
+        } catch (e) {
+          console.error('Failed to parse genesis modifications', e);
+        }
+      }
+      
+      // Long running testnet
+      if (params.get('longRunningTestnet')) {
+        newFormData.LongRunningTestnet = params.get('longRunningTestnet') === 'true';
+        hasChanges = true;
+        console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
+      }
+      
+      // Testnet duration
+      if (params.get('testnetDuration')) {
+        const duration = parseFloat(params.get('testnetDuration')!);
+        if (!isNaN(duration)) {
+          newFormData.TestnetDuration = duration;
+          hasChanges = true;
+          console.log("Setting testnetDuration:", newFormData.TestnetDuration);
+        }
+      }
+      
+      // Load test spec
+      const loadTestSpecParam = params.get('loadTestSpec');
+      if (loadTestSpecParam) {
+        try {
+          const loadTestSpec = JSON.parse(loadTestSpecParam);
+          newFormData.LoadTestSpec = loadTestSpec;
+          setHasLoadTest(true);
+          hasChanges = true;
+          console.log("Setting loadTestSpec:", newFormData.LoadTestSpec);
+        } catch (e) {
+          console.error('Failed to parse load test spec', e);
+        }
+      }
+      
+      // Update form data only if there were changes
+      if (hasChanges) {
+        console.log("Updating form data with:", newFormData);
+        setFormData(newFormData);
+        
+        toast({
+          title: 'Workflow configuration loaded',
+          description: 'The form has been pre-filled with the cloned workflow configuration',
+          status: 'info',
+          duration: 3000,
+        });
+      } else {
+        console.log("No changes to form data");
+      }
+    }
+  }, [location.search, toast]); // Only run when URL parameters change
 
   const [newKeyValue, setNewKeyValue] = useState<GenesisModification>({
     key: '',
@@ -310,10 +435,13 @@ const CreateWorkflow = () => {
         <Heading mb={6}>Create New Testnet</Heading>
         <Stack direction="column" gap={4}>
           <FormControl isRequired>
-            <FormLabel>Repository</FormLabel>
+            <FormLabel color="text">Repository</FormLabel>
             <Select
               value={formData.Repo}
               onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+              bg="surface"
+              color="text"
+              borderColor="divider"
             >
               <option value="cosmos-sdk">Cosmos SDK</option>
               <option value="cometbft">CometBFT</option>
@@ -324,15 +452,18 @@ const CreateWorkflow = () => {
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Commit SHA</FormLabel>
+            <FormLabel color="text">Commit SHA</FormLabel>
             <Input
               value={formData.SHA}
               onChange={(e) => setFormData({ ...formData, SHA: e.target.value })}
+              bg="surface"
+              color="text"
+              borderColor="divider"
             />
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Chain Name</FormLabel>
+            <FormLabel color="text">Chain Name</FormLabel>
             <Input
               value={formData.ChainConfig.Name}
               onChange={(e) =>
@@ -344,12 +475,29 @@ const CreateWorkflow = () => {
                   },
                 })
               }
+              bg="surface"
+              color="text"
+              borderColor="divider"
             />
+          </FormControl>
+
+          <FormControl isRequired>
+            <FormLabel color="text">Runner Type</FormLabel>
+            <Select
+              value={formData.RunnerType}
+              onChange={(e) => setFormData({ ...formData, RunnerType: e.target.value })}
+              bg="surface"
+              color="text"
+              borderColor="divider"
+            >
+              <option value="Docker">Docker</option>
+              <option value="DigitalOcean">DigitalOcean</option>
+            </Select>
           </FormControl>
 
           {(formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') && (
             <FormControl isRequired>
-              <FormLabel>Chain Image</FormLabel>
+              <FormLabel color="text">Chain Image</FormLabel>
               <Select
                 value={formData.ChainConfig.Image}
                 onChange={(e) =>
@@ -361,6 +509,9 @@ const CreateWorkflow = () => {
                     },
                   })
                 }
+                bg="surface"
+                color="text"
+                borderColor="divider"
               >
                 <option value="simapp-v47">Simapp v0.47</option>
                 <option value="simapp-v50">Simapp v0.50</option>
@@ -370,7 +521,7 @@ const CreateWorkflow = () => {
           )}
 
           <FormControl isRequired>
-            <FormLabel>Number of Nodes</FormLabel>
+            <FormLabel color="text">Number of Nodes</FormLabel>
             <NumberInput
               value={formData.ChainConfig.NumOfNodes}
               min={1}
@@ -384,12 +535,12 @@ const CreateWorkflow = () => {
                 })
               }
             >
-              <NumberInputField />
+              <NumberInputField bg="surface" color="text" borderColor="divider" />
             </NumberInput>
           </FormControl>
 
           <FormControl isRequired>
-            <FormLabel>Number of Validators</FormLabel>
+            <FormLabel color="text">Number of Validators</FormLabel>
             <NumberInput
               value={formData.ChainConfig.NumOfValidators}
               min={1}
@@ -403,7 +554,7 @@ const CreateWorkflow = () => {
                 })
               }
             >
-              <NumberInputField />
+              <NumberInputField bg="surface" color="text" borderColor="divider" />
             </NumberInput>
           </FormControl>
           
@@ -425,8 +576,8 @@ const CreateWorkflow = () => {
                 <HStack key={index} width="100%">
                   <Text flex="1" fontWeight="medium">{mod.key}:</Text>
                   <Text flex="2" fontSize="sm" fontFamily="mono" 
-                        bg="gray.50" p={2} borderRadius="md"
-                        maxH="100px" overflowY="auto">
+                        bg="surface" p={2} borderRadius="md"
+                        color="text" maxH="100px" overflowY="auto">
                     {typeof mod.value === 'string' 
                       ? mod.value 
                       : JSON.stringify(mod.value, null, 2)}
@@ -479,15 +630,21 @@ const CreateWorkflow = () => {
                     value={newKeyValue.key}
                     onChange={(e) => setNewKeyValue({ ...newKeyValue, key: e.target.value })}
                     mr={2}
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
                   />
                   {valueInputMode === 'json' ? (
                     <Textarea
-                      placeholder='Value (JSON) - e.g. ["item1", "item2"] or {"key": "value"}'
-                      value={valueJsonInput}
-                      onChange={(e) => setValueJsonInput(e.target.value)}
-                      mr={2}
-                      resize="vertical"
-                      minH="60px"
+                    placeholder='Value (JSON) - e.g. ["item1", "item2"] or {"key": "value"}'
+                    value={valueJsonInput}
+                    onChange={(e) => setValueJsonInput(e.target.value)}
+                    mr={2}
+                    resize="vertical"
+                    minH="60px"
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
                     />
                   ) : (
                     <Input
@@ -495,6 +652,9 @@ const CreateWorkflow = () => {
                       value={newKeyValue.value}
                       onChange={(e) => setNewKeyValue({ ...newKeyValue, value: e.target.value })}
                       mr={2}
+                      bg="surface"
+                      color="text"
+                      borderColor="divider"
                     />
                   )}
                   <IconButton
@@ -550,9 +710,9 @@ const CreateWorkflow = () => {
           )}
           
           {hasLoadTest && formData.LoadTestSpec && formData.LoadTestSpec.msgs.length > 0 && (
-            <Box p={3} bg="blue.50" borderRadius="md">
+            <Box p={3} bg="surface" borderRadius="md" boxShadow="sm">
               <Flex justify="space-between" align="center" mb={2}>
-                <Text fontWeight="bold">Load Test Configuration</Text>
+                <Text fontWeight="bold" color="text">Load Test Configuration</Text>
                 <IconButton
                   aria-label="Delete load test configuration"
                   icon={<DeleteIcon />}
@@ -562,16 +722,16 @@ const CreateWorkflow = () => {
                   onClick={handleDeleteLoadTest}
                 />
               </Flex>
-              <Text>Name: {formData.LoadTestSpec.name}</Text>
-              <Text>Transactions: {formData.LoadTestSpec.num_of_txs}</Text>
-              <Text>Blocks: {formData.LoadTestSpec.num_of_blocks}</Text>
+              <Text color="text">Name: {formData.LoadTestSpec.name}</Text>
+              <Text color="text">Transactions: {formData.LoadTestSpec.num_of_txs}</Text>
+              <Text color="text">Blocks: {formData.LoadTestSpec.num_of_blocks}</Text>
               {formData.LoadTestSpec.unordered_txs && (
                 <>
-                  <Text>Unordered Transactions: Yes</Text>
-                  <Text>Transaction Timeout: {formData.LoadTestSpec.tx_timeout}</Text>
+                  <Text color="text">Unordered Transactions: Yes</Text>
+                  <Text color="text">Transaction Timeout: {formData.LoadTestSpec.tx_timeout}</Text>
                 </>
               )}
-              <Text>Message Types:</Text>
+              <Text color="text">Message Types:</Text>
               {formData.LoadTestSpec.msgs.length > 0 ? (
                 <VStack align="start" pl={4} spacing={1}>
                   {formData.LoadTestSpec.msgs.map((msg, idx) => {
@@ -581,7 +741,7 @@ const CreateWorkflow = () => {
                       .map(([key, value]) => `${key}: ${value}`);
                     
                     return (
-                      <Text key={idx} fontSize="sm" color="gray.700">
+                      <Text key={idx} fontSize="sm" color="textSecondary">
                         • {pairs.join(' | ')}
                       </Text>
                     );

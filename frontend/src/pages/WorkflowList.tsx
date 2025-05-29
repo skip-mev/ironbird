@@ -40,16 +40,16 @@ const WorkflowList = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'running':
-        return 'blue';
+        return 'brand';
       case 'completed':
-        return 'green';
+        return 'success';
       case 'failed':
-        return 'red';
+        return 'error';
       case 'canceled':
       case 'terminated':
-        return 'orange';
+        return 'warning';
       case 'timed_out':
-        return 'yellow';
+        return 'accent';
       default:
         return 'gray';
     }
@@ -73,16 +73,28 @@ const WorkflowList = () => {
   if (error) {
     return (
       <Box>
-        <Alert status="error">
-          <AlertIcon />
-          <AlertTitle>Error loading workflows!</AlertTitle>
-          <AlertDescription>
+        <Alert 
+          status="error" 
+          variant="subtle" 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center" 
+          textAlign="center" 
+          borderRadius="lg"
+          boxShadow="md"
+          p={6}
+        >
+          <AlertIcon boxSize="40px" mr={0} />
+          <AlertTitle mt={4} mb={1} fontSize="lg">
+            Error loading workflows!
+          </AlertTitle>
+          <AlertDescription maxWidth="sm">
             {error instanceof Error ? error.message : 'An unknown error occurred'}
           </AlertDescription>
+          <Button mt={6} colorScheme="brand" onClick={() => refetch()}>
+            Try Again
+          </Button>
         </Alert>
-        <Button mt={4} onClick={() => refetch()}>
-          Try Again
-        </Button>
       </Box>
     );
   }
@@ -90,11 +102,12 @@ const WorkflowList = () => {
   return (
     <Box>
       <HStack justify="space-between" mb={6}>
-        <Heading size="lg">Testnet Workflows</Heading>
+        <Heading size="lg" color="text">Testnet Workflows</Heading>
         <HStack>
           <Button
-            colorScheme="blue"
+            colorScheme="brand"
             onClick={() => navigate('/')}
+            leftIcon={<Box w="1em" />}
           >
             Create New Workflow
           </Button>
@@ -104,6 +117,7 @@ const WorkflowList = () => {
               icon={<RepeatIcon />}
               onClick={handleRefresh}
               isLoading={isLoading}
+              colorScheme="brand"
             />
           </Tooltip>
         </HStack>
@@ -111,26 +125,31 @@ const WorkflowList = () => {
 
       {isLoading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minH="200px">
-          <Spinner size="xl" />
-          <Text ml={4}>Loading workflows...</Text>
+          <Spinner size="xl" color="brand.500" thickness="3px" />
+          <Text ml={4} color="textSecondary">Loading workflows...</Text>
         </Box>
       ) : !data?.Workflows || data.Workflows.length === 0 ? (
-        <Box textAlign="center" py={10}>
-          <Text fontSize="lg" color="gray.600" mb={4}>
+        <Box textAlign="center" py={10} bg="surface" borderRadius="lg" boxShadow="sm" p={6}>
+          <Text fontSize="lg" color="textSecondary" mb={4}>
             No workflows found
           </Text>
-          <Button colorScheme="blue" onClick={() => navigate('/')}>
+          <Button colorScheme="brand" onClick={() => navigate('/')}>
             Create Your First Workflow
           </Button>
         </Box>
       ) : (
         <Box>
-          <Text mb={4} color="gray.600">
+          <Text mb={4} color="textSecondary">
             Found {data.Count} workflow{data.Count !== 1 ? 's' : ''}
           </Text>
           
-          <TableContainer>
-            <Table variant="simple">
+          <TableContainer 
+            bg="surface" 
+            borderRadius="lg" 
+            boxShadow="sm" 
+            overflow="hidden"
+          >
+            <Table variant="simple" size="md">
               <Thead>
                 <Tr>
                   <Th>Workflow ID</Th>
@@ -185,6 +204,8 @@ const WorkflowList = () => {
                           aria-label="View workflow details"
                           icon={<ViewIcon />}
                           size="sm"
+                          colorScheme="brand"
+                          variant="outline"
                           onClick={() => handleViewWorkflow(workflow.WorkflowID)}
                         />
                       </Tooltip>
@@ -200,4 +221,4 @@ const WorkflowList = () => {
   );
 };
 
-export default WorkflowList; 
+export default WorkflowList;
