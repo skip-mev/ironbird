@@ -25,7 +25,7 @@
   "LoadTestSpec": {
     "Name": "unordered_test_bird",
     "NumOfBlocks": 100,
-    "BlockGasLimitTarget": 0.90,
+    "NumOfTxs": 100,
     "Msgs": [
       {
         "Weight": 1,

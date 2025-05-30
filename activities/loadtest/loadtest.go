@@ -188,6 +188,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	walletConfig := testnet.CosmosWalletConfig
 	if req.GaiaEVM {
 		walletConfig = testnet.EVMCosmosWalletConfig
+		logger.Info("updated load test to evm walletconfig")
 	}
 
 	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)

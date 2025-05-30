@@ -203,9 +203,9 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             <FormControl>
               <FormLabel color="text">Number of Transactions</FormLabel>
               <NumberInput
-                value={formData.num_of_txs || 0}
-                min={1}
-                onChange={(_, value) => setFormData({ ...formData, num_of_txs: value })}
+              value={formData.num_of_txs || 0}
+              min={1}
+              onChange={(_, value) => setFormData({ ...formData, num_of_txs: value, NumOfTxs: value })}
               >
                 <NumberInputField 
                   bg="surface"
@@ -220,7 +220,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               <NumberInput
                 value={formData.num_of_blocks}
                 min={1}
-                onChange={(_, value) => setFormData({ ...formData, num_of_blocks: value })}
+                onChange={(_, value) => setFormData({ ...formData, num_of_blocks: value, NumOfBlocks: value })}
               >
                 <NumberInputField 
                   bg="surface"

@@ -52,10 +52,10 @@ var (
 			NumOfNodes:      1,
 		},
 		LoadTestSpec: &catalysttypes.LoadTestSpec{
-			Name:                "e2e-test",
-			Description:         "e2e test",
-			NumOfBlocks:         5,
-			BlockGasLimitTarget: 0.1,
+			Name:        "e2e-test",
+			Description: "e2e test",
+			NumOfBlocks: 5,
+			NumOfTxs:    100,
 			Msgs: []catalysttypes.LoadTestMsg{
 				{Weight: 1, Type: catalysttypes.MsgSend},
 			},
