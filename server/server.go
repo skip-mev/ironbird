@@ -396,6 +396,79 @@ func (s *IronbirdServer) HandleRunLoadTest(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
+// HandleCancelWorkflow cancels a workflow using the Temporal client
+func (s *IronbirdServer) HandleCancelWorkflow(w http.ResponseWriter, r *http.Request) error {
+	// Extract workflow ID from the URL path
+	path := r.URL.Path
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 {
+		http.Error(w, "invalid URL path format", http.StatusBadRequest)
+		return nil
+	}
+	workflowID := parts[3]
+
+	fmt.Printf("Canceling workflow: %s\n", workflowID)
+
+	// Cancel the workflow using the Temporal client
+	err := s.temporalClient.CancelWorkflow(context.Background(), workflowID, "")
+	if err != nil {
+		fmt.Printf("Error canceling workflow %s: %v\n", workflowID, err)
+		http.Error(w, fmt.Sprintf("failed to cancel workflow: %v", err), http.StatusInternalServerError)
+		return err
+	}
+
+	// No need to update the database for now
+
+	response := WorkflowResponse{
+		WorkflowID: workflowID,
+		Status:     "canceled",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+		return nil
+	}
+
+	return nil
+}
+
+// HandleSignalWorkflow sends a signal to a workflow using the Temporal client
+func (s *IronbirdServer) HandleSignalWorkflow(w http.ResponseWriter, r *http.Request) error {
+	// Extract workflow ID and signal name from the URL path
+	path := r.URL.Path
+	parts := strings.Split(path, "/")
+	if len(parts) < 5 {
+		http.Error(w, "invalid URL path format", http.StatusBadRequest)
+		return nil
+	}
+	workflowID := parts[3]
+	signalName := parts[5]
+
+	fmt.Printf("Sending signal '%s' to workflow: %s\n", signalName, workflowID)
+
+	// Send the signal to the workflow using the Temporal client
+	err := s.temporalClient.SignalWorkflow(context.Background(), workflowID, "", signalName, nil)
+	if err != nil {
+		fmt.Printf("Error sending signal to workflow %s: %v\n", workflowID, err)
+		http.Error(w, fmt.Sprintf("failed to send signal to workflow: %v", err), http.StatusInternalServerError)
+		return err
+	}
+
+	response := WorkflowResponse{
+		WorkflowID: workflowID,
+		Status:     "signaled",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
+		return nil
+	}
+
+	return nil
+}
+
 func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Request) error {
 	fmt.Printf("HandleListWorkflows called\n")
 

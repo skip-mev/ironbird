@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	evmhd "github.com/cosmos/evm/crypto/hd"
 	"github.com/skip-mev/ironbird/database"
 	types2 "github.com/skip-mev/ironbird/types"
@@ -126,8 +127,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	if a.DatabaseService != nil {
 		workflowReq := messages.TestnetWorkflowRequest{
-			Repo: req.Repo,
-			SHA:  req.SHA,
+			Repo:    req.Repo,
+			GaiaEVM: req.GaiaEVM,
+			SHA:     req.SHA,
 			ChainConfig: types2.ChainsConfig{
 				Name:            req.Name,
 				Image:           req.Image,
@@ -177,20 +179,18 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	chainImage := a.ChainImages[req.Repo]
 	logger.Info("chainImage", zap.Any("chainImage", chainImage), zap.Any("req", req))
 
-	// TODO(nadim-az): refactor evm specific setting
 	denom := cosmosDenom
 	chainID := req.Name
 	gasPrice := chainImage.GasPrices
 	walletConfig := CosmosWalletConfig
-	for _, modification := range req.GenesisModifications {
-		if modification.Key == "app_state.evm.params.evm_denom" {
-			denom = gaiaEvmDenom
-			chainID = "cosmos_22222-1"
-			gasPrice = "0.0005atest"
-			walletConfig = EVMCosmosWalletConfig
-			break
-		}
+
+	if req.GaiaEVM {
+		denom = gaiaEvmDenom
+		chainID = "cosmos_22222-1"
+		gasPrice = "0.0005atest"
+		walletConfig = EVMCosmosWalletConfig
 	}
+	logger.Info("chainid debuglog", zap.Any("", chainID))
 
 	chain, chainErr := petrichain.CreateChain(
 		ctx,
@@ -238,12 +238,12 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	resp.ChainID = req.Name
+	resp.ChainID = chainID
 
 	initErr := chain.Init(ctx, types.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
-		WalletConfig:  CosmosWalletConfig,
+		WalletConfig:  walletConfig,
 	})
 
 	if initErr != nil {

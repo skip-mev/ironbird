@@ -28,4 +28,14 @@ export const workflowApi = {
     const response = await axios.post(`${API_BASE_URL}/loadtest/${workflowId}`, spec);
     return response.data;
   },
-}; 
+
+  cancelWorkflow: async (workflowId: string): Promise<WorkflowResponse> => {
+    const response = await axios.post(`${API_BASE_URL}/workflow/${workflowId}/cancel`);
+    return response.data;
+  },
+
+  sendShutdownSignal: async (workflowId: string): Promise<WorkflowResponse> => {
+    const response = await axios.post(`${API_BASE_URL}/workflow/${workflowId}/signal/shutdown`);
+    return response.data;
+  },
+};

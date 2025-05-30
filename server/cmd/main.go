@@ -70,6 +70,10 @@ func (m *CaddyModule) Cleanup() error {
 
 func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
 	switch {
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.HasSuffix(r.URL.Path, "/cancel"):
+		m.server.HandleCancelWorkflow(w, r)
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.Contains(r.URL.Path, "/signal/"):
+		m.server.HandleSignalWorkflow(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 		m.server.HandleCreateWorkflow(w, r)
 	case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
@@ -125,6 +129,10 @@ func startAPIServer() {
 	// Create a handler that uses the shared server instance
 	ironbirdHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.HasSuffix(r.URL.Path, "/cancel"):
+			ironbirdServer.HandleCancelWorkflow(w, r)
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.Contains(r.URL.Path, "/signal/"):
+			ironbirdServer.HandleSignalWorkflow(w, r)
 		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
 			ironbirdServer.HandleCreateWorkflow(w, r)
 		case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":

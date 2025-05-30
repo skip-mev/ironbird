@@ -149,6 +149,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			Name:                    req.ChainConfig.Name,
 			Repo:                    req.Repo,
 			SHA:                     req.SHA,
+			GaiaEVM:                 req.GaiaEVM,
 			Image:                   buildResult.FQDNTag,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
 			RunnerType:              req.RunnerType,
@@ -226,6 +227,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	if req.LoadTestSpec == nil {
 		return 0, nil
 	}
+	workflow.GetLogger(ctx).Info("TestnetWorkflowRequest", zap.Any("req", req))
 
 	workflow.Go(ctx, func(ctx workflow.Context) {
 
@@ -241,6 +243,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				ProviderState: providerState,
 				LoadTestSpec:  *req.LoadTestSpec,
 				RunnerType:    req.RunnerType,
+				GaiaEVM:       req.GaiaEVM,
 			},
 		).Get(ctx, &loadTestResp)
 
@@ -284,7 +287,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, workflowID)
+	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, req.GaiaEVM, workflowID)
 	if err != nil {
 		return err
 	}
@@ -298,7 +301,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, workflowID string) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, gaiaEVM bool, workflowID string) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		updateHandler,
@@ -330,8 +333,11 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 				return fmt.Errorf("failed to restore provider: %w", err)
 			}
 
-			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode,
-				testnet.CosmosWalletConfig)
+			walletConfig := testnet.CosmosWalletConfig
+			if gaiaEVM {
+				walletConfig = testnet.EVMCosmosWalletConfig
+			}
+			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
 
 			if err != nil {
 				return fmt.Errorf("failed to restore chain: %w", err)

@@ -10,6 +10,7 @@ type RunLoadTestRequest struct {
 	ProviderState []byte
 	LoadTestSpec  catalysttypes.LoadTestSpec
 	RunnerType    testnet.RunnerType
+	GaiaEVM       bool
 }
 
 type RunLoadTestResponse struct {

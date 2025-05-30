@@ -7,13 +7,15 @@ import (
 	"sync"
 	"time"
 
+	petritypes "github.com/skip-mev/petri/core/v3/types"
+
 	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
-	"github.com/skip-mev/ironbird/activities/testnet"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -55,7 +57,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec types.LoadTestSpec) ([]byte, error) {
+	walletConfig petritypes.WalletConfig, loadTestSpec types.LoadTestSpec) ([]byte, error) {
 
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
@@ -98,7 +100,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			w, err := wallet.NewGeneratedWallet(petriutil.RandomString(5), testnet.CosmosWalletConfig)
+			w, err := wallet.NewGeneratedWallet(petriutil.RandomString(5), walletConfig)
 			if err != nil {
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
@@ -158,6 +160,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
+	logger.Info("req", zap.Any("req", req))
 
 	var p provider.ProviderI
 	var err error
@@ -182,12 +185,17 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, testnet.CosmosWalletConfig)
+	walletConfig := testnet.CosmosWalletConfig
+	if req.GaiaEVM {
+		walletConfig = testnet.EVMCosmosWalletConfig
+	}
+
+	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, walletConfig, req.LoadTestSpec)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}

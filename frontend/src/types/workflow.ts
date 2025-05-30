@@ -39,6 +39,7 @@ export interface LoadTestSpec {
 export interface TestnetWorkflowRequest {
   Repo: string;
   SHA: string;
+  GaiaEVM: boolean;
   ChainConfig: ChainConfig;
   RunnerType: string;
   LoadTestSpec?: LoadTestSpec;

@@ -28,6 +28,7 @@ type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
 	Name                    string
+	GaiaEVM                 bool
 	Repo                    string
 	SHA                     string
 	Image                   string
@@ -51,6 +52,7 @@ type LaunchTestnetResponse struct {
 type TestnetWorkflowRequest struct {
 	Repo               string
 	SHA                string
+	GaiaEVM            bool
 	ChainConfig        types.ChainsConfig
 	RunnerType         testnet.RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec

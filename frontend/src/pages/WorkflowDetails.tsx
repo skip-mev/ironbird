@@ -23,15 +23,16 @@ import {
   Divider,
   ButtonGroup
 } from '@chakra-ui/react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
 import type { LoadTestSpec, WorkflowStatus } from '../types/workflow';
-import { ExternalLinkIcon, CopyIcon } from '@chakra-ui/icons';
+import { ExternalLinkIcon, CopyIcon, CloseIcon } from '@chakra-ui/icons';
 
 const WorkflowDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const { data: workflow, isLoading, error, refetch } = useQuery<WorkflowStatus>({
     queryKey: ['workflow', id],
@@ -68,6 +69,44 @@ const WorkflowDetails = () => {
     },
   });
 
+  const cancelWorkflowMutation = useMutation({
+    mutationFn: () => {
+      if (!workflow) return Promise.reject('No workflow data available');
+      
+      // Check if this is a long running testnet
+      const isLongRunning = workflow.Config?.LongRunningTestnet || workflow.longRunningTestnet;
+      
+      if (isLongRunning) {
+        // For long running testnets, send a shutdown signal
+        return workflowApi.sendShutdownSignal(id!);
+      } else {
+        // For regular workflows, just cancel
+        return workflowApi.cancelWorkflow(id!);
+      }
+    },
+    onSuccess: () => {
+      const isLongRunning = workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet;
+      toast({
+        title: isLongRunning ? 'Shutdown signal sent' : 'Workflow canceled',
+        description: isLongRunning 
+          ? 'The shutdown signal has been sent to the workflow' 
+          : 'The workflow has been canceled',
+        status: 'success',
+        duration: 3000,
+      });
+      // Invalidate the workflow query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error canceling workflow',
+        description: error instanceof Error ? error.message : String(error),
+        status: 'error',
+        duration: 5000,
+      });
+    },
+  });
+
   const handleRunLoadTest = () => {
     const loadTestSpec: LoadTestSpec = {
       name: 'basic-load-test',
@@ -79,6 +118,19 @@ const WorkflowDetails = () => {
       tx_timeout: '30s',
     };
     runLoadTestMutation.mutate(loadTestSpec);
+  };
+
+  const handleCancelWorkflow = () => {
+    if (!workflow) return;
+    
+    const isLongRunning = workflow.Config?.LongRunningTestnet || workflow.longRunningTestnet;
+    const confirmMessage = isLongRunning 
+      ? 'Are you sure you want to send a shutdown signal to this long-running testnet?'
+      : 'Are you sure you want to cancel this workflow?';
+      
+    if (window.confirm(confirmMessage)) {
+      cancelWorkflowMutation.mutate();
+    }
   };
 
   const handleCloneWorkflow = () => {
@@ -451,6 +503,21 @@ const WorkflowDetails = () => {
                   size="lg"
                 >
                   Clone Workflow
+                </Button>
+                <Button
+                  leftIcon={<CloseIcon />}
+                  colorScheme="red"
+                  onClick={handleCancelWorkflow}
+                  isLoading={cancelWorkflowMutation.isPending}
+                  loadingText={workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet 
+                    ? "Sending Shutdown Signal..." 
+                    : "Canceling Workflow..."}
+                  disabled={workflow.Status !== 'running'}
+                  size="lg"
+                >
+                  {workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet 
+                    ? "Shutdown Testnet" 
+                    : "Cancel Workflow"}
                 </Button>
               </ButtonGroup>
               {workflow.Status !== 'running' && (

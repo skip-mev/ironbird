@@ -124,6 +124,7 @@ const CreateWorkflow = () => {
       NumOfValidators: 3,
     },
     RunnerType: 'Docker',
+    GaiaEVM: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
@@ -306,6 +307,7 @@ const CreateWorkflow = () => {
         NumOfNodes: formData.ChainConfig.NumOfNodes || 4,
         NumOfValidators: formData.ChainConfig.NumOfValidators || 3,
       },
+      GaiaEVM: formData.GaiaEVM || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
@@ -403,6 +405,7 @@ const CreateWorkflow = () => {
         ...formData.ChainConfig!,
         GenesisModifications: [...GAIA_GENESIS_MODIFICATIONS],
       },
+      GaiaEVM: true,
     });
 
     toast({
