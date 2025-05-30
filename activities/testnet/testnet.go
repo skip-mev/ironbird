@@ -3,9 +3,8 @@ package testnet
 import (
 	"context"
 	"fmt"
-
+	evmhd "github.com/cosmos/evm/crypto/hd"
 	"github.com/skip-mev/ironbird/database"
-
 	types2 "github.com/skip-mev/ironbird/types"
 
 	"github.com/skip-mev/ironbird/messages"
@@ -41,6 +40,13 @@ var (
 		HDPath:           hd.CreateHDPath(118, 0, 0),
 		DerivationFn:     hd.Secp256k1.Derive(),
 		GenerationFn:     hd.Secp256k1.Generate(),
+	}
+	EVMCosmosWalletConfig = types.WalletConfig{
+		SigningAlgorithm: "eth_secp256k1",
+		Bech32Prefix:     "cosmos",
+		HDPath:           hd.CreateHDPath(60, 0, 0),
+		DerivationFn:     evmhd.EthSecp256k1.Derive(),
+		GenerationFn:     evmhd.EthSecp256k1.Generate(),
 	}
 )
 
@@ -175,11 +181,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	denom := cosmosDenom
 	chainID := req.Name
 	gasPrice := chainImage.GasPrices
+	walletConfig := CosmosWalletConfig
 	for _, modification := range req.GenesisModifications {
 		if modification.Key == "app_state.evm.params.evm_denom" {
 			denom = gaiaEvmDenom
 			chainID = "cosmos_22222-1"
 			gasPrice = "0.0005atest"
+			walletConfig = EVMCosmosWalletConfig
 			break
 		}
 	}
@@ -203,7 +211,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			GasPrices:            gasPrice,
 			Bech32Prefix:         "cosmos",
 			HomeDir:              chainImage.HomeDir,
-			CoinType:             "118",
+			CoinType:             "60",
 			ChainId:              chainID,
 			UseGenesisSubCommand: true,
 		},
@@ -215,7 +223,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 					return definition
 				},
 			},
-			WalletConfig: CosmosWalletConfig,
+			WalletConfig: walletConfig,
 		},
 	)
 

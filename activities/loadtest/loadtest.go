@@ -129,10 +129,11 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	}
 
 	command = append(command, addresses...)
-	command = append(command, "1000000000stake",
+	command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
 		"--chain-id", chainConfig.ChainId,
 		"--keyring-backend", "test",
-		"--fees", "80000stake",
+		"--from", "faucet",
+		"--fees", fmt.Sprintf("80000%s", chainConfig.Denom),
 		"--gas", "auto",
 		"--yes",
 		"--home", chainConfig.HomeDir,
