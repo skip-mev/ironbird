@@ -113,8 +113,8 @@ const CreateWorkflow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const [formData, setFormData] = useState<TestnetWorkflowRequest>({
-    Repo: 'cosmos-sdk',
+  // Default values to use as placeholders
+  const defaultValues = {
     SHA: '',
     ChainConfig: {
       Name: 'test-chain',
@@ -128,6 +128,24 @@ const CreateWorkflow = () => {
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
+  };
+
+  // Initialize form data with empty values
+  const [formData, setFormData] = useState<TestnetWorkflowRequest>({
+    Repo: 'Cosmos SDK',
+    SHA: '',
+    ChainConfig: {
+      Name: '',
+      Image: '',
+      GenesisModifications: [],
+      NumOfNodes: 0,
+      NumOfValidators: 0,
+    },
+    RunnerType: '',
+    GaiaEVM: false,
+    LoadTestSpec: undefined,
+    LongRunningTestnet: false,
+    TestnetDuration: 0,
   });
   
   // Check for URL parameters (for cloning workflows)
@@ -241,13 +259,6 @@ const CreateWorkflow = () => {
       if (hasChanges) {
         console.log("Updating form data with:", newFormData);
         setFormData(newFormData);
-        
-        toast({
-          title: 'Workflow configuration loaded',
-          description: 'The form has been pre-filled with the cloned workflow configuration',
-          status: 'info',
-          duration: 3000,
-        });
       } else {
         console.log("No changes to form data");
       }
@@ -290,6 +301,41 @@ const CreateWorkflow = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate all required fields are filled
+    const requiredFields = [
+      { name: 'Repository', value: formData.Repo },
+      { name: 'Commit SHA', value: formData.SHA },
+      { name: 'Chain Name', value: formData.ChainConfig.Name },
+      { name: 'Runner Type', value: formData.RunnerType },
+      { name: 'Number of Nodes', value: formData.ChainConfig.NumOfNodes },
+      { name: 'Number of Validators', value: formData.ChainConfig.NumOfValidators }
+    ];
+
+    // Add Chain Image to required fields if repo is cometbft or ironbird-cometbft
+    if (formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') {
+      requiredFields.push({ name: 'Chain Image', value: formData.ChainConfig.Image });
+    }
+
+    // Add Testnet Duration if not long running
+    if (!formData.LongRunningTestnet) {
+      requiredFields.push({ name: 'Testnet Duration', value: formData.TestnetDuration });
+    }
+
+    // Check for empty required fields
+    const emptyFields = requiredFields.filter(field => 
+      field.value === '' || field.value === 0 || field.value === undefined
+    );
+
+    if (emptyFields.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: `Please fill in all required fields: ${emptyFields.map(f => f.name).join(', ')}`,
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     // Convert hours to nanoseconds
     let durationInNanos = 0;
     if (!formData.LongRunningTestnet && formData.TestnetDuration) {
@@ -301,11 +347,11 @@ const CreateWorkflow = () => {
       Repo: formData.Repo,
       SHA: formData.SHA,
       ChainConfig: {
-        Name: formData.ChainConfig.Name || 'test-chain',
+        Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
         GenesisModifications: formData.ChainConfig.GenesisModifications || [],
-        NumOfNodes: formData.ChainConfig.NumOfNodes || 4,
-        NumOfValidators: formData.ChainConfig.NumOfValidators || 3,
+        NumOfNodes: formData.ChainConfig.NumOfNodes,
+        NumOfValidators: formData.ChainConfig.NumOfValidators,
       },
       GaiaEVM: formData.GaiaEVM || false,
       RunnerType: formData.RunnerType,
@@ -439,13 +485,14 @@ const CreateWorkflow = () => {
         <Stack direction="column" gap={4}>
           <FormControl isRequired>
             <FormLabel color="text">Repository</FormLabel>
-            <Select
-              value={formData.Repo}
-              onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
-              bg="surface"
-              color="text"
-              borderColor="divider"
-            >
+              <Select
+                value={formData.Repo}
+                onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder={defaultValues.Repo}
+              >
               <option value="cosmos-sdk">Cosmos SDK</option>
               <option value="cometbft">CometBFT</option>
               <option value="gaia">Gaia</option>
@@ -456,43 +503,46 @@ const CreateWorkflow = () => {
 
           <FormControl isRequired>
             <FormLabel color="text">Commit SHA</FormLabel>
-            <Input
-              value={formData.SHA}
-              onChange={(e) => setFormData({ ...formData, SHA: e.target.value })}
-              bg="surface"
-              color="text"
-              borderColor="divider"
-            />
+              <Input
+                value={formData.SHA}
+                onChange={(e) => setFormData({ ...formData, SHA: e.target.value })}
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder="Enter commit SHA"
+              />
           </FormControl>
 
           <FormControl isRequired>
             <FormLabel color="text">Chain Name</FormLabel>
-            <Input
-              value={formData.ChainConfig.Name}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  ChainConfig: {
-                    ...formData.ChainConfig,
-                    Name: e.target.value,
-                  },
-                })
-              }
-              bg="surface"
-              color="text"
-              borderColor="divider"
-            />
+              <Input
+                value={formData.ChainConfig.Name}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    ChainConfig: {
+                      ...formData.ChainConfig,
+                      Name: e.target.value,
+                    },
+                  })
+                }
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder={defaultValues.ChainConfig.Name}
+              />
           </FormControl>
 
           <FormControl isRequired>
             <FormLabel color="text">Runner Type</FormLabel>
-            <Select
-              value={formData.RunnerType}
-              onChange={(e) => setFormData({ ...formData, RunnerType: e.target.value })}
-              bg="surface"
-              color="text"
-              borderColor="divider"
-            >
+              <Select
+                value={formData.RunnerType}
+                onChange={(e) => setFormData({ ...formData, RunnerType: e.target.value })}
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder={defaultValues.RunnerType}
+              >
               <option value="Docker">Docker</option>
               <option value="DigitalOcean">DigitalOcean</option>
             </Select>
@@ -501,21 +551,22 @@ const CreateWorkflow = () => {
           {(formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') && (
             <FormControl isRequired>
               <FormLabel color="text">Chain Image</FormLabel>
-              <Select
-                value={formData.ChainConfig.Image}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    ChainConfig: {
-                      ...formData.ChainConfig,
-                      Image: e.target.value,
-                    },
-                  })
-                }
-                bg="surface"
-                color="text"
-                borderColor="divider"
-              >
+                <Select
+                  value={formData.ChainConfig.Image}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      ChainConfig: {
+                        ...formData.ChainConfig,
+                        Image: e.target.value,
+                      },
+                    })
+                  }
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                  placeholder="Select chain image"
+                >
                 <option value="simapp-v47">Simapp v0.47</option>
                 <option value="simapp-v50">Simapp v0.50</option>
                 <option value="simapp-v53">Simapp v0.53</option>
@@ -525,39 +576,49 @@ const CreateWorkflow = () => {
 
           <FormControl isRequired>
             <FormLabel color="text">Number of Nodes</FormLabel>
-            <NumberInput
-              value={formData.ChainConfig.NumOfNodes}
-              min={1}
-              onChange={(_, value) =>
-                setFormData({
-                  ...formData,
-                  ChainConfig: {
-                    ...formData.ChainConfig,
-                    NumOfNodes: value || 4,
-                  },
-                })
-              }
-            >
-              <NumberInputField bg="surface" color="text" borderColor="divider" />
+              <NumberInput
+                value={formData.ChainConfig.NumOfNodes || ''}
+                min={1}
+                onChange={(_, value) =>
+                  setFormData({
+                    ...formData,
+                    ChainConfig: {
+                      ...formData.ChainConfig,
+                      NumOfNodes: value || 0,
+                    },
+                  })
+                }
+              >
+                <NumberInputField 
+                  bg="surface" 
+                  color="text" 
+                  borderColor="divider" 
+                  placeholder={defaultValues.ChainConfig.NumOfNodes.toString()}
+                />
             </NumberInput>
           </FormControl>
 
           <FormControl isRequired>
             <FormLabel color="text">Number of Validators</FormLabel>
-            <NumberInput
-              value={formData.ChainConfig.NumOfValidators}
-              min={1}
-              onChange={(_, value) =>
-                setFormData({
-                  ...formData,
-                  ChainConfig: {
-                    ...formData.ChainConfig,
-                    NumOfValidators: value || 3,
-                  },
-                })
-              }
-            >
-              <NumberInputField bg="surface" color="text" borderColor="divider" />
+              <NumberInput
+                value={formData.ChainConfig.NumOfValidators || ''}
+                min={1}
+                onChange={(_, value) =>
+                  setFormData({
+                    ...formData,
+                    ChainConfig: {
+                      ...formData.ChainConfig,
+                      NumOfValidators: value || 0,
+                    },
+                  })
+                }
+              >
+                <NumberInputField 
+                  bg="surface" 
+                  color="text" 
+                  borderColor="divider" 
+                  placeholder={defaultValues.ChainConfig.NumOfValidators.toString()}
+                />
             </NumberInput>
           </FormControl>
           
@@ -771,15 +832,15 @@ const CreateWorkflow = () => {
               <FormLabel>Testnet Duration (Hours)</FormLabel>
               <NumberInput
                 min={1}
-                value={formData.TestnetDuration}
+                value={formData.TestnetDuration || ''}
                 onChange={(_, value) => {
                   setFormData({ 
                     ...formData, 
-                    TestnetDuration: value || 2
+                    TestnetDuration: value || 0
                   });
                 }}
               >
-                <NumberInputField />
+                <NumberInputField placeholder={defaultValues.TestnetDuration.toString()} />
               </NumberInput>
               <FormHelperText>Duration in hours</FormHelperText>
             </FormControl>

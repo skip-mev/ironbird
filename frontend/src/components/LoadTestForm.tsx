@@ -35,7 +35,21 @@ interface LoadTestFormProps {
 }
 
 const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProps) => {
-  const [formData, setFormData] = useState<LoadTestSpec>(initialData);
+  const [defaultValues, setDefaultValues] = useState<LoadTestSpec>(initialData);
+  
+  const [formData, setFormData] = useState<LoadTestSpec>({
+    name: '',
+    description: '',
+    chain_id: '',
+    num_of_blocks: 0,
+    NumOfBlocks: 0,
+    num_of_txs: 0,
+    NumOfTxs: 0,
+    msgs: [],
+    unordered_txs: false,
+    tx_timeout: '',
+  });
+  
   const [newMessage, setNewMessage] = useState<Message>({
     type: MsgType.MsgSend,
     weight: 0.5,
@@ -44,7 +58,21 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
 
   // Reset form data when modal is opened
   useEffect(() => {
-    setFormData(initialData);
+    // Update default values for placeholders
+    setDefaultValues(initialData);
+    // Initialize with empty form
+    setFormData({
+      name: '',
+      description: '',
+      chain_id: initialData.chain_id || '', // Keep chain_id from initialData
+      num_of_blocks: 0,
+      NumOfBlocks: 0,
+      num_of_txs: 0,
+      NumOfTxs: 0,
+      msgs: [],
+      unordered_txs: false,
+      tx_timeout: '',
+    });
   }, [initialData, isOpen]);
 
   const calculateTotalWeight = (): number => {
@@ -58,6 +86,34 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   };
 
   const handleSubmit = () => {
+    // Validate required fields
+    const requiredFields = [
+      { name: 'Test Name', value: formData.name },
+      { name: 'Description', value: formData.description },
+      { name: 'Number of Transactions', value: formData.num_of_txs },
+      { name: 'Number of Blocks', value: formData.num_of_blocks }
+    ];
+
+    // Add Transaction Timeout if unordered_txs is true
+    if (formData.unordered_txs) {
+      requiredFields.push({ name: 'Transaction Timeout', value: formData.tx_timeout });
+    }
+
+    // Check for empty required fields
+    const emptyFields = requiredFields.filter(field => 
+      field.value === '' || field.value === 0 || field.value === undefined
+    );
+
+    if (emptyFields.length > 0) {
+      toast({
+        title: 'Validation Error',
+        description: `Please fill in all required fields: ${emptyFields.map(f => f.name).join(', ')}`,
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     // Validate total weight should be exactly 1.0 if there are any messages
     if (formData.msgs.length > 0) {
       const totalWeight = calculateTotalWeight();
@@ -181,7 +237,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g. basic-load-test"
+                placeholder={defaultValues.name || "e.g. basic-load-test"}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -193,7 +249,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Brief description of this load test"
+                placeholder={defaultValues.description || "Brief description of this load test"}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -203,7 +259,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             <FormControl>
               <FormLabel color="text">Number of Transactions</FormLabel>
               <NumberInput
-              value={formData.num_of_txs || 0}
+              value={formData.num_of_txs || ''}
               min={1}
               onChange={(_, value) => setFormData({ ...formData, num_of_txs: value, NumOfTxs: value })}
               >
@@ -211,6 +267,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                   bg="surface"
                   color="text"
                   borderColor="divider"
+                  placeholder={defaultValues.num_of_txs?.toString() || "1000"}
                 />
               </NumberInput>
             </FormControl>
@@ -218,7 +275,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             <FormControl>
               <FormLabel color="text">Number of Blocks</FormLabel>
               <NumberInput
-                value={formData.num_of_blocks}
+                value={formData.num_of_blocks || ''}
                 min={1}
                 onChange={(_, value) => setFormData({ ...formData, num_of_blocks: value, NumOfBlocks: value })}
               >
@@ -226,6 +283,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                   bg="surface"
                   color="text"
                   borderColor="divider"
+                  placeholder={defaultValues.num_of_blocks?.toString() || "100"}
                 />
               </NumberInput>
             </FormControl>
@@ -241,14 +299,14 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             {formData.unordered_txs && (
               <FormControl>
                 <FormLabel color="text">Transaction Timeout</FormLabel>
-                <Input
-                  value={formData.tx_timeout}
-                  onChange={(e) => setFormData({ ...formData, tx_timeout: e.target.value })}
-                  placeholder="e.g. 30s, 1m"
-                  bg="surface"
-                  color="text"
-                  borderColor="divider"
-                />
+                  <Input
+                    value={formData.tx_timeout}
+                    onChange={(e) => setFormData({ ...formData, tx_timeout: e.target.value })}
+                    placeholder={defaultValues.tx_timeout || "e.g. 30s, 1m"}
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                  />
                 <FormHelperText color="textSecondary">Only applicable for unordered transactions</FormHelperText>
               </FormControl>
             )}
