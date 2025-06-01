@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     num_of_validators INTEGER,
     long_running_testnet BOOLEAN DEFAULT FALSE,
     testnet_duration INTEGER DEFAULT 0,
+    num_wallets INTEGER DEFAULT 2500,
     load_test_spec TEXT DEFAULT '{}',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

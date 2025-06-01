@@ -227,6 +227,11 @@ const WorkflowDetails = () => {
         }
       }
       
+      // Add NumWallets to the URL parameters
+      if (workflow.Config.NumWallets) {
+        params.append('numWallets', workflow.Config.NumWallets.toString());
+      }
+      
       // Handle load test spec
       if (workflow.Config.LoadTestSpec) {
         // Ensure the LoadTestSpec is normalized before adding it to URL parameters
@@ -286,6 +291,11 @@ const WorkflowDetails = () => {
           duration = duration / (60 * 60 * 1000000000); // Convert to hours
         }
         params.append('testnetDuration', duration.toString());
+      }
+      
+      // Add NumWallets from database fields if available
+      if (workflow.numWallets) {
+        params.append('numWallets', workflow.numWallets.toString());
       }
     }
     

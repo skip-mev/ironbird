@@ -11,11 +11,15 @@ export interface ChainConfig {
   NumOfValidators: number;
 }
 
-export enum MsgType {
-  MsgSend = "MsgSend",
-  MsgMultiSend = "MsgMultiSend",
-  MsgArr = "MsgArr"
-}
+// Define message types as string literals
+export const MsgType = {
+  MsgSend: "MsgSend",
+  MsgMultiSend: "MsgMultiSend",
+  MsgArr: "MsgArr"
+} as const;
+
+// Type for message types
+export type MsgType = typeof MsgType[keyof typeof MsgType];
 
 export interface Message {
   type: MsgType;
@@ -76,6 +80,7 @@ export interface WorkflowStatus {
   numOfValidators?: number;
   longRunningTestnet?: boolean;
   testnetDuration?: number;
+  numWallets?: number;
   loadTestSpec?: any;
 }
 

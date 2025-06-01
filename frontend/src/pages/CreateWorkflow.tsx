@@ -270,6 +270,16 @@ const CreateWorkflow = () => {
         }
       }
       
+      // Number of wallets
+      if (params.get('numWallets')) {
+        const numWallets = parseInt(params.get('numWallets')!, 10);
+        if (!isNaN(numWallets)) {
+          newFormData.NumWallets = numWallets;
+          hasChanges = true;
+          console.log("Setting numWallets:", newFormData.NumWallets);
+        }
+      }
+      
       // Load test spec
       const loadTestSpecParam = params.get('loadTestSpec');
       if (loadTestSpecParam) {

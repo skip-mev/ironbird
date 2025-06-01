@@ -171,6 +171,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		chainID = "cosmos_22222-1"
 		gasPrice = "0.0005atest"
 		walletConfig = EVMCosmosWalletConfig
+		logger.Info("using EVM wallet config")
 	}
 	logger.Info("chainid debuglog", zap.Any("", chainID))
 
@@ -237,6 +238,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		resp.ProviderState = providerState
 
 		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	}
+
+	err = chain.WaitForStartup(ctx)
+	if err != nil {
+		return resp, temporal.NewApplicationErrorWithOptions("failed to wait for chain startup", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	providerState, err := p.SerializeProvider(ctx)

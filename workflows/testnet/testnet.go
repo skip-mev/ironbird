@@ -415,6 +415,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			walletConfig := testnet.CosmosWalletConfig
 			if gaiaEVM {
 				walletConfig = testnet.EVMCosmosWalletConfig
+				logger.Info("using EVM wallet config")
 			}
 			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
 
