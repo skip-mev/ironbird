@@ -114,13 +114,6 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		} else {
 			logger.Warn("No loadbalancers to update in database")
 		}
-	} else {
-		if a.DatabaseService == nil {
-			logger.Error("DatabaseService is nil, cannot update loadbalancers in database")
-		}
-		if workflowID == "" {
-			logger.Error("WorkflowID is empty, cannot update loadbalancers in database")
-		}
 	}
 
 	return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState, LoadBalancerState: loadBalancerState, RootDomain: a.RootDomain}, nil

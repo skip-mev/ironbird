@@ -171,16 +171,19 @@ const WorkflowDetails = () => {
         }
         
         params.append('numOfNodes', 
-          (workflow.Config.ChainConfig.NumOfNodes || 4).toString());
+          (workflow.Config.ChainConfig.NumOfNodes || 1).toString());
         
         params.append('numOfValidators', 
-          (workflow.Config.ChainConfig.NumOfValidators || 3).toString());
+          (workflow.Config.ChainConfig.NumOfValidators || 1).toString());
         
-        // Handle genesis modifications
         if (workflow.Config.ChainConfig.GenesisModifications && 
             workflow.Config.ChainConfig.GenesisModifications.length > 0) {
           params.append('genesisModifications', 
             JSON.stringify(workflow.Config.ChainConfig.GenesisModifications));
+          
+          if (workflow.Config.GaiaEVM) {
+            params.append('gaiaEVM', 'true');
+          }
         }
       }
       
@@ -364,7 +367,7 @@ const WorkflowDetails = () => {
             {workflow.Nodes && workflow.Nodes.length > 0 && (
               <Card>
                 <CardHeader>
-                  <Heading size="md">Network Nodes {`(${workflow.Nodes.length})`}</Heading>
+                  <Heading size="md">Full Nodes {`(${workflow.Nodes.length})`}</Heading>
                 </CardHeader>
                 <CardBody>
                   <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
@@ -552,35 +555,49 @@ const WorkflowDetails = () => {
         )}
 
         {/* Monitoring Card */}
-        {workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0 && (
+        {(workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0) || 
+         (workflow.Config?.RunnerType === 'Docker' || workflow.runnerType === 'Docker') ? (
           <Card>
             <CardHeader>
-              <Heading size="md">Monitoring & Dashboards</Heading>
+              <Heading size="md">Monitoring Dashboards</Heading>
             </CardHeader>
             <CardBody>
-              <Stack spacing={3}>
-                {Object.entries(workflow.Monitoring).map(([name, url]) => (
-                  <HStack key={name} spacing={3}>
-                    <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
-                      {name}:
-                    </Text>
-                    <Link 
-                      href={url} 
-                      target="_blank" 
-                      color="blue.500"
-                      display="flex"
-                      alignItems="center"
-                      gap={2}
-                    >
-                      {url}
-                      <Icon as={ExternalLinkIcon} boxSize={4} />
-                    </Link>
-                  </HStack>
-                ))}
-              </Stack>
+              {(workflow.Config?.RunnerType === 'Docker' || workflow.runnerType === 'Docker') ? (
+                <Alert status="info">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>Monitoring Not Available</AlertTitle>
+                    <AlertDescription>
+                      Monitoring dashboards are only available for testnets running on Digital Ocean. 
+                      Docker testnets do not send metrics to Grafana.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              ) : (
+                <Stack spacing={3}>
+                  {Object.entries(workflow.Monitoring).map(([name, url]) => (
+                    <HStack key={name} spacing={3}>
+                      <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
+                        {name}:
+                      </Text>
+                      <Link 
+                        href={url} 
+                        target="_blank" 
+                        color="blue.500"
+                        display="flex"
+                        alignItems="center"
+                        gap={2}
+                      >
+                        {url}
+                        <Icon as={ExternalLinkIcon} boxSize={4} />
+                      </Link>
+                    </HStack>
+                  ))}
+                </Stack>
+              )}
             </CardBody>
           </Card>
-        )}
+        ) : null}
 
         {/* Actions Card */}
         <Card>

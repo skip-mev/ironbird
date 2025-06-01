@@ -30,8 +30,9 @@ import (
 )
 
 var (
-	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
-	chainsFlag = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
+	configFlag     = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
+	chainsFlag     = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
+	dashboardsFlag = flag.String("dashboards", "./conf/dashboards.yaml", "Path to the dashboards configuration file")
 )
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -74,6 +75,18 @@ func main() {
 	chainImages, err := types.ParseChainImagesConfig(*chainsFlag)
 	if err != nil {
 		panic(err)
+	}
+
+	// Load dashboards config
+	var dashboardsConfig *types.DashboardsConfig
+	if *dashboardsFlag != "" {
+		dashboardsConfig, err = types.ParseDashboardsConfig(*dashboardsFlag)
+		if err != nil {
+			logger.Warn("Failed to load dashboards config, monitoring links will not be generated", zap.Error(err))
+			dashboardsConfig = nil
+		} else {
+			logger.Info("Successfully loaded dashboards config")
+		}
 	}
 
 	c, err := client.Dial(client.Options{
@@ -124,6 +137,7 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		ChainImages:       chainImages,
 		DatabaseService:   databaseService,
+		DashboardsConfig:  dashboardsConfig,
 	}
 
 	loadTestActivity := loadtest.Activity{

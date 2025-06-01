@@ -2,11 +2,16 @@ package testnet
 
 import (
 	"context"
+	"fmt"
+	"testing"
+	"time"
+
 	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/types"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 var createProviderReq = messages.CreateProviderRequest{
@@ -76,4 +81,31 @@ func TestChainLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, packagedState)
 	require.NotNil(t, chainState)
+}
+
+func TestGenerateMonitoringLinks(t *testing.T) {
+	dashboardsConfig := &types.DashboardsConfig{
+		Grafana: types.GrafanaConfig{
+			URL: "https://skipprotocol.grafana.net",
+			Dashboards: []types.Dashboard{
+				{
+					ID:        "b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436",
+					Name:      "comet-performance",
+					HumanName: "CometBFT Performance",
+				},
+			},
+		},
+	}
+
+	chainID := "test-chain-123"
+	startTime := time.Now()
+
+	links := dashboardsConfig.GenerateMonitoringLinks(chainID, startTime)
+
+	require.Len(t, links, 1)
+	assert.Contains(t, links, "CometBFT Performance")
+
+	expectedURL := fmt.Sprintf("https://skipprotocol.grafana.net/d/b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436/comet-performance?orgId=1&var-chain_id=%s&from=%d&to=now&refresh=auto",
+		chainID, startTime.UnixMilli())
+	assert.Equal(t, expectedURL, links["CometBFT Performance"])
 }

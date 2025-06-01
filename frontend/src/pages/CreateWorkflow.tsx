@@ -253,6 +253,13 @@ const CreateWorkflow = () => {
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
+      // GaiaEVM setting
+      if (params.get('gaiaEVM')) {
+        newFormData.GaiaEVM = params.get('gaiaEVM') === 'true';
+        hasChanges = true;
+        console.log("Setting gaiaEVM:", newFormData.GaiaEVM);
+      }
+      
       // Testnet duration
       if (params.get('testnetDuration')) {
         const duration = parseFloat(params.get('testnetDuration')!);

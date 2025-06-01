@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	types2 "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
+	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/ironbird/workflows/testnet"
 	"github.com/uber-go/tally/v4/prometheus"
@@ -74,6 +76,7 @@ type IronbirdServer struct {
 	temporalClient temporalclient.Client
 	config         types.TemporalConfig
 	db             db.DB
+	stopCh         chan struct{}
 }
 
 func NewIronbirdServer(config types.TemporalConfig, database db.DB) (*IronbirdServer, error) {
@@ -90,11 +93,100 @@ func NewIronbirdServer(config types.TemporalConfig, database db.DB) (*IronbirdSe
 		return nil, err
 	}
 
-	return &IronbirdServer{
+	server := &IronbirdServer{
 		temporalClient: temporalClient,
 		config:         config,
 		db:             database,
-	}, nil
+		stopCh:         make(chan struct{}),
+	}
+
+	go server.startWorkflowStatusUpdater()
+
+	return server, nil
+}
+
+// startWorkflowStatusUpdater starts a background process that fetches workflow statuses
+// from the temporal client and updates them in the database every 10 seconds
+func (s *IronbirdServer) startWorkflowStatusUpdater() {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	fmt.Println("Starting workflow status updater background process")
+
+	for {
+		select {
+		case <-ticker.C:
+			s.updateWorkflowStatuses()
+		case <-s.stopCh:
+			fmt.Println("Stopping workflow status updater background process")
+			return
+		}
+	}
+}
+
+// updateWorkflowStatuses fetches all workflows from the database and updates their status
+// by querying the temporal client
+func (s *IronbirdServer) updateWorkflowStatuses() {
+	workflows, err := s.db.ListWorkflows(1000, 0)
+	if err != nil {
+		fmt.Printf("Error listing workflows from database: %v\n", err)
+		return
+	}
+
+	for _, workflow := range workflows {
+		// Skip workflows that are already in a terminal state
+		if workflow.Status == db.WorkflowStatusCompleted ||
+			workflow.Status == db.WorkflowStatusFailed ||
+			workflow.Status == db.WorkflowStatusCanceled ||
+			workflow.Status == db.WorkflowStatusTerminated {
+			continue
+		}
+
+		workflowID := workflow.WorkflowID
+		desc, err := s.temporalClient.DescribeWorkflowExecution(
+			context.Background(),
+			workflowID,
+			"", // Empty run ID to get the latest run
+		)
+
+		if err != nil {
+			fmt.Printf("Error describing workflow %s: %v\n", workflowID, err)
+			continue
+		}
+
+		var newStatus db.WorkflowStatus
+		switch desc.WorkflowExecutionInfo.Status {
+		case 1: // WORKFLOW_EXECUTION_STATUS_RUNNING
+			newStatus = db.WorkflowStatusRunning
+		case 2: // WORKFLOW_EXECUTION_STATUS_COMPLETED
+			newStatus = db.WorkflowStatusCompleted
+		case 3: // WORKFLOW_EXECUTION_STATUS_FAILED
+			newStatus = db.WorkflowStatusFailed
+		case 4: // WORKFLOW_EXECUTION_STATUS_CANCELED
+			newStatus = db.WorkflowStatusCanceled
+		case 5: // WORKFLOW_EXECUTION_STATUS_TERMINATED
+			newStatus = db.WorkflowStatusTerminated
+		case 6: // WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW
+			newStatus = db.WorkflowStatusRunning // Treat as still running
+		case 7: // WORKFLOW_EXECUTION_STATUS_TIMED_OUT
+			newStatus = db.WorkflowStatusFailed // Treat as failed
+		default:
+			fmt.Printf("Unknown workflow status for %s: %v\n", workflowID, desc.WorkflowExecutionInfo.Status)
+			continue
+		}
+
+		if newStatus != workflow.Status {
+			fmt.Printf("Updating workflow %s status from %s to %s\n", workflowID, workflow.Status, newStatus)
+
+			update := db.WorkflowUpdate{
+				Status: &newStatus,
+			}
+
+			if err := s.db.UpdateWorkflow(workflowID, update); err != nil {
+				fmt.Printf("Error updating workflow %s status: %v\n", workflowID, err)
+			}
+		}
+	}
 }
 
 func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Request) error {
@@ -123,6 +215,27 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	}
 	fmt.Println("workflowrun.GetID", workflowRun.GetID())
 
+	workflowID := workflowRun.GetID()
+	workflow := &db.Workflow{
+		WorkflowID:      workflowID,
+		Nodes:           []testnettypes.Node{},
+		Validators:      []testnettypes.Node{},
+		LoadBalancers:   []testnettypes.Node{},
+		MonitoringLinks: make(map[string]string),
+		Status:          db.WorkflowStatusRunning,
+		Config:          req,
+		Repo:            req.Repo,
+		SHA:             req.SHA,
+		ChainName:       req.ChainConfig.Name,
+		RunnerType:      string(req.RunnerType),
+		NumOfNodes:      int(req.ChainConfig.NumOfNodes),
+		NumOfValidators: int(req.ChainConfig.NumOfValidators),
+	}
+
+	if err := s.db.CreateWorkflow(workflow); err != nil {
+		fmt.Printf("Error creating workflow record: %v\n", err)
+	}
+
 	response := WorkflowResponse{
 		WorkflowID: workflowRun.GetID(),
 		Status:     "in progress",
@@ -137,6 +250,7 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	return nil
 }
 
+// TODO: Implement update workflow
 //func (s *IronbirdServer) HandleUpdateWorkflow(w http.ResponseWriter, r *http.Request) error {
 //	workflowID := strings.TrimPrefix(r.URL.Path, "/ironbird/workflow/")
 //
@@ -449,6 +563,8 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *IronbirdServer) Close() error {
+	close(s.stopCh)
+
 	if s.temporalClient != nil {
 		s.temporalClient.Close()
 	}

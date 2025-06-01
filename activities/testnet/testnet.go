@@ -32,6 +32,7 @@ type Activity struct {
 	TelemetrySettings digitalocean.TelemetrySettings
 	ChainImages       types2.ChainImages
 	DatabaseService   *database.DatabaseService
+	DashboardsConfig  *types2.DashboardsConfig
 }
 
 var (
@@ -124,26 +125,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	logger, _ := zap.NewDevelopment()
 
 	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
-
-	if a.DatabaseService != nil {
-		workflowReq := messages.TestnetWorkflowRequest{
-			Repo:    req.Repo,
-			GaiaEVM: req.GaiaEVM,
-			SHA:     req.SHA,
-			ChainConfig: types2.ChainsConfig{
-				Name:            req.Name,
-				Image:           req.Image,
-				NumOfNodes:      req.NumOfNodes,
-				NumOfValidators: req.NumOfValidators,
-			},
-			RunnerType:         req.RunnerType,
-			LongRunningTestnet: true, // Default assumption
-		}
-
-		if err := a.DatabaseService.CreateWorkflow(workflowID, workflowReq, "running"); err != nil {
-			logger.Error("Failed to create workflow record", zap.Error(err))
-		}
-	}
+	startTime := time.Now()
 
 	var p provider.ProviderI
 
@@ -324,12 +306,27 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.Nodes = testnetNodes
 
-	// Include validators in the response
 	resp.Validators = testnetValidators
 
 	if a.DatabaseService != nil {
 		if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, testnetNodes, testnetValidators); err != nil {
 			logger.Error("Failed to update workflow nodes", zap.Error(err))
+		}
+
+		if a.DashboardsConfig != nil {
+			monitoringLinks := a.DashboardsConfig.GenerateMonitoringLinks(chainID, startTime)
+			logger.Info("Generated monitoring links",
+				zap.String("chainID", chainID),
+				zap.Time("startTime", startTime),
+				zap.Any("monitoringLinks", monitoringLinks))
+
+			if err := a.DatabaseService.UpdateWorkflowMonitoring(workflowID, monitoringLinks); err != nil {
+				logger.Error("Failed to update workflow monitoring links", zap.Error(err))
+			} else {
+				logger.Info("Successfully updated monitoring links in database")
+			}
+		} else {
+			logger.Warn("DashboardsConfig is nil, skipping monitoring links generation")
 		}
 	}
 
