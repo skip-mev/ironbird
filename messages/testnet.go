@@ -47,6 +47,7 @@ type LaunchTestnetResponse struct {
 	ChainState    []byte
 	ChainID       string
 	Nodes         []testnet.Node
+	Validators    []testnet.Node
 }
 
 type TestnetWorkflowRequest struct {
@@ -58,6 +59,7 @@ type TestnetWorkflowRequest struct {
 	LoadTestSpec       *catalysttypes.LoadTestSpec
 	LongRunningTestnet bool
 	TestnetDuration    time.Duration
+	NumWallets         int
 }
 
 func (r TestnetWorkflowRequest) Validate() error {

@@ -91,6 +91,11 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		return fmt.Errorf("failed to marshal validators: %w", err)
 	}
 
+	loadBalancersJSON, err := workflow.LoadBalancersJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal loadbalancers: %w", err)
+	}
+
 	configJSON, err := workflow.ConfigJSON()
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -131,11 +136,11 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 	now := time.Now()
 	query := `
 		INSERT INTO workflows (
-			workflow_id, nodes, validators, monitoring_links, status, config, 
+			workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
 			repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
 			long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id`
 
 	err = s.db.QueryRow(
@@ -143,6 +148,7 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		workflow.WorkflowID,
 		string(nodesJSON),
 		string(validatorsJSON),
+		string(loadBalancersJSON),
 		string(monitoringLinksJSON),
 		workflow.Status,
 		string(configJSON),
@@ -172,20 +178,21 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 // GetWorkflow retrieves a workflow by workflow ID
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
-		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, 
+		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
 		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
 		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
 	var workflow Workflow
-	var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
+	var nodesJSON, validatorsJSON, loadBalancersJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 	err := s.db.QueryRow(query, workflowID).Scan(
 		&workflow.ID,
 		&workflow.WorkflowID,
 		&nodesJSON,
 		&validatorsJSON,
+		&loadBalancersJSON,
 		&monitoringLinksJSON,
 		&workflow.Status,
 		&configJSON,
@@ -216,6 +223,10 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 
 	if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal validators: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal loadbalancers: %w", err)
 	}
 
 	if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
@@ -254,6 +265,15 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 		}
 		setParts = append(setParts, "validators = ?")
 		args = append(args, string(validatorsJSON))
+	}
+
+	if update.LoadBalancers != nil {
+		loadBalancersJSON, err := json.Marshal(*update.LoadBalancers)
+		if err != nil {
+			return fmt.Errorf("failed to marshal loadbalancers: %w", err)
+		}
+		setParts = append(setParts, "loadbalancers = ?")
+		args = append(args, string(loadBalancersJSON))
 	}
 
 	if update.MonitoringLinks != nil {
@@ -314,7 +334,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, workflow_id, nodes, validators, monitoring_links, status, config, 
+		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
 		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
 		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
 		FROM workflows
@@ -331,13 +351,14 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	var workflows []Workflow
 	for rows.Next() {
 		var workflow Workflow
-		var nodesJSON, validatorsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
+		var nodesJSON, validatorsJSON, loadBalancersJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 		err := rows.Scan(
 			&workflow.ID,
 			&workflow.WorkflowID,
 			&nodesJSON,
 			&validatorsJSON,
+			&loadBalancersJSON,
 			&monitoringLinksJSON,
 			&workflow.Status,
 			&configJSON,
@@ -368,6 +389,12 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			// Log the error but continue with empty validators
 			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
 			workflow.Validators = make([]testnet.Node, 0)
+		}
+
+		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
+			// Log the error but continue with empty loadbalancers
+			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
+			workflow.LoadBalancers = make([]testnet.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {

@@ -271,6 +271,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.ChainState = chainState
 
+	var testnetValidators []testnet.Node
 	var testnetNodes []testnet.Node
 
 	for _, validator := range chain.GetValidators() {
@@ -289,32 +290,45 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			return resp, err
 		}
 
-		testnetNodes = append(testnetNodes, testnet.Node{
+		testnetValidators = append(testnetValidators, testnet.Node{
 			Name:    validator.GetDefinition().Name,
 			Rpc:     fmt.Sprintf("http://%s", cometIp),
 			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
 			Address: ip,
-			Metrics: ip,
+		})
+	}
+
+	for _, node := range chain.GetNodes() {
+		cosmosIp, err := node.GetExternalAddress(ctx, "1317")
+		if err != nil {
+			return resp, err
+		}
+
+		cometIp, err := node.GetExternalAddress(ctx, "26657")
+		if err != nil {
+			return resp, err
+		}
+
+		ip, err := node.GetIP(ctx)
+		if err != nil {
+			return resp, err
+		}
+
+		testnetNodes = append(testnetNodes, testnet.Node{
+			Name:    node.GetDefinition().Name,
+			Rpc:     fmt.Sprintf("http://%s", cometIp),
+			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
+			Address: ip,
 		})
 	}
 
 	resp.Nodes = testnetNodes
 
-	// Update database with node information
+	// Include validators in the response
+	resp.Validators = testnetValidators
+
 	if a.DatabaseService != nil {
-		// Separate validators and nodes (assuming first NumOfValidators are validators)
-		numValidators := int(req.NumOfValidators)
-		var validators []testnet.Node
-		var allNodes []testnet.Node
-
-		for i, node := range testnetNodes {
-			allNodes = append(allNodes, node)
-			if i < numValidators {
-				validators = append(validators, node)
-			}
-		}
-
-		if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, allNodes, validators); err != nil {
+		if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, testnetNodes, testnetValidators); err != nil {
 			logger.Error("Failed to update workflow nodes", zap.Error(err))
 		}
 	}

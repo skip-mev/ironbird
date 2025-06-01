@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     workflow_id TEXT UNIQUE NOT NULL,
     nodes TEXT DEFAULT '[]',
     validators TEXT DEFAULT '[]',
+    loadbalancers TEXT DEFAULT '[]',
     monitoring_links TEXT DEFAULT '{}',
     status TEXT NOT NULL DEFAULT 'pending',
     config TEXT NOT NULL,

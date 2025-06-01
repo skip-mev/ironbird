@@ -9,6 +9,7 @@ type LaunchLoadBalancerRequest struct {
 	ProviderState []byte
 	RunnerType    testnet.RunnerType
 	Domains       []apps.LoadBalancerDomain
+	WorkflowID    string
 }
 
 type LaunchLoadBalancerResponse struct {

@@ -11,6 +11,7 @@ type RunLoadTestRequest struct {
 	LoadTestSpec  catalysttypes.LoadTestSpec
 	RunnerType    testnet.RunnerType
 	GaiaEVM       bool
+	Mnemonics     []string
 }
 
 type RunLoadTestResponse struct {

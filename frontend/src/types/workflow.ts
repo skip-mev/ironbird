@@ -48,6 +48,7 @@ export interface TestnetWorkflowRequest {
   LoadTestSpec?: LoadTestSpec;
   LongRunningTestnet: boolean;
   TestnetDuration: number;
+  NumWallets: number;
 }
 
 export interface Node {
@@ -61,6 +62,8 @@ export interface WorkflowStatus {
   WorkflowID: string;
   Status: string;
   Nodes: Node[];
+  Validators: Node[];
+  LoadBalancers: Node[];
   Monitoring: Record<string, string>;
   Config?: TestnetWorkflowRequest;
   

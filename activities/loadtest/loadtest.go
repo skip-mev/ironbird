@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	petritypes "github.com/skip-mev/petri/core/v3/types"
@@ -16,13 +15,10 @@ import (
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
-	petriutil "github.com/skip-mev/petri/core/v3/util"
-
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
-	"github.com/skip-mev/petri/cosmos/v3/wallet"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -57,7 +53,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	walletConfig petritypes.WalletConfig, loadTestSpec types.LoadTestSpec) ([]byte, error) {
+	walletConfig petritypes.WalletConfig, loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
 
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
@@ -87,68 +83,10 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 	loadTestSpec.NodesAddresses = nodes
 
-	var mnemonics []string
-	var addresses []string
-	var walletsMutex sync.Mutex
-
-	faucetWallet := chain.GetFaucetWallet()
-
-	totalWallets := 2500
-	var wg sync.WaitGroup
-
-	for i := 0; i < totalWallets; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			w, err := wallet.NewGeneratedWallet(petriutil.RandomString(5), walletConfig)
-			if err != nil {
-				logger.Error("failed to create wallet", zap.Error(err))
-				return
-			}
-
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
-		}()
-	}
-
-	wg.Wait()
-	logger.Info("successfully created all wallets", zap.Int("count", len(mnemonics)))
-
-	node := validators[len(validators)-1]
-	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
-	if err != nil {
-		logger.Error("failed to recover faucet wallet key", zap.Error(err))
-		return nil, fmt.Errorf("failed to recover faucet wallet key: %w", err)
-	}
-	time.Sleep(1 * time.Second)
-
-	command := []string{
-		chainConfig.BinaryName,
-		"tx", "bank", "multi-send",
-		faucetWallet.FormattedAddress(),
-	}
-
-	command = append(command, addresses...)
-	command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
-		"--chain-id", chainConfig.ChainId,
-		"--keyring-backend", "test",
-		"--from", "faucet",
-		"--fees", fmt.Sprintf("80000%s", chainConfig.Denom),
-		"--gas", "auto",
-		"--yes",
-		"--home", chainConfig.HomeDir,
-	)
-
-	_, stderr, exitCode, err := node.RunCommand(ctx, command)
-	if err != nil || exitCode != 0 {
-		logger.Warn("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
-	}
-	time.Sleep(5 * time.Second)
 	loadTestSpec.Mnemonics = mnemonics
+	logger.Info("using pre-created wallets", zap.Int("count", len(mnemonics)))
 
-	err = loadTestSpec.Validate()
+	err := loadTestSpec.Validate()
 	if err != nil {
 		logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
 		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
@@ -196,7 +134,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, walletConfig, req.LoadTestSpec)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, walletConfig, req.LoadTestSpec, req.Mnemonics)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}

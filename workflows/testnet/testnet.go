@@ -15,6 +15,7 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/skip-mev/ironbird/activities/builder"
@@ -30,6 +31,7 @@ var testnetActivities *testnet.Activity
 var loadTestActivities *loadtest.Activity
 var builderActivities *builder.Activity
 var loadBalancerActivities *loadbalancer.Activity
+var walletCreatorActivities *walletcreator.Activity
 
 const (
 	defaultRuntime = time.Hour
@@ -121,7 +123,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	return "", nil
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []testnettypes.Node, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []testnettypes.Node, []testnettypes.Node, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
@@ -130,7 +132,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		RunnerType: req.RunnerType,
 		Name:       runName,
 	}).Get(ctx, &createProviderResp); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	providerState = createProviderResp.ProviderState
@@ -158,23 +160,33 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			ProviderSpecificOptions: providerSpecificOptions,
 			ProviderState:           providerState,
 		}).Get(ctx, &testnetResp); err != nil {
-		return nil, providerState, nil, err
+		return nil, providerState, nil, nil, err
 	}
 
 	chainState = testnetResp.ChainState
 	providerState = testnetResp.ProviderState
 
-	return chainState, providerState, testnetResp.Nodes, nil
+	return chainState, providerState, testnetResp.Nodes, testnetResp.Validators, nil
 }
 
-func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte, nodes []testnettypes.Node) ([]byte, error) {
+func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
+	nodes []testnettypes.Node) ([]byte, []testnettypes.Node, error) {
+	logger := workflow.GetLogger(ctx)
+	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
+
 	if req.RunnerType != testnettypes.DigitalOcean {
-		return providerState, nil
+		logger.Info("Skipping loadbalancer creation for non-DigitalOcean runner",
+			zap.String("runnerType", string(req.RunnerType)))
+		return providerState, nil, nil
 	}
 
-	var loadBalancerResp messages.LaunchLoadBalancerResponse
+	logger.Info("Creating loadbalancer domains for nodes",
+		zap.Int("nodeCount", len(nodes)),
+		zap.String("workflowID", workflowID))
 
+	var loadBalancerResp messages.LaunchLoadBalancerResponse
 	var domains []apps.LoadBalancerDomain
+
 	for _, node := range nodes {
 		domains = append(domains, apps.LoadBalancerDomain{
 			Domain:   fmt.Sprintf("%s-grpc", node.Name),
@@ -195,6 +207,10 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		})
 	}
 
+	logger.Info("Executing LaunchLoadBalancer activity",
+		zap.Int("domainCount", len(domains)),
+		zap.String("workflowID", workflowID))
+
 	if err := workflow.ExecuteActivity(
 		ctx,
 		loadBalancerActivities.LaunchLoadBalancer,
@@ -202,27 +218,67 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 			ProviderState: providerState,
 			RunnerType:    req.RunnerType,
 			Domains:       domains,
+			WorkflowID:    workflowID,
 		},
 	).Get(ctx, &loadBalancerResp); err != nil {
-		return providerState, err
+		logger.Error("Failed to launch loadbalancer", zap.Error(err))
+		return providerState, nil, err
 	}
 
-	var reformedNodes []testnettypes.Node
+	logger.Info("LaunchLoadBalancer activity completed successfully",
+		zap.String("rootDomain", loadBalancerResp.RootDomain))
+
+	var loadBalancers []testnettypes.Node
 
 	for _, node := range nodes {
-		reformedNodes = append(reformedNodes, testnettypes.Node{
+		loadBalancers = append(loadBalancers, testnettypes.Node{
 			Name:    node.Name,
 			Address: node.Address,
 			Rpc:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
 			Lcd:     fmt.Sprintf("https://%s-lcd.%s", node.Name, loadBalancerResp.RootDomain),
-			Metrics: node.Address,
 		})
 	}
 
-	return loadBalancerResp.ProviderState, nil
+	logger.Info("Created loadbalancer entries for nodes",
+		zap.Int("loadbalancerCount", len(loadBalancers)),
+		zap.String("rootDomain", loadBalancerResp.RootDomain))
+
+	// The database update will be handled by the activity itself
+
+	return loadBalancerResp.ProviderState, loadBalancers, nil
 }
 
-func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte) (time.Duration, error) {
+func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte) ([]string, error) {
+	if req.NumWallets <= 0 {
+		workflow.GetLogger(ctx).Info("no wallets to create, using default value of 2500")
+		req.NumWallets = 2500
+	}
+
+	workflow.GetLogger(ctx).Info("creating wallets", zap.Int("numWallets", req.NumWallets))
+
+	var createWalletsResp messages.CreateWalletsResponse
+	err := workflow.ExecuteActivity(
+		ctx,
+		walletCreatorActivities.CreateWallets,
+		messages.CreateWalletsRequest{
+			NumWallets:    req.NumWallets,
+			GaiaEVM:       req.GaiaEVM,
+			ChainState:    chainState,
+			ProviderState: providerState,
+			RunnerType:    string(req.RunnerType),
+		},
+	).Get(ctx, &createWalletsResp)
+
+	if err != nil {
+		workflow.GetLogger(ctx).Error("wallet creation activity failed", zap.Error(err))
+		return nil, err
+	}
+
+	workflow.GetLogger(ctx).Info("wallets created successfully", zap.Int("count", len(createWalletsResp.Mnemonics)))
+	return createWalletsResp.Mnemonics, nil
+}
+
+func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, mnemonics []string) (time.Duration, error) {
 	var loadTestTimeout time.Duration
 	if req.LoadTestSpec == nil {
 		return 0, nil
@@ -230,11 +286,11 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	workflow.GetLogger(ctx).Info("TestnetWorkflowRequest", zap.Any("req", req))
 
 	workflow.Go(ctx, func(ctx workflow.Context) {
-
 		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
 		loadTestTimeout = loadTestTimeout + 1*time.Hour
 
 		var loadTestResp messages.RunLoadTestResponse
+		req.LoadTestSpec.GaiaEVM = req.GaiaEVM
 		activityErr := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
@@ -244,6 +300,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				LoadTestSpec:  *req.LoadTestSpec,
 				RunnerType:    req.RunnerType,
 				GaiaEVM:       req.GaiaEVM,
+				Mnemonics:     mnemonics,
 			},
 		).Get(ctx, &loadTestResp)
 
@@ -272,17 +329,39 @@ func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]str
 }
 
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
-	chainState, providerState, nodes, err := launchTestnet(ctx, req, runName, buildResult)
+	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes)
+	// Log validators for debugging
+	workflow.GetLogger(ctx).Info("validators from launchTestnet",
+		zap.Int("count", len(validators)),
+		zap.String("workflowID", workflowID))
+
+	providerState, loadBalancers, err := launchLoadBalancer(ctx, req, providerState, nodes)
 	if err != nil {
 		return err
 	}
 
-	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState)
+	// Log loadbalancers for debugging
+	if len(loadBalancers) > 0 {
+		workflow.GetLogger(ctx).Info("loadbalancers created",
+			zap.Int("count", len(loadBalancers)),
+			zap.String("first_lb", loadBalancers[0].Name),
+			zap.String("workflowID", workflowID))
+	} else {
+		workflow.GetLogger(ctx).Info("no loadbalancers created",
+			zap.String("workflowID", workflowID),
+			zap.String("runnerType", string(req.RunnerType)))
+	}
+
+	mnemonics, err := createWallets(ctx, req, chainState, providerState)
+	if err != nil {
+		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
+	}
+
+	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, mnemonics)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}

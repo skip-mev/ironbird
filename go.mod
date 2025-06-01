@@ -7,6 +7,7 @@ toolchain go1.24.2
 replace (
 	github.com/skip-mev/petri/core/v3 => ../petri/core/
 	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos/
+	github.com/skip-mev/catalyst => ../catalyst/
 )
 
 require (

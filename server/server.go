@@ -14,7 +14,6 @@ import (
 	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/ironbird/workflows/testnet"
 	"github.com/uber-go/tally/v4/prometheus"
-	"go.temporal.io/api/workflowservice/v1"
 	temporalclient "go.temporal.io/sdk/client"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 )
@@ -30,16 +29,18 @@ type Node struct {
 	Name    string `json:"Name"`
 	RPC     string `json:"RPC"`
 	LCD     string `json:"LCD"`
-	Metrics string `json:"Metrics"`
+	Address string `json:"Address"`
 }
 
 // WorkflowStatus represents the complete status of a workflow
 type WorkflowStatus struct {
-	WorkflowID string                          `json:"WorkflowID"`
-	Status     string                          `json:"Status"`
-	Nodes      []Node                          `json:"Nodes"`
-	Monitoring map[string]string               `json:"Monitoring"`
-	Config     messages.TestnetWorkflowRequest `json:"Config,omitempty"`
+	WorkflowID    string                          `json:"WorkflowID"`
+	Status        string                          `json:"Status"`
+	Nodes         []Node                          `json:"Nodes"`
+	Validators    []Node                          `json:"Validators"`
+	LoadBalancers []Node                          `json:"LoadBalancers"`
+	Monitoring    map[string]string               `json:"Monitoring"`
+	Config        messages.TestnetWorkflowRequest `json:"Config,omitempty"`
 
 	// Individual fields from the database
 	Repo               string          `json:"repo,omitempty"`
@@ -48,6 +49,7 @@ type WorkflowStatus struct {
 	RunnerType         string          `json:"runnerType,omitempty"`
 	NumOfNodes         int             `json:"numOfNodes,omitempty"`
 	NumOfValidators    int             `json:"numOfValidators,omitempty"`
+	NumWallets         int             `json:"numWallets,omitempty"`
 	LongRunningTestnet bool            `json:"longRunningTestnet,omitempty"`
 	TestnetDuration    int64           `json:"testnetDuration,omitempty"`
 	LoadTestSpec       json.RawMessage `json:"loadTestSpec,omitempty"`
@@ -178,8 +180,8 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 	workflow, err := s.db.GetWorkflow(workflowID)
 	if err != nil {
 		fmt.Printf("Error getting workflow from database %s: %v\n", workflowID, err)
-		// Fallback to Temporal for backward compatibility
-		return s.getWorkflowFromTemporal(w, workflowID)
+		http.Error(w, fmt.Sprintf("workflow not found: %v", err), http.StatusNotFound)
+		return nil
 	}
 
 	// Convert database status to response format
@@ -208,7 +210,29 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 			Name:    node.Name,
 			RPC:     node.Rpc,
 			LCD:     node.Lcd,
-			Metrics: node.Metrics,
+			Address: node.Address,
+		})
+	}
+
+	// Convert validators from database format
+	var validators []Node
+	for _, validator := range workflow.Validators {
+		validators = append(validators, Node{
+			Name:    validator.Name,
+			RPC:     validator.Rpc,
+			LCD:     validator.Lcd,
+			Address: validator.Address,
+		})
+	}
+
+	// Convert loadbalancers from database format
+	var loadBalancers []Node
+	for _, lb := range workflow.LoadBalancers {
+		loadBalancers = append(loadBalancers, Node{
+			Name:    lb.Name,
+			RPC:     lb.Rpc,
+			LCD:     lb.Lcd,
+			Address: lb.Address,
 		})
 	}
 
@@ -222,6 +246,8 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 		WorkflowID:         workflowID,
 		Status:             status,
 		Nodes:              nodes,
+		Validators:         validators,
+		LoadBalancers:      loadBalancers,
 		Monitoring:         monitoring,
 		Config:             workflow.Config,
 		Repo:               workflow.Repo,
@@ -230,6 +256,7 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 		RunnerType:         workflow.RunnerType,
 		NumOfNodes:         workflow.NumOfNodes,
 		NumOfValidators:    workflow.NumOfValidators,
+		NumWallets:         workflow.NumWallets,
 		LongRunningTestnet: workflow.LongRunningTestnet,
 		TestnetDuration:    workflow.TestnetDuration,
 		LoadTestSpec:       workflow.LoadTestSpec,
@@ -245,114 +272,6 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 	}
 
 	fmt.Printf("Successfully sent response from database\n")
-	return nil
-}
-
-// getWorkflowFromTemporal is a fallback method for backward compatibility
-func (s *IronbirdServer) getWorkflowFromTemporal(w http.ResponseWriter, workflowID string) error {
-	// Get workflow status from Temporal
-	fmt.Printf("Attempting to describe workflow: %s\n", workflowID)
-	describe, err := s.temporalClient.DescribeWorkflowExecution(context.Background(), workflowID, "")
-	if err != nil {
-		fmt.Printf("Error describing workflow %s: %v\n", workflowID, err)
-		http.Error(w, fmt.Sprintf("workflow not found: %v", err), http.StatusNotFound)
-		return nil
-	}
-
-	fmt.Printf("Successfully described workflow. Status: %v\n", describe.WorkflowExecutionInfo.Status)
-
-	var status string
-	switch describe.WorkflowExecutionInfo.Status {
-	case 1: // WORKFLOW_EXECUTION_STATUS_RUNNING
-		status = "running"
-	case 2: // WORKFLOW_EXECUTION_STATUS_COMPLETED
-		status = "completed"
-	case 3: // WORKFLOW_EXECUTION_STATUS_FAILED
-		status = "failed"
-	case 4: // WORKFLOW_EXECUTION_STATUS_CANCELED
-		status = "canceled"
-	case 5: // WORKFLOW_EXECUTION_STATUS_TERMINATED
-		status = "terminated"
-	case 6: // WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW
-		status = "continued_as_new"
-	case 7: // WORKFLOW_EXECUTION_STATUS_TIMED_OUT
-		status = "timed_out"
-	default:
-		status = "unknown"
-	}
-
-	// For now, return mock data for nodes and monitoring
-	// In a real implementation, you would query the workflow result or use signals to get the actual node information
-	var nodes []Node
-	var monitoring map[string]string
-
-	if status == "running" || status == "completed" {
-		// Mock data - in reality this would come from the workflow result or stored state
-		nodes = []Node{
-			{
-				Name:    "validator-0",
-				RPC:     "http://validator-0:26657",
-				LCD:     "http://validator-0:1317",
-				Metrics: "http://validator-0:26660",
-			},
-			{
-				Name:    "validator-1",
-				RPC:     "http://validator-1:26657",
-				LCD:     "http://validator-1:1317",
-				Metrics: "http://validator-1:26660",
-			},
-			{
-				Name:    "validator-2",
-				RPC:     "http://validator-2:26657",
-				LCD:     "http://validator-2:1317",
-				Metrics: "http://validator-2:26660",
-			},
-		}
-
-		monitoring = map[string]string{
-			"grafana":    "https://grafana.example.com/d/testnet-dashboard",
-			"prometheus": "https://prometheus.example.com",
-		}
-	} else {
-		nodes = []Node{}
-		monitoring = map[string]string{}
-	}
-
-	// Extract repo and SHA from workflow ID if it follows the pattern "testnet-{repo}-{sha}"
-	var repo, sha string
-	if strings.HasPrefix(workflowID, "testnet-") {
-		parts := strings.Split(workflowID, "-")
-		if len(parts) >= 3 {
-			repo = parts[1]
-			sha = strings.Join(parts[2:], "-") // In case SHA contains dashes
-		}
-	}
-
-	response := WorkflowStatus{
-		WorkflowID:         workflowID,
-		Status:             status,
-		Nodes:              nodes,
-		Monitoring:         monitoring,
-		Repo:               repo,
-		SHA:                sha,
-		ChainName:          "test-chain",
-		RunnerType:         "Docker",
-		NumOfNodes:         4,
-		NumOfValidators:    3,
-		LongRunningTestnet: false,
-		TestnetDuration:    0,
-	}
-
-	fmt.Printf("Sending response: %+v\n", response)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		fmt.Printf("Error encoding response: %v\n", err)
-		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
-		return nil
-	}
-
-	fmt.Printf("Successfully sent response\n")
 	return nil
 }
 
@@ -476,8 +395,8 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 	dbWorkflows, err := s.db.ListWorkflows(100, 0) // Limit to 100 workflows for now
 	if err != nil {
 		fmt.Printf("Error listing workflows from database: %v\n", err)
-		// Fallback to Temporal for backward compatibility
-		return s.listWorkflowsFromTemporal(w)
+		http.Error(w, fmt.Sprintf("failed to list workflows: %v", err), http.StatusInternalServerError)
+		return nil
 	}
 
 	var workflows []WorkflowSummary
@@ -518,88 +437,6 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 	}
 
 	fmt.Printf("Returning %d workflows\n", len(workflows))
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		fmt.Printf("Error encoding response: %v\n", err)
-		http.Error(w, fmt.Sprintf("error encoding response: %v", err), http.StatusInternalServerError)
-		return nil
-	}
-
-	return nil
-}
-
-// listWorkflowsFromTemporal is a fallback method for backward compatibility
-func (s *IronbirdServer) listWorkflowsFromTemporal(w http.ResponseWriter) error {
-	// List workflows from Temporal
-	listRequest := &workflowservice.ListWorkflowExecutionsRequest{
-		Namespace: s.config.Namespace,
-		PageSize:  100, // Limit to 100 workflows for now
-	}
-
-	ctx := context.Background()
-	listResponse, err := s.temporalClient.ListWorkflow(ctx, listRequest)
-	if err != nil {
-		fmt.Printf("Error listing workflows from Temporal: %v\n", err)
-		http.Error(w, fmt.Sprintf("failed to list workflows: %v", err), http.StatusInternalServerError)
-		return nil
-	}
-
-	var workflows []WorkflowSummary
-	for _, execution := range listResponse.Executions {
-		var status string
-		switch execution.Status {
-		case 1: // WORKFLOW_EXECUTION_STATUS_RUNNING
-			status = "running"
-		case 2: // WORKFLOW_EXECUTION_STATUS_COMPLETED
-			status = "completed"
-		case 3: // WORKFLOW_EXECUTION_STATUS_FAILED
-			status = "failed"
-		case 4: // WORKFLOW_EXECUTION_STATUS_CANCELED
-			status = "canceled"
-		case 5: // WORKFLOW_EXECUTION_STATUS_TERMINATED
-			status = "terminated"
-		case 6: // WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW
-			status = "continued_as_new"
-		case 7: // WORKFLOW_EXECUTION_STATUS_TIMED_OUT
-			status = "timed_out"
-		default:
-			status = "unknown"
-		}
-
-		startTime := ""
-		if execution.StartTime != nil {
-			startTime = execution.StartTime.AsTime().Format("2006-01-02 15:04:05")
-		}
-
-		// Get repo and SHA from workflow history
-		var repo, sha string
-
-		// First try to extract from workflow ID if it follows the pattern "testnet-{repo}-{sha}"
-		workflowID := execution.Execution.WorkflowId
-		if strings.HasPrefix(workflowID, "testnet-") {
-			parts := strings.Split(workflowID, "-")
-			if len(parts) >= 3 {
-				repo = parts[1]
-				sha = strings.Join(parts[2:], "-") // In case SHA contains dashes
-			}
-		}
-
-		workflows = append(workflows, WorkflowSummary{
-			WorkflowID: workflowID,
-			Status:     status,
-			StartTime:  startTime,
-			Repo:       repo,
-			SHA:        sha,
-		})
-	}
-
-	response := WorkflowListResponse{
-		Workflows: workflows,
-		Count:     len(workflows),
-	}
-
-	fmt.Printf("Returning %d workflows from Temporal\n", len(workflows))
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {

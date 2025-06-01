@@ -324,18 +324,18 @@ const WorkflowDetails = () => {
           </CardBody>
         </Card>
 
-        {/* Nodes Card */}
-        <Card>
-          <CardHeader>
-            <Heading size="md">Network Nodes {workflow.Nodes && workflow.Nodes.length > 0 ? `(${workflow.Nodes.length})` : ''}</Heading>
-          </CardHeader>
-          <CardBody>
-            {/* Check if we're in a running state and the nodes look like mock data */}
-            {workflow.Status === 'running' && 
-              ((!workflow.Nodes || workflow.Nodes.length === 0) || 
-               (workflow.Nodes.length === 3 && 
-                workflow.Nodes[0].Name === 'validator-0' && 
-                workflow.Nodes[0].RPC === 'http://validator-0:26657')) ? (
+        {/* Testnet Setup Card - shown when testnet is still being set up */}
+        {workflow.Status === 'running' && 
+          ((!workflow.Nodes || workflow.Nodes.length === 0) || 
+           (!workflow.Validators || workflow.Validators.length === 0) ||
+           (workflow.Nodes.length === 3 && 
+            workflow.Nodes[0].Name === 'validator-0' && 
+            workflow.Nodes[0].RPC === 'http://validator-0:26657')) ? (
+          <Card>
+            <CardHeader>
+              <Heading size="md">Testnet Setup</Heading>
+            </CardHeader>
+            <CardBody>
               <Box 
                 display="flex" 
                 flexDirection="column" 
@@ -351,13 +351,152 @@ const WorkflowDetails = () => {
                   Testnet Spinup in Progress
                 </Text>
                 <Text color="textSecondary" textAlign="center" maxW="md">
-                  The network nodes are being created. This process may take a few minutes. 
-                  The page will automatically update when nodes are ready.
+                  The testnet is being created. This process may take a few minutes.
+                  Nodes, validators, and load balancers will appear here when they are ready.
+                  The page will automatically update when components are ready.
                 </Text>
               </Box>
-            ) : workflow.Nodes && workflow.Nodes.length > 0 ? (
+            </CardBody>
+          </Card>
+        ) : (
+          <>
+            {/* Nodes Card - only shown when nodes are ready */}
+            {workflow.Nodes && workflow.Nodes.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <Heading size="md">Network Nodes {`(${workflow.Nodes.length})`}</Heading>
+                </CardHeader>
+                <CardBody>
+                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                    {workflow.Nodes.map((node) => (
+                      <Box 
+                        key={node.Name} 
+                        bg="surface" 
+                        p={4} 
+                        borderRadius="md" 
+                        border="1px"
+                        borderColor="divider"
+                      >
+                        <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                          {node.Name}
+                        </Text>
+                        <Stack spacing={2}>
+                          <HStack>
+                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                              RPC:
+                            </Text>
+                            <Link 
+                              href={node.RPC} 
+                              target="_blank" 
+                              color="blue.500"
+                              fontSize="sm"
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              {node.RPC}
+                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                            </Link>
+                          </HStack>
+                          <HStack>
+                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                              LCD:
+                            </Text>
+                            <Link 
+                              href={node.LCD} 
+                              target="_blank" 
+                              color="blue.500"
+                              fontSize="sm"
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              {node.LCD}
+                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                            </Link>
+                          </HStack>                
+                        </Stack>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+                </CardBody>
+              </Card>
+            )}
+
+            {/* Validators Card - only shown when validators are ready */}
+            {workflow.Validators && workflow.Validators.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <Heading size="md">Validators {`(${workflow.Validators.length})`}</Heading>
+                </CardHeader>
+                <CardBody>
+                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                    {workflow.Validators.map((validator) => (
+                      <Box 
+                        key={validator.Name} 
+                        bg="surface" 
+                        p={4} 
+                        borderRadius="md" 
+                        border="1px"
+                        borderColor="divider"
+                      >
+                        <Text fontWeight="bold" fontSize="lg" mb={3} color="purple.600">
+                          {validator.Name}
+                        </Text>
+                        <Stack spacing={2}>
+                          <HStack>
+                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                              RPC:
+                            </Text>
+                            <Link 
+                              href={validator.RPC} 
+                              target="_blank" 
+                              color="blue.500"
+                              fontSize="sm"
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              {validator.RPC}
+                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                            </Link>
+                          </HStack>
+                          <HStack>
+                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                              LCD:
+                            </Text>
+                            <Link 
+                              href={validator.LCD} 
+                              target="_blank" 
+                              color="blue.500"
+                              fontSize="sm"
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              {validator.LCD}
+                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                            </Link>
+                          </HStack>
+                        </Stack>
+                      </Box>
+                    ))}
+                  </SimpleGrid>
+                </CardBody>
+              </Card>
+            )}
+          </>
+        )}
+
+        {/* Load Balancers Card */}
+        {workflow.LoadBalancers && workflow.LoadBalancers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <Heading size="md">Load Balancers {`(${workflow.LoadBalancers.length})`}</Heading>
+            </CardHeader>
+            <CardBody>
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                {workflow.Nodes.map((node) => (
+                {workflow.LoadBalancers.map((node) => (
                   <Box 
                     key={node.Name} 
                     bg="surface" 
@@ -366,7 +505,7 @@ const WorkflowDetails = () => {
                     border="1px"
                     borderColor="divider"
                   >
-                    <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                    <Text fontWeight="bold" fontSize="lg" mb={3} color="green.600">
                       {node.Name}
                     </Text>
                     <Stack spacing={2}>
@@ -404,48 +543,13 @@ const WorkflowDetails = () => {
                           <Icon as={ExternalLinkIcon} boxSize={3} />
                         </Link>
                       </HStack>
-                      <HStack>
-                        <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                          Metrics:
-                        </Text>
-                        <Link 
-                          href={node.Metrics} 
-                          target="_blank" 
-                          color="blue.500"
-                          fontSize="sm"
-                          display="flex"
-                          alignItems="center"
-                          gap={1}
-                        >
-                          {node.Metrics}
-                          <Icon as={ExternalLinkIcon} boxSize={3} />
-                        </Link>
-                      </HStack>
                     </Stack>
                   </Box>
                 ))}
               </SimpleGrid>
-            ) : (
-              <Box 
-                display="flex" 
-                flexDirection="column" 
-                alignItems="center" 
-                justifyContent="center" 
-                py={10}
-                bg="surface"
-                borderRadius="md"
-                boxShadow="sm"
-              >
-                <Text fontSize="lg" fontWeight="medium" color="text" mb={2}>
-                  No Network Nodes Available
-                </Text>
-                <Text color="textSecondary" textAlign="center" maxW="md">
-                  There are no network nodes available for this workflow.
-                </Text>
-              </Box>
-            )}
-          </CardBody>
-        </Card>
+            </CardBody>
+          </Card>
+        )}
 
         {/* Monitoring Card */}
         {workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0 && (

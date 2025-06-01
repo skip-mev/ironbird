@@ -109,3 +109,22 @@ func (s *DatabaseService) UpdateWorkflowMonitoring(workflowID string, monitoring
 	s.Logger.Info("Successfully updated workflow monitoring", zap.String("workflow_id", workflowID))
 	return nil
 }
+
+// UpdateWorkflowLoadBalancers updates the loadbalancers for a workflow
+func (s *DatabaseService) UpdateWorkflowLoadBalancers(workflowID string, loadbalancers []testnet.Node) error {
+	s.Logger.Info("Updating workflow loadbalancers",
+		zap.String("workflow_id", workflowID),
+		zap.Int("loadbalancers_count", len(loadbalancers)))
+
+	update := db.WorkflowUpdate{
+		LoadBalancers: &loadbalancers,
+	}
+
+	if err := s.DB.UpdateWorkflow(workflowID, update); err != nil {
+		s.Logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
+		return fmt.Errorf("failed to update workflow loadbalancers: %w", err)
+	}
+
+	s.Logger.Info("Successfully updated workflow loadbalancers", zap.String("workflow_id", workflowID))
+	return nil
+}

@@ -13,5 +13,4 @@ type Node struct {
 	Address string
 	Rpc     string
 	Lcd     string
-	Metrics string
 }

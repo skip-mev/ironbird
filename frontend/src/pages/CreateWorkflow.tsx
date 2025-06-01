@@ -114,7 +114,8 @@ const CreateWorkflow = () => {
   const location = useLocation();
   const toast = useToast();
   // Default values to use as placeholders
-  const defaultValues = {
+  const defaultValues: TestnetWorkflowRequest = {
+    Repo: 'cosmos-sdk',
     SHA: '',
     ChainConfig: {
       Name: 'test-chain',
@@ -128,11 +129,12 @@ const CreateWorkflow = () => {
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
+    NumWallets: 2500, // Default number of wallets
   };
 
   // Initialize form data with empty values
   const [formData, setFormData] = useState<TestnetWorkflowRequest>({
-    Repo: 'Cosmos SDK',
+    Repo: '',
     SHA: '',
     ChainConfig: {
       Name: '',
@@ -146,6 +148,7 @@ const CreateWorkflow = () => {
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 0,
+    NumWallets: 2500,
   });
   
   // Check for URL parameters (for cloning workflows)
@@ -156,7 +159,26 @@ const CreateWorkflow = () => {
     
     // Only proceed if we have parameters
     if (params.toString()) {
-      const newFormData = { ...formData };
+      // Start with a fresh form data object based on default values
+      // This ensures we have proper defaults for any fields not specified in the URL
+      const newFormData: TestnetWorkflowRequest = {
+        Repo: '',
+        SHA: '',
+        ChainConfig: {
+          Name: '',
+          Image: '',
+          GenesisModifications: [],
+          NumOfNodes: 0,
+          NumOfValidators: 0,
+        },
+        RunnerType: '',
+        GaiaEVM: false,
+        LoadTestSpec: undefined,
+        LongRunningTestnet: false,
+        TestnetDuration: 0,
+        NumWallets: 2500,
+      };
+      
       let hasChanges = false;
       
       // Basic fields
@@ -263,7 +285,7 @@ const CreateWorkflow = () => {
         console.log("No changes to form data");
       }
     }
-  }, [location.search, toast]); // Only run when URL parameters change
+  }, [location.search]); // Only run when URL parameters change - removed toast dependency
 
   const [newKeyValue, setNewKeyValue] = useState<GenesisModification>({
     key: '',
@@ -358,6 +380,7 @@ const CreateWorkflow = () => {
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
       TestnetDuration: durationInNanos,
+      NumWallets: formData.NumWallets,
     };
 
     createWorkflowMutation.mutate(submissionData);
@@ -491,7 +514,7 @@ const CreateWorkflow = () => {
                 bg="surface"
                 color="text"
                 borderColor="divider"
-                placeholder={defaultValues.Repo}
+                placeholder="Select repository"
               >
               <option value="cosmos-sdk">Cosmos SDK</option>
               <option value="cometbft">CometBFT</option>
@@ -541,7 +564,7 @@ const CreateWorkflow = () => {
                 bg="surface"
                 color="text"
                 borderColor="divider"
-                placeholder={defaultValues.RunnerType}
+                placeholder="Select runner type"
               >
               <option value="Docker">Docker</option>
               <option value="DigitalOcean">DigitalOcean</option>
@@ -845,6 +868,23 @@ const CreateWorkflow = () => {
               <FormHelperText>Duration in hours</FormHelperText>
             </FormControl>
           )}
+
+          <FormControl>
+            <FormLabel>Number of Wallets</FormLabel>
+            <NumberInput
+              min={1}
+              value={formData.NumWallets || ''}
+              onChange={(_, value) => {
+                setFormData({ 
+                  ...formData, 
+                  NumWallets: value || 2500
+                });
+              }}
+            >
+              <NumberInputField placeholder="2500" />
+            </NumberInput>
+            <FormHelperText>Number of wallets to create</FormHelperText>
+          </FormControl>
 
           <Button
             mt={4}

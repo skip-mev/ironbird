@@ -3,6 +3,9 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"github.com/skip-mev/ironbird/database"
 	"github.com/skip-mev/ironbird/messages"
 	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/apps"
@@ -17,6 +20,7 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
+	DatabaseService   *database.DatabaseService
 }
 
 func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLoadBalancerRequest) (messages.LaunchLoadBalancerResponse, error) {
@@ -65,6 +69,58 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		return messages.LaunchLoadBalancerResponse{
 			ProviderState: newProviderState,
 		}, fmt.Errorf("failed to serialize load balancer task: %w", err)
+	}
+
+	workflowID := req.WorkflowID
+
+	if a.DatabaseService != nil && workflowID != "" {
+		logger.Info("Updating loadbalancers in database",
+			zap.String("workflowID", workflowID),
+			zap.Int("domainCount", len(req.Domains)))
+
+		nodeNames := make(map[string]bool)
+		for _, domain := range req.Domains {
+			parts := strings.Split(domain.Domain, "-")
+			if len(parts) >= 1 {
+				nodeNames[parts[0]] = true
+			}
+		}
+
+		logger.Info("Extracted node names from domains",
+			zap.Int("uniqueNodeCount", len(nodeNames)),
+			zap.Any("nodeNames", nodeNames))
+
+		var loadBalancers []testnettypes.Node
+		for nodeName := range nodeNames {
+			loadBalancers = append(loadBalancers, testnettypes.Node{
+				Name:    nodeName,
+				Address: a.RootDomain,
+				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
+				Lcd:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
+			})
+		}
+
+		if len(loadBalancers) > 0 {
+			logger.Info("Updating database with loadbalancers",
+				zap.Int("loadbalancerCount", len(loadBalancers)),
+				zap.String("firstLoadbalancerName", loadBalancers[0].Name),
+				zap.String("rootDomain", a.RootDomain))
+
+			if err := a.DatabaseService.UpdateWorkflowLoadBalancers(workflowID, loadBalancers); err != nil {
+				logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
+			} else {
+				logger.Info("Successfully updated database with loadbalancers")
+			}
+		} else {
+			logger.Warn("No loadbalancers to update in database")
+		}
+	} else {
+		if a.DatabaseService == nil {
+			logger.Error("DatabaseService is nil, cannot update loadbalancers in database")
+		}
+		if workflowID == "" {
+			logger.Error("WorkflowID is empty, cannot update loadbalancers in database")
+		}
 	}
 
 	return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState, LoadBalancerState: loadBalancerState, RootDomain: a.RootDomain}, nil
