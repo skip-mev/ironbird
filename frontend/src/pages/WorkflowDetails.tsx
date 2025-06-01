@@ -46,6 +46,46 @@ const WorkflowDetails = () => {
     if (workflow) {
       console.log("Workflow data received:", workflow);
       console.log("Config field:", workflow.Config);
+      
+      // Add more detailed logging for debugging the gray screen issue
+      if (workflow.Config?.LoadTestSpec) {
+        console.log("LoadTestSpec found:", workflow.Config.LoadTestSpec);
+        try {
+          // Safely stringify the LoadTestSpec to check for circular references or other issues
+          const loadTestSpecString = JSON.stringify(workflow.Config.LoadTestSpec);
+          console.log("LoadTestSpec stringified successfully:", loadTestSpecString);
+          
+          // Normalize the LoadTestSpec structure to match the expected interface
+          // Use type assertion to avoid TypeScript errors
+          const loadTestSpec = workflow.Config.LoadTestSpec as any;
+          
+          const normalizedLoadTestSpec: LoadTestSpec = {
+            name: loadTestSpec.Name || loadTestSpec.name || "",
+            description: loadTestSpec.Description || loadTestSpec.description || "",
+            chain_id: loadTestSpec.ChainID || loadTestSpec.chain_id || "",
+            num_of_blocks: loadTestSpec.NumOfBlocks || loadTestSpec.num_of_blocks || 0,
+            NumOfBlocks: loadTestSpec.NumOfBlocks || loadTestSpec.num_of_blocks || 0,
+            num_of_txs: loadTestSpec.NumOfTxs || loadTestSpec.num_of_txs || 0,
+            NumOfTxs: loadTestSpec.NumOfTxs || loadTestSpec.num_of_txs || 0,
+            msgs: Array.isArray(loadTestSpec.Msgs) 
+              ? loadTestSpec.Msgs 
+              : (Array.isArray(loadTestSpec.msgs) 
+                ? loadTestSpec.msgs 
+                : []),
+            unordered_txs: loadTestSpec.unordered_txs || false,
+            tx_timeout: loadTestSpec.tx_timeout || "",
+          };
+          
+          console.log("Normalized LoadTestSpec:", normalizedLoadTestSpec);
+          
+          // Replace the original LoadTestSpec with the normalized version
+          workflow.Config.LoadTestSpec = normalizedLoadTestSpec;
+        } catch (error) {
+          console.error("Error normalizing LoadTestSpec:", error);
+        }
+      } else {
+        console.log("No LoadTestSpec found in workflow.Config");
+      }
     }
   }, [workflow]);
 
@@ -189,7 +229,35 @@ const WorkflowDetails = () => {
       
       // Handle load test spec
       if (workflow.Config.LoadTestSpec) {
-        params.append('loadTestSpec', JSON.stringify(workflow.Config.LoadTestSpec));
+        // Ensure the LoadTestSpec is normalized before adding it to URL parameters
+        const loadTestSpec = workflow.Config.LoadTestSpec as any;
+        
+        // Create a normalized version that follows the expected structure
+        const normalizedLoadTestSpec: LoadTestSpec = {
+          name: loadTestSpec.name || loadTestSpec.Name || "",
+          description: loadTestSpec.description || loadTestSpec.Description || "",
+          chain_id: loadTestSpec.chain_id || loadTestSpec.ChainID || "",
+          num_of_blocks: loadTestSpec.num_of_blocks || loadTestSpec.NumOfBlocks || 0,
+          NumOfBlocks: loadTestSpec.num_of_blocks || loadTestSpec.NumOfBlocks || 0,
+          num_of_txs: loadTestSpec.num_of_txs || loadTestSpec.NumOfTxs || 0,
+          NumOfTxs: loadTestSpec.num_of_txs || loadTestSpec.NumOfTxs || 0,
+          msgs: Array.isArray(loadTestSpec.msgs) 
+            ? loadTestSpec.msgs 
+            : (Array.isArray(loadTestSpec.Msgs) 
+              ? loadTestSpec.Msgs.map((msg: any) => ({
+                  type: msg.type || msg.Type,
+                  weight: msg.weight || msg.Weight || 0,
+                  NumMsgs: msg.NumMsgs || msg.numMsgs,
+                  ContainedType: msg.ContainedType || msg.containedType,
+                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients
+                }))
+              : []),
+          unordered_txs: loadTestSpec.unordered_txs || false,
+          tx_timeout: loadTestSpec.tx_timeout || "",
+        };
+        
+        console.log("Normalized LoadTestSpec for cloning:", normalizedLoadTestSpec);
+        params.append('loadTestSpec', JSON.stringify(normalizedLoadTestSpec));
       }
     } else {
       // If no Config is available, use the individual fields from the database
@@ -290,9 +358,11 @@ const WorkflowDetails = () => {
     );
   }
 
-  return (
-    <Box maxW="1200px" mx="auto">
-      <Heading mb={6} size="lg">Workflow Details</Heading>
+  // Wrap the entire component rendering in a try-catch to prevent white screen errors
+  try {
+    return (
+      <Box maxW="1200px" mx="auto">
+        <Heading mb={6} size="lg">Workflow Details</Heading>
       
       <Stack spacing={6}>
         {/* Basic Info Card */}
@@ -650,8 +720,23 @@ const WorkflowDetails = () => {
           </CardBody>
         </Card>
       </Stack>
-    </Box>
-  );
+      </Box>
+    );
+  } catch (error) {
+    console.error("Error rendering WorkflowDetails component:", error);
+    return (
+      <Alert status="error" mt={5}>
+        <AlertIcon />
+        <Box>
+          <AlertTitle>Rendering Error</AlertTitle>
+          <AlertDescription>
+            There was an error rendering the workflow details. This might be related to the LoadTestSpec data.
+            <Text mt={2}>Error: {error instanceof Error ? error.message : String(error)}</Text>
+          </AlertDescription>
+        </Box>
+      </Alert>
+    );
+  }
 };
 
 export default WorkflowDetails;

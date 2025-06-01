@@ -274,11 +274,38 @@ const CreateWorkflow = () => {
       const loadTestSpecParam = params.get('loadTestSpec');
       if (loadTestSpecParam) {
         try {
-          const loadTestSpec = JSON.parse(loadTestSpecParam);
-          newFormData.LoadTestSpec = loadTestSpec;
+          const parsedLoadTestSpec = JSON.parse(loadTestSpecParam);
+          console.log("Parsed loadTestSpec from URL:", parsedLoadTestSpec);
+          
+          // Normalize the LoadTestSpec structure to match the expected interface
+          const normalizedLoadTestSpec: LoadTestSpec = {
+            name: parsedLoadTestSpec.Name || parsedLoadTestSpec.name || "",
+            description: parsedLoadTestSpec.Description || parsedLoadTestSpec.description || "",
+            chain_id: parsedLoadTestSpec.ChainID || parsedLoadTestSpec.chain_id || "",
+            num_of_blocks: parsedLoadTestSpec.NumOfBlocks || parsedLoadTestSpec.num_of_blocks || 0,
+            NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || parsedLoadTestSpec.num_of_blocks || 0,
+            num_of_txs: parsedLoadTestSpec.NumOfTxs || parsedLoadTestSpec.num_of_txs || 0,
+            NumOfTxs: parsedLoadTestSpec.NumOfTxs || parsedLoadTestSpec.num_of_txs || 0,
+            msgs: Array.isArray(parsedLoadTestSpec.Msgs) 
+              ? parsedLoadTestSpec.Msgs.map((msg: any) => ({
+                  type: msg.Type || msg.type,
+                  weight: msg.Weight || msg.weight || 0,
+                  NumMsgs: msg.NumMsgs || msg.numMsgs,
+                  ContainedType: msg.ContainedType || msg.containedType,
+                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients
+                }))
+              : (Array.isArray(parsedLoadTestSpec.msgs) 
+                ? parsedLoadTestSpec.msgs 
+                : []),
+            unordered_txs: parsedLoadTestSpec.unordered_txs || false,
+            tx_timeout: parsedLoadTestSpec.tx_timeout || "",
+          };
+          
+          console.log("Normalized loadTestSpec:", normalizedLoadTestSpec);
+          
+          newFormData.LoadTestSpec = normalizedLoadTestSpec;
           setHasLoadTest(true);
           hasChanges = true;
-          console.log("Setting loadTestSpec:", newFormData.LoadTestSpec);
         } catch (e) {
           console.error('Failed to parse load test spec', e);
         }
