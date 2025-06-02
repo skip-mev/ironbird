@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/skip-mev/ironbird/messages"
 	"os"
 
 	database_service "github.com/skip-mev/ironbird/database"
@@ -77,15 +78,13 @@ func main() {
 		panic(err)
 	}
 
-	// Load dashboards config
 	var dashboardsConfig *types.DashboardsConfig
 	if *dashboardsFlag != "" {
 		dashboardsConfig, err = types.ParseDashboardsConfig(*dashboardsFlag)
 		if err != nil {
-			logger.Warn("Failed to load dashboards config, monitoring links will not be generated", zap.Error(err))
-			dashboardsConfig = nil
+			logger.Fatal("Failed to load dashboards config", zap.Error(err))
 		} else {
-			logger.Info("Successfully loaded dashboards config")
+			logger.Info("Successfully loaded dashboards config", zap.Any("config", dashboardsConfig))
 		}
 	}
 
@@ -176,7 +175,7 @@ func main() {
 		TelemetrySettings: telemetrySettings,
 	}
 
-	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
+	w := worker.New(c, messages.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
 

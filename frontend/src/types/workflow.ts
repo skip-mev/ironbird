@@ -35,7 +35,6 @@ export interface LoadTestSpec {
   chain_id: string;
   num_of_blocks: number;
   num_of_txs?: number;
-  // Backend expects PascalCase versions of these fields
   NumOfBlocks?: number;
   NumOfTxs?: number;
   msgs: Message[];

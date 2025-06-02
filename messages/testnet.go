@@ -6,12 +6,26 @@ import (
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/types/testnet"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
+const (
+	DigitalOcean RunnerType = "DigitalOcean"
+	Docker       RunnerType = "Docker"
+	TaskQueue               = "TESTNET_TASK_QUEUE"
+)
+
+type RunnerType string
+
+type Node struct {
+	Name    string
+	Address string
+	Rpc     string
+	Lcd     string
+}
+
 type CreateProviderRequest struct {
-	RunnerType testnet.RunnerType
+	RunnerType RunnerType
 	Name       string
 }
 
@@ -20,7 +34,7 @@ type CreateProviderResponse struct {
 }
 
 type TeardownProviderRequest struct {
-	RunnerType    testnet.RunnerType
+	RunnerType    RunnerType
 	ProviderState []byte
 }
 
@@ -34,7 +48,7 @@ type LaunchTestnetRequest struct {
 	Image                   string
 	ProviderSpecificOptions map[string]string
 	GenesisModifications    []petrichain.GenesisKV
-	RunnerType              testnet.RunnerType
+	RunnerType              RunnerType
 
 	NumOfValidators uint64
 	NumOfNodes      uint64
@@ -46,8 +60,8 @@ type LaunchTestnetResponse struct {
 	ProviderState []byte
 	ChainState    []byte
 	ChainID       string
-	Nodes         []testnet.Node
-	Validators    []testnet.Node
+	Nodes         []Node
+	Validators    []Node
 }
 
 type TestnetWorkflowRequest struct {
@@ -55,7 +69,7 @@ type TestnetWorkflowRequest struct {
 	SHA                string
 	GaiaEVM            bool
 	ChainConfig        types.ChainsConfig
-	RunnerType         testnet.RunnerType
+	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec
 	LongRunningTestnet bool
 	TestnetDuration    time.Duration
@@ -75,8 +89,8 @@ func (r TestnetWorkflowRequest) Validate() error {
 		return fmt.Errorf("chain name is required")
 	}
 
-	if r.RunnerType != testnet.DigitalOcean && r.RunnerType != testnet.Docker {
-		return fmt.Errorf("runner type must be one of: %s, %s", testnet.DigitalOcean, testnet.Docker)
+	if r.RunnerType != DigitalOcean && r.RunnerType != Docker {
+		return fmt.Errorf("runner type must be one of: %s, %s", DigitalOcean, Docker)
 	}
 
 	if r.LongRunningTestnet && r.TestnetDuration > 0 {

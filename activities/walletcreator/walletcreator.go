@@ -17,7 +17,6 @@ import (
 
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
-	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 )
 
 type Activity struct {
@@ -26,70 +25,33 @@ type Activity struct {
 	TelemetrySettings digitalocean.TelemetrySettings
 }
 
-func handleWalletCreationError(ctx context.Context, logger *zap.Logger, p provider.ProviderI, chain *chain.Chain, originalErr error, errMsg string) (messages.CreateWalletsResponse, error) {
-	res := messages.CreateWalletsResponse{}
-	wrappedErr := fmt.Errorf("%s: %w", errMsg, originalErr)
-
-	newProviderState, serializeErr := p.SerializeProvider(ctx)
-	if serializeErr != nil {
-		logger.Error("failed to serialize provider after error", zap.Error(wrappedErr), zap.Error(serializeErr))
-		return res, fmt.Errorf("%w; also failed to serialize provider: %v", wrappedErr, serializeErr)
-	}
-	res.ProviderState = newProviderState
-
-	if chain != nil {
-		newChainState, chainErr := chain.Serialize(ctx, p)
-		if chainErr != nil {
-			logger.Error("failed to serialize chain after error", zap.Error(wrappedErr), zap.Error(chainErr))
-			return res, fmt.Errorf("%w; also failed to serialize chain: %v", wrappedErr, chainErr)
-		}
-		res.ChainState = newChainState
-	}
-
-	return res, wrappedErr
-}
-
 func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWalletsRequest) (messages.CreateWalletsResponse, error) {
 	logger, _ := zap.NewDevelopment()
 	logger.Info("Creating wallets", zap.Int("numWallets", req.NumWallets))
 
-	// Restore provider based on runner type
 	var p provider.ProviderI
 	var err error
-	if req.RunnerType == string(testnettypes.Docker) {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState,
-		)
+	if req.RunnerType == string(messages.Docker) {
+		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
 	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
+		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
+			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
 	}
 
 	if err != nil {
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
-	// Get wallet config based on GaiaEVM flag
 	walletConfig := testnet.CosmosWalletConfig
 	if req.GaiaEVM {
 		walletConfig = testnet.EVMCosmosWalletConfig
-		logger.Info("using EVM wallet config")
 	}
 
 	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)
 	if err != nil {
-		return handleWalletCreationError(ctx, logger, p, nil, err, "failed to restore chain")
+		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore chain: %w", err)
 	}
 
-	// Create wallets
 	var mnemonics []string
 	var addresses []string
 	var walletsMutex sync.Mutex
@@ -116,15 +78,14 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	}
 
 	wg.Wait()
-	logger.Info("successfully created all wallets", zap.Int("count", len(mnemonics)))
+	logger.Info("successfully created wallets", zap.Int("count", len(mnemonics)))
 
-	// Fund the wallets
 	validators := chain.GetValidators()
 	node := validators[len(validators)-1]
 	err = node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
 	if err != nil {
 		logger.Error("failed to recover faucet wallet key", zap.Error(err))
-		return handleWalletCreationError(ctx, logger, p, chain, err, "failed to recover faucet wallet key")
+		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore faucet wallet: %w", err)
 	}
 	time.Sleep(1 * time.Second)
 
@@ -148,26 +109,12 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 
 	_, stderr, exitCode, err := node.RunCommand(ctx, command)
 	if err != nil || exitCode != 0 {
-		logger.Warn("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
+		logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
+		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore fund wallets: %w", err)
 	}
 	time.Sleep(5 * time.Second)
 
-	// Serialize provider and chain state
-	newProviderState, err := p.SerializeProvider(ctx)
-	if err != nil {
-		logger.Error("failed to serialize provider after successful run", zap.Error(err))
-		return messages.CreateWalletsResponse{Mnemonics: mnemonics}, fmt.Errorf("wallet creation succeeded, but failed to serialize provider: %w", err)
-	}
-
-	newChainState, err := chain.Serialize(ctx, p)
-	if err != nil {
-		logger.Error("failed to serialize chain after successful run", zap.Error(err))
-		return messages.CreateWalletsResponse{ProviderState: newProviderState, Mnemonics: mnemonics}, fmt.Errorf("wallet creation succeeded, but failed to serialize chain: %w", err)
-	}
-
 	return messages.CreateWalletsResponse{
-		ProviderState: newProviderState,
-		ChainState:    newChainState,
-		Mnemonics:     mnemonics,
+		Mnemonics: mnemonics,
 	}, nil
 }

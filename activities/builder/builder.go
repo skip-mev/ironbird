@@ -39,6 +39,28 @@ type BuildResult struct {
 	Logs    []byte
 }
 
+var (
+	// SKIP_REPLACE_REPOS are repositories where ironbird does not need to run the replace workflow
+	// as checking out to the chain branch tag is sufficient to test the intended changes
+	// (e.g. cosmos-sdk repo does not need to replace a dependency, just to run simapp using the SDK version
+	// based on the commit SHA passed to ironbird. To test cometbft on the other hand, we use a base simapp image
+	// and then replace the cometbft dependency with the intended commit version)
+	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia"}
+	dependencies       = map[string]string{
+		"ironbird-cometbft":   "github.com/cometbft/cometbft",
+		"ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+		"cometbft":            "github.com/cometbft/cometbft",
+		"cosmos-sdk":          "github.com/cosmos/cosmos-sdk",
+	}
+	repoOwners = map[string]string{
+		"ironbird-cometbft":   "skip-mev",
+		"ironbird-cosmos-sdk": "skip-mev",
+		"cometbft":            "cometbft",
+		"cosmos-sdk":          "cosmos",
+		"gaia":                "cosmos",
+	}
+)
+
 func (a *Activity) getAuthenticationToken(ctx context.Context) (string, string, error) {
 	ecrClient := ecrpublic.NewFromConfig(*a.AwsConfig, func(options *ecrpublic.Options) {
 		// ecrpublic only works in us-east-1
@@ -112,28 +134,6 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	return nil
 }
 
-var (
-	// SKIP_REPLACE_REPOS are repositories where ironbird does not need to run the replace workflow
-	// as checking out to the chain branch tag is sufficient to test the intended changes
-	// (e.g. cosmos-sdk repo does not need to replace a dependency, just to run simapp using the SDK version
-	// based on the commit SHA passed to ironbird. To test cometbft on the other hand, we use a base simapp image
-	// and then replace the cometbft dependency with the intended commit version)
-	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia"}
-	dependencies       = map[string]string{
-		"ironbird-cometbft":   "github.com/cometbft/cometbft",
-		"ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
-		"cometbft":            "github.com/cometbft/cometbft",
-		"cosmos-sdk":          "github.com/cosmos/cosmos-sdk",
-	}
-	repoOwners = map[string]string{
-		"ironbird-cometbft":   "skip-mev",
-		"ironbird-cosmos-sdk": "skip-mev",
-		"cometbft":            "cometbft",
-		"cosmos-sdk":          "cosmos",
-		"gaia":                "cosmos",
-	}
-)
-
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
 	orig := dependencies[fmt.Sprintf("%s/%s", owner, repo)]
 	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
@@ -144,6 +144,7 @@ func generateTag(chain, version, owner, repo, sha string) string {
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
+	logger, _ := zap.NewDevelopment()
 	//return messages.BuildDockerImageResponse{
 	//	FQDNTag: "ghcr.io/cosmos/gaia:feature-evm",
 	//	Logs:    nil,
@@ -164,9 +165,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 	defer bkClient.Close()
 
-	logger, _ := zap.NewDevelopment()
 	image, exists := a.ChainImages[req.ChainConfig.Image]
-	logger.Info("args", zap.Any("req.ChainConfig", req.ChainConfig), zap.Any("chainimages", a.ChainImages))
 	if !exists {
 		return messages.BuildDockerImageResponse{}, fmt.Errorf("image config not found for %s", req.ChainConfig.Image)
 	}

@@ -21,7 +21,6 @@ import (
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	"github.com/skip-mev/ironbird/activities/testnet"
-	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
@@ -48,7 +47,7 @@ var (
 	}
 )
 
-func teardownProvider(ctx workflow.Context, runnerType testnettypes.RunnerType, providerState []byte) error {
+func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) error {
 	workflow.GetLogger(ctx).Info("tearing down provider")
 	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
 		RunnerType:    runnerType,
@@ -123,7 +122,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	return "", nil
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []testnettypes.Node, []testnettypes.Node, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []messages.Node, []messages.Node, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
@@ -170,11 +169,11 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []testnettypes.Node) ([]byte, []testnettypes.Node, error) {
+	nodes []messages.Node) ([]byte, []messages.Node, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
-	if req.RunnerType != testnettypes.DigitalOcean {
+	if req.RunnerType != messages.DigitalOcean {
 		logger.Info("Skipping loadbalancer creation for non-DigitalOcean runner",
 			zap.String("runnerType", string(req.RunnerType)))
 		return providerState, nil, nil
@@ -228,10 +227,10 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 	logger.Info("LaunchLoadBalancer activity completed successfully",
 		zap.String("rootDomain", loadBalancerResp.RootDomain))
 
-	var loadBalancers []testnettypes.Node
+	var loadBalancers []messages.Node
 
 	for _, node := range nodes {
-		loadBalancers = append(loadBalancers, testnettypes.Node{
+		loadBalancers = append(loadBalancers, messages.Node{
 			Name:    node.Name,
 			Address: node.Address,
 			Rpc:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
@@ -261,11 +260,9 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 		ctx,
 		walletCreatorActivities.CreateWallets,
 		messages.CreateWalletsRequest{
-			NumWallets:    req.NumWallets,
-			GaiaEVM:       req.GaiaEVM,
-			ChainState:    chainState,
-			ProviderState: providerState,
-			RunnerType:    string(req.RunnerType),
+			NumWallets: req.NumWallets,
+			GaiaEVM:    req.GaiaEVM,
+			RunnerType: string(req.RunnerType),
 		},
 	).Get(ctx, &createWalletsResp)
 
@@ -317,8 +314,8 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	return loadTestTimeout, nil
 }
 
-func determineProviderOptions(runnerType testnettypes.RunnerType) map[string]string {
-	if runnerType == testnettypes.DigitalOcean {
+func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
+	if runnerType == messages.DigitalOcean {
 		return map[string]string{
 			"region":   "ams3",
 			"image_id": "185517855",
@@ -392,7 +389,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			var p provider.ProviderI
 			var err error
 
-			if updateReq.RunnerType == testnettypes.Docker {
+			if updateReq.RunnerType == messages.Docker {
 				p, err = docker.RestoreProvider(
 					stdCtx,
 					logger,
@@ -415,7 +412,6 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			walletConfig := testnet.CosmosWalletConfig
 			if gaiaEVM {
 				walletConfig = testnet.EVMCosmosWalletConfig
-				logger.Info("using EVM wallet config")
 			}
 			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
 

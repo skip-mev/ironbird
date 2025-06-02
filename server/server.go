@@ -12,7 +12,6 @@ import (
 	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
-	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/ironbird/workflows/testnet"
 	"github.com/uber-go/tally/v4/prometheus"
@@ -204,7 +203,7 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	}
 
 	options := temporalclient.StartWorkflowOptions{
-		TaskQueue: testnet.TaskQueue,
+		TaskQueue: messages.TaskQueue,
 	}
 
 	workflowRun, err := s.temporalClient.ExecuteWorkflow(context.TODO(), options, testnet.Workflow, req)
@@ -218,9 +217,9 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	workflowID := workflowRun.GetID()
 	workflow := &db.Workflow{
 		WorkflowID:      workflowID,
-		Nodes:           []testnettypes.Node{},
-		Validators:      []testnettypes.Node{},
-		LoadBalancers:   []testnettypes.Node{},
+		Nodes:           []messages.Node{},
+		Validators:      []messages.Node{},
+		LoadBalancers:   []messages.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          db.WorkflowStatusRunning,
 		Config:          req,
@@ -250,7 +249,7 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 	return nil
 }
 
-// TODO: Implement update workflow
+// TODO(nadim-az): Implement update workflow
 //func (s *IronbirdServer) HandleUpdateWorkflow(w http.ResponseWriter, r *http.Request) error {
 //	workflowID := strings.TrimPrefix(r.URL.Path, "/ironbird/workflow/")
 //
@@ -260,7 +259,6 @@ func (s *IronbirdServer) HandleCreateWorkflow(w http.ResponseWriter, r *http.Req
 //		return nil
 //	}
 //
-//	// TODO: Implement actual workflow update using temporal client
 //	// Example:
 //	// s.temporalClient.SignalWorkflow(context.Background(), workflowID, "", "update_signal", req)
 //

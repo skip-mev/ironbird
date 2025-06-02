@@ -1,19 +1,12 @@
 {
   "Repo": "ironbird-cosmos-sdk",
   "SHA": "3de8d67d5feb33fad8d3e54236bec1428af3fe6b",
+  "GaiaEVM": false,
   "ChainConfig": {
     "Name": "cosmos",
     "NumOfNodes": 1,
-    "NumOfValidators": 6,
-    "Image": {
-      "Dockerfile": "./hack/simapp.Dockerfile",
-      "GID": "1025",
-      "UID": "1025",
-      "BinaryName": "/usr/bin/simd",
-      "HomeDir": "/simd",
-      "GasPrices": "0.0005stake"
-    },
-    "Version": "v0.50.13",
+    "NumOfValidators": 1,
+    "Image": "simapp-v50",
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
@@ -35,5 +28,7 @@
         "TxTimeout": "5m"
       }
     ]
-  }
+  },
+  "LongRunningTestnet": true,
+  "NumWallets": 25
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 
-	testnettypes "github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -82,9 +81,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	}
 
 	loadTestSpec.NodesAddresses = nodes
-
 	loadTestSpec.Mnemonics = mnemonics
-	logger.Info("using pre-created wallets", zap.Int("count", len(mnemonics)))
 
 	err := loadTestSpec.Validate()
 	if err != nil {
@@ -102,21 +99,11 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 
 	var p provider.ProviderI
 	var err error
-	if req.RunnerType == testnettypes.Docker {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState,
-		)
+	if req.RunnerType == messages.Docker {
+		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
 	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
+		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
+			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
 	}
 
 	if err != nil {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types/testnet"
 )
 
 // WorkflowStatus represents the status of a workflow
@@ -24,9 +23,9 @@ const (
 type Workflow struct {
 	ID                 int                             `json:"id" db:"id"`
 	WorkflowID         string                          `json:"workflow_id" db:"workflow_id"`
-	Nodes              []testnet.Node                  `json:"nodes" db:"nodes"`
-	Validators         []testnet.Node                  `json:"validators" db:"validators"`
-	LoadBalancers      []testnet.Node                  `json:"loadbalancers" db:"loadbalancers"`
+	Nodes              []messages.Node                 `json:"nodes" db:"nodes"`
+	Validators         []messages.Node                 `json:"validators" db:"validators"`
+	LoadBalancers      []messages.Node                 `json:"loadbalancers" db:"loadbalancers"`
 	MonitoringLinks    map[string]string               `json:"monitoring_links" db:"monitoring_links"`
 	Status             WorkflowStatus                  `json:"status" db:"status"`
 	Config             messages.TestnetWorkflowRequest `json:"config" db:"config"`
@@ -46,9 +45,9 @@ type Workflow struct {
 
 // WorkflowUpdate represents fields that can be updated
 type WorkflowUpdate struct {
-	Nodes           *[]testnet.Node    `json:"nodes,omitempty"`
-	Validators      *[]testnet.Node    `json:"validators,omitempty"`
-	LoadBalancers   *[]testnet.Node    `json:"loadbalancers,omitempty"`
+	Nodes           *[]messages.Node   `json:"nodes,omitempty"`
+	Validators      *[]messages.Node   `json:"validators,omitempty"`
+	LoadBalancers   *[]messages.Node   `json:"loadbalancers,omitempty"`
 	MonitoringLinks *map[string]string `json:"monitoring_links,omitempty"`
 	Status          *WorkflowStatus    `json:"status,omitempty"`
 }

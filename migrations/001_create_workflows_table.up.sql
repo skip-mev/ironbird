@@ -21,13 +21,8 @@ CREATE TABLE IF NOT EXISTS workflows (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for faster lookups
-CREATE INDEX IF NOT EXISTS idx_workflows_workflow_id ON workflows(workflow_id);
-CREATE INDEX IF NOT EXISTS idx_workflows_status ON workflows(status);
-CREATE INDEX IF NOT EXISTS idx_workflows_created_at ON workflows(created_at);
 
--- Trigger to automatically update updated_at
-CREATE TRIGGER IF NOT EXISTS update_workflows_updated_at 
+CREATE TRIGGER IF NOT EXISTS update_workflows_updated_at
     AFTER UPDATE ON workflows
     FOR EACH ROW
     WHEN NEW.updated_at = OLD.updated_at

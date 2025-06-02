@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/skip-mev/ironbird/messages"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/skip-mev/ironbird/types/testnet"
 )
 
 // DB interface defines the database operations
@@ -382,19 +382,19 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
 			// Log the error but continue with empty nodes
 			fmt.Printf("Warning: failed to unmarshal nodes for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Nodes = make([]testnet.Node, 0)
+			workflow.Nodes = make([]messages.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
 			// Log the error but continue with empty validators
 			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Validators = make([]testnet.Node, 0)
+			workflow.Validators = make([]messages.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
 			// Log the error but continue with empty loadbalancers
 			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.LoadBalancers = make([]testnet.Node, 0)
+			workflow.LoadBalancers = make([]messages.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
