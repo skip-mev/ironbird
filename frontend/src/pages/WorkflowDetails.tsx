@@ -20,7 +20,6 @@ import {
   CardBody,
   SimpleGrid,
   Icon,
-  Divider,
   ButtonGroup
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

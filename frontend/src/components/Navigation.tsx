@@ -1,4 +1,4 @@
-import { Box, VStack, Heading, Flex, Button, IconButton, useColorMode, Tooltip, Spacer } from '@chakra-ui/react';
+import { Box, VStack, Heading, Flex, Button, IconButton, useColorMode, Tooltip } from '@chakra-ui/react';
 import { MoonIcon, SunIcon } from '@chakra-ui/icons';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 
