@@ -37,11 +37,10 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 	}
 
 	lb, err := apps.LaunchLoadBalancer(ctx, p, a.RootDomain, apps.LoadBalancerDefinition{
-		SSLKey:         a.SSLKey,
-		SSLCertificate: a.SSLCertificate,
-		ProviderSpecificOptions: map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-			"image_id": "185517855"},
-		Domains: req.Domains,
+		SSLKey:                  a.SSLKey,
+		SSLCertificate:          a.SSLCertificate,
+		ProviderSpecificOptions: messages.DigitalOceanDefaultOpts,
+		Domains:                 req.Domains,
 	})
 
 	if err != nil {
@@ -71,10 +70,6 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			}
 		}
 
-		logger.Info("Extracted node names from domains",
-			zap.Int("uniqueNodeCount", len(nodeNames)),
-			zap.Any("nodeNames", nodeNames))
-
 		var loadBalancers []messages.Node
 		for nodeName := range nodeNames {
 			loadBalancers = append(loadBalancers, messages.Node{
@@ -86,15 +81,11 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		}
 
 		if len(loadBalancers) > 0 {
-			logger.Info("Updating database with loadbalancers",
-				zap.Int("loadbalancerCount", len(loadBalancers)),
-				zap.String("firstLoadbalancerName", loadBalancers[0].Name),
-				zap.String("rootDomain", a.RootDomain))
+			logger.Info("updating database with loadbalancers",
+				zap.Any("loadBalancers", loadBalancers))
 
 			if err := a.DatabaseService.UpdateWorkflowLoadBalancers(workflowID, loadBalancers); err != nil {
 				logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
-			} else {
-				logger.Info("Successfully updated database with loadbalancers")
 			}
 		} else {
 			logger.Warn("No loadbalancers to update in database")

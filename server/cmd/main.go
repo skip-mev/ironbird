@@ -31,8 +31,8 @@ func (CaddyModule) CaddyModule() caddy.ModuleInfo {
 		New: func() caddy.Module {
 			m := &CaddyModule{
 				config: types.TemporalConfig{
-					Host:      "127.0.0.1:7233", // Use IPv4 address instead of localhost
-					Namespace: "default",        // Default Temporal namespace
+					Host:      "127.0.0.1:7233", // TODO(nadim-az): update when deploying to prod to point to temporalconfig
+					Namespace: "default",
 				},
 			}
 			return m
@@ -47,10 +47,8 @@ func (m *CaddyModule) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 func (m *CaddyModule) Provision(ctx caddy.Context) error {
 	var err error
 
-	// Database configuration for reading
 	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
 
-	// Initialize database for reading
 	database, err := db.NewSQLiteDB(dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
@@ -60,7 +58,6 @@ func (m *CaddyModule) Provision(ctx caddy.Context) error {
 	return err
 }
 
-// Cleanup implements caddy.CleanerUpper and closes the IronbirdServer
 func (m *CaddyModule) Cleanup() error {
 	if m.server != nil {
 		return m.server.Close()
@@ -68,44 +65,50 @@ func (m *CaddyModule) Cleanup() error {
 	return nil
 }
 
+// handleIronbirdRoutes routes HTTP requests to the appropriate handler based on method and path.
+// Returns true if the request was handled, false otherwise.
 func handleIronbirdRoutes(w http.ResponseWriter, r *http.Request, server *server.IronbirdServer) bool {
+	const (
+		basePath      = "/ironbird"
+		workflowPath  = basePath + "/workflow"
+		workflowsPath = basePath + "/workflows"
+		loadTestPath  = basePath + "/loadtest/"
+	)
+
+	handleRequest := func(handlerFunc func(http.ResponseWriter, *http.Request) error) bool {
+		if err := handlerFunc(w, r); err != nil {
+			http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+			return false
+		}
+		return true
+	}
+
 	switch {
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.HasSuffix(r.URL.Path, "/cancel"):
-		err := server.HandleCancelWorkflow(w, r)
-		if err != nil {
-			return false
-		}
-		return true
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.Contains(r.URL.Path, "/signal/"):
-		err := server.HandleSignalWorkflow(w, r)
-		if err != nil {
-			return false
-		}
-		return true
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
-		err := server.HandleCreateWorkflow(w, r)
-		if err != nil {
-			return false
-		}
-		return true
-	case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
-		err := server.HandleListWorkflows(w, r)
-		if err != nil {
-			return false
-		}
-		return true
-	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-		err := server.HandleGetWorkflow(w, r)
-		if err != nil {
-			return false
-		}
-		return true
-	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
-		err := server.HandleRunLoadTest(w, r)
-		if err != nil {
-			return false
-		}
-		return true
+	// POST /ironbird/workflow/{id}/cancel - Cancel a workflow
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, workflowPath) && strings.HasSuffix(r.URL.Path, "/cancel"):
+		return handleRequest(server.HandleCancelWorkflow)
+
+	// POST /ironbird/workflow/{id}/signal/{signal} - Signal a workflow
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, workflowPath) && strings.Contains(r.URL.Path, "/signal/"):
+		return handleRequest(server.HandleSignalWorkflow)
+
+	// POST /ironbird/workflow - Create a new workflow
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, workflowPath):
+		return handleRequest(server.HandleCreateWorkflow)
+
+	// GET /ironbird/workflows - List all workflows
+	case r.Method == http.MethodGet && r.URL.Path == workflowsPath:
+		return handleRequest(server.HandleListWorkflows)
+
+	// GET /ironbird/workflow/{id} - Get a specific workflow
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, workflowPath+"/"):
+		return handleRequest(server.HandleGetWorkflow)
+
+	// POST /ironbird/loadtest/{id} - Run a load test
+	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, loadTestPath):
+		return handleRequest(server.HandleRunLoadTest)
+
+	// No matching route found
 	default:
 		return false
 	}

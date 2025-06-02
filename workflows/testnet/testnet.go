@@ -167,14 +167,14 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []messages.Node) ([]byte, []messages.Node, error) {
+	nodes []messages.Node) ([]byte, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
 	if req.RunnerType != messages.DigitalOcean {
 		logger.Info("Skipping loadbalancer creation for non-DigitalOcean runner",
 			zap.String("runnerType", string(req.RunnerType)))
-		return providerState, nil, nil
+		return providerState, nil
 	}
 
 	logger.Info("Creating loadbalancer domains for nodes",
@@ -219,30 +219,13 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		},
 	).Get(ctx, &loadBalancerResp); err != nil {
 		logger.Error("Failed to launch loadbalancer", zap.Error(err))
-		return providerState, nil, err
+		return providerState, err
 	}
 
 	logger.Info("LaunchLoadBalancer activity completed successfully",
 		zap.String("rootDomain", loadBalancerResp.RootDomain))
 
-	var loadBalancers []messages.Node
-
-	for _, node := range nodes {
-		loadBalancers = append(loadBalancers, messages.Node{
-			Name:    node.Name,
-			Address: node.Address,
-			RPC:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
-			LCD:     fmt.Sprintf("https://%s-lcd.%s", node.Name, loadBalancerResp.RootDomain),
-		})
-	}
-
-	logger.Info("Created loadbalancer entries for nodes",
-		zap.Int("loadbalancerCount", len(loadBalancers)),
-		zap.String("rootDomain", loadBalancerResp.RootDomain))
-
-	// The database update will be handled by the activity itself
-
-	return loadBalancerResp.ProviderState, loadBalancers, nil
+	return loadBalancerResp.ProviderState, nil
 }
 
 func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte) ([]string, error) {
@@ -314,11 +297,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 
 func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
 	if runnerType == messages.DigitalOcean {
-		return map[string]string{
-			"region":   "ams3",
-			"image_id": "185517855",
-			"size":     "s-4vcpu-8gb",
-		}
+		return messages.DigitalOceanDefaultOpts
 	}
 	return nil
 }
@@ -334,21 +313,9 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		zap.Int("count", len(validators)),
 		zap.String("workflowID", workflowID))
 
-	providerState, loadBalancers, err := launchLoadBalancer(ctx, req, providerState, nodes)
+	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes)
 	if err != nil {
 		return err
-	}
-
-	// Log loadbalancers for debugging
-	if len(loadBalancers) > 0 {
-		workflow.GetLogger(ctx).Info("loadbalancers created",
-			zap.Int("count", len(loadBalancers)),
-			zap.String("first_lb", loadBalancers[0].Name),
-			zap.String("workflowID", workflowID))
-	} else {
-		workflow.GetLogger(ctx).Info("no loadbalancers created",
-			zap.String("workflowID", workflowID),
-			zap.String("runnerType", string(req.RunnerType)))
 	}
 
 	mnemonics, err := createWallets(ctx, req, chainState, providerState)

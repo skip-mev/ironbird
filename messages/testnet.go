@@ -15,6 +15,11 @@ const (
 	TaskQueue               = "TESTNET_TASK_QUEUE"
 )
 
+var (
+	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
+		"image_id": "185517855"}
+)
+
 type RunnerType string
 
 type Node struct {

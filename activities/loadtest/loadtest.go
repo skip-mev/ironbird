@@ -126,13 +126,9 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			UID:   "100",
 			GID:   "100",
 		},
-		ProviderSpecificConfig: map[string]string{
-			"region":   "ams3",
-			"image_id": "185517855",
-			"size":     "s-4vcpu-8gb",
-		},
-		Command: []string{"/tmp/catalyst/loadtest.yml"},
-		DataDir: "/tmp/catalyst",
+		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts,
+		Command:                []string{"/tmp/catalyst/loadtest.yml"},
+		DataDir:                "/tmp/catalyst",
 		Environment: map[string]string{
 			"DEV_LOGGING": "true",
 		},
