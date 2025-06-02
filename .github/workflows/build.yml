@@ -18,7 +18,6 @@ jobs:
       matrix:
         builds:
           [
-            { image: 'app', file: 'app.Dockerfile' },
             { image: 'worker', file: 'worker.Dockerfile' },
           ]
     runs-on: ubuntu-latest

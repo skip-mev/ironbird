@@ -28,7 +28,7 @@ telemetry:
   prometheus:
     username: prom-user
     password: prom-pass
-    url: http://prometheus:9090
+    url: http://prometheus:9091
   loki:
     username: loki-user
     password: loki-pass
@@ -83,7 +83,7 @@ github:
 
 }
 
-func TestParseAppConfig(t *testing.T) {
+func TestParseChainsConfig(t *testing.T) {
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "app_config.yaml")
 
@@ -119,7 +119,7 @@ github:
 	require.NoError(t, os.WriteFile(configPath, []byte(validConfigYaml), 0644))
 
 	t.Run("valid config", func(t *testing.T) {
-		config, err := ParseAppConfig(configPath)
+		config, err := ParseChainsConfig(configPath)
 		require.NoError(t, err)
 
 		assert.Equal(t, "localhost:7233", config.Temporal.Host)

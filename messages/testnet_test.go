@@ -18,10 +18,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "valid request",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -36,10 +34,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing installation ID",
 			request: TestnetWorkflowRequest{
-				InstallationID: 0,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -53,31 +49,10 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 			errMsg:  "installationID is required",
 		},
 		{
-			name: "missing owner",
-			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "owner is required",
-		},
-		{
 			name: "missing repo",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "",
-				SHA:            "abcdef123456",
+				Repo: "",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -93,10 +68,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing SHA",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "",
+				Repo: "ironbird",
+				SHA:  "",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -112,10 +85,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing chain name",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "",
 					Image: types.ImageConfig{
@@ -131,10 +102,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing binary name",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -150,10 +119,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing home dir",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{
@@ -169,10 +136,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "invalid runner type",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
 					Name: "test-chain",
 					Image: types.ImageConfig{

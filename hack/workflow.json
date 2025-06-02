@@ -1,25 +1,12 @@
 {
-  "InstallationID": 57729708,
-  "Owner": "skip-mev",
   "Repo": "ironbird-cosmos-sdk",
   "SHA": "3de8d67d5feb33fad8d3e54236bec1428af3fe6b",
+  "GaiaEVM": false,
   "ChainConfig": {
     "Name": "cosmos",
     "NumOfNodes": 1,
-    "NumOfValidators": 6,
-    "Dependencies": {
-      "skip-mev/ironbird-cometbft": "github.com/cometbft/cometbft",
-      "skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk"
-    },
-    "Image": {
-      "Dockerfile": "./hack/simapp.Dockerfile",
-      "GID": "1025",
-      "UID": "1025",
-      "BinaryName": "/usr/bin/simd",
-      "HomeDir": "/simd",
-      "GasPrices": "0.0005stake"
-    },
-    "Version": "v0.50.13",
+    "NumOfValidators": 1,
+    "Image": "simapp-v50",
     "GenesisModifications": [
       {
         "key": "consensus.params.block.max_gas",
@@ -31,7 +18,7 @@
   "LoadTestSpec": {
     "Name": "unordered_test_bird",
     "NumOfBlocks": 100,
-    "BlockGasLimitTarget": 0.90,
+    "NumOfTxs": 100,
     "Msgs": [
       {
         "Weight": 1,
@@ -42,15 +29,6 @@
       }
     ]
   },
-  "GrafanaConfig": {
-      "URL": "https://skipprotocol.grafana.net",
-      "Dashboards": [
-          {
-              "ID": "b8ff6e6f-5b4b-4d5e-bc50-91bbbf10f436",
-              "Name": "comet-performance",
-              "HumanName": "CometBFT Performance",
-              "ChainIdVariable": "chain_id"
-          }
-      ]
-  }
+  "LongRunningTestnet": true,
+  "NumWallets": 25
 }

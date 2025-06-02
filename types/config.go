@@ -1,13 +1,11 @@
 package types
 
 import (
-	"encoding/base64"
 	"fmt"
-	"github.com/palantir/go-githubapp/githubapp"
-	"github.com/skip-mev/catalyst/pkg/types"
+	"os"
+
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"gopkg.in/yaml.v3"
-	"os"
 )
 
 type TailscaleConfig struct {
@@ -17,14 +15,6 @@ type TailscaleConfig struct {
 	NodeTags          []string `yaml:"node_tags"`
 }
 
-type AppConfig struct {
-	Github    githubapp.Config
-	Chains    map[string]ChainsConfig       `yaml:"chains"`
-	Temporal  TemporalConfig                `yaml:"temporal"`
-	Grafana   GrafanaConfig                 `yaml:"grafana"`
-	LoadTests map[string]types.LoadTestSpec `yaml:"load_tests"`
-}
-
 type WorkerConfig struct {
 	Temporal     TemporalConfig     `yaml:"temporal"`
 	Tailscale    TailscaleConfig    `yaml:"tailscale"`
@@ -32,7 +22,6 @@ type WorkerConfig struct {
 	LoadBalancer LoadBalancerConfig `yaml:"load_balancer"`
 	Telemetry    TelemetryConfig    `yaml:"telemetry"`
 	Builder      BuilderConfig      `yaml:"builder"`
-	Github       githubapp.Config
 }
 
 type LoadBalancerConfig struct {
@@ -56,11 +45,6 @@ type LokiConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	URL      string `json:"url"`
-}
-
-type GrafanaConfig struct {
-	URL        string             `yaml:"url"`
-	Dashboards []GrafanaDashboard `yaml:"dashboards"`
 }
 
 type GrafanaDashboard struct {
@@ -94,15 +78,17 @@ type RegistryConfig struct {
 
 type ChainsConfig struct {
 	Name                 string                 `yaml:"name"`
-	Dependencies         map[string]string      `yaml:"dependencies"`
-	Image                ImageConfig            `yaml:"image"`
-	Version              string                 `yaml:"version"`
+	Image                string                 `yaml:"image"`
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
 	NumOfValidators      uint64                 `yaml:"num_of_validators"`
 }
 
+type ChainImages map[string]ImageConfig
+
 type ImageConfig struct {
+	Name       string `yaml:"name"`
+	Version    string `yaml:"version"`
 	Dockerfile string `yaml:"dockerfile"`
 	GID        string `yaml:"gid"`
 	UID        string `yaml:"uid"`
@@ -123,13 +109,6 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 		return WorkerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	config.Github.SetValuesFromEnv("")
-	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
-		config.Github.App.PrivateKey = string(decodedGithubKey)
-	} else {
-		return WorkerConfig{}, err
-	}
-
 	config.DigitalOcean.Token = os.Getenv("DIGITALOCEAN_TOKEN")
 
 	config.Tailscale.NodeAuthKey = os.Getenv("TS_NODE_AUTH_KEY")
@@ -138,23 +117,16 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	return config, nil
 }
 
-func ParseAppConfig(path string) (AppConfig, error) {
+func ParseChainImagesConfig(path string) (ChainImages, error) {
 	file, err := os.ReadFile(path)
 
 	if err != nil {
-		return AppConfig{}, fmt.Errorf("failed to read config: %w", err)
+		return ChainImages{}, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	var config AppConfig
+	var config ChainImages
 	if err := yaml.Unmarshal(file, &config); err != nil {
-		return AppConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
-	}
-	config.Github.SetValuesFromEnv("")
-
-	if decodedGithubKey, err := base64.StdEncoding.DecodeString(config.Github.App.PrivateKey); err == nil {
-		config.Github.App.PrivateKey = string(decodedGithubKey)
-	} else {
-		return AppConfig{}, err
+		return ChainImages{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	return config, nil

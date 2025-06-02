@@ -3,19 +3,23 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/skip-mev/ironbird/messages"
+	"os"
+
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
+	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
-	"os"
+	"go.uber.org/zap"
+
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
-	"log"
 
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
@@ -25,13 +29,41 @@ import (
 )
 
 var (
-	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
+	configFlag     = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
+	chainsFlag     = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
+	dashboardsFlag = flag.String("dashboards", "./conf/dashboards.yaml", "Path to the dashboards configuration file")
 )
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 func main() {
 	ctx := context.Background()
+	logger, _ := zap.NewDevelopment()
 
 	flag.Parse()
+
+	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
+	logger.Info("Connecting to database", zap.String("path", dbPath))
+
+	database, err := db.NewSQLiteDB(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer database.Close()
+
+	migrationsPath := "./migrations"
+	if err := database.RunMigrations(migrationsPath); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	logger.Info("Database initialized successfully")
+
+	databaseService := db.NewDatabaseService(database, logger)
 
 	cfg, err := types.ParseWorkerConfig(*configFlag)
 
@@ -39,19 +71,26 @@ func main() {
 		panic(err)
 	}
 
-	cc, err := githubapp.NewDefaultCachingClientCreator(cfg.Github)
-
+	chainImages, err := types.ParseChainImagesConfig(*chainsFlag)
 	if err != nil {
 		panic(err)
 	}
 
-	notifier := github.NotifierActivity{GithubClient: cc}
+	var dashboardsConfig *types.DashboardsConfig
+	if *dashboardsFlag != "" {
+		dashboardsConfig, err = types.ParseDashboardsConfig(*dashboardsFlag)
+		if err != nil {
+			logger.Fatal("Failed to load dashboards config", zap.Error(err))
+		} else {
+			logger.Info("Successfully loaded dashboards config", zap.Any("config", dashboardsConfig))
+		}
+	}
 
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9090",
+			ListenAddress: "0.0.0.0:9091",
 			TimerType:     "histogram",
 		})),
 	})
@@ -68,7 +107,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig, ChainImages: chainImages}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
 		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
@@ -93,6 +132,9 @@ func main() {
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
+		ChainImages:       chainImages,
+		DatabaseService:   databaseService,
+		DashboardsConfig:  dashboardsConfig,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -122,9 +164,16 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
+		DatabaseService:   databaseService,
 	}
 
-	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
+	walletCreatorActivity := walletcreator.Activity{
+		DOToken:           cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
+	}
+
+	w := worker.New(c, messages.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
 
@@ -133,11 +182,8 @@ func main() {
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-
-	w.RegisterActivity(notifier.UpdateGitHubCheck)
-	w.RegisterActivity(notifier.CreateGitHubCheck)
-
 	w.RegisterActivity(builderActivity.BuildDockerImage)
+	w.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	err = w.Run(worker.InterruptCh())
 
