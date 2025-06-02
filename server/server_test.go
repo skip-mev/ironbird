@@ -152,7 +152,7 @@ func TestIronbirdServer_GetWorkflow(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatus, w.Code)
 
-			var response WorkflowStatus
+			var response Workflow
 			err = json.NewDecoder(w.Body).Decode(&response)
 			require.NoError(t, err)
 

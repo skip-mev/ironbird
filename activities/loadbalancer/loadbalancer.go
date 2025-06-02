@@ -80,8 +80,8 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			loadBalancers = append(loadBalancers, messages.Node{
 				Name:    nodeName,
 				Address: a.RootDomain,
-				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
-				Lcd:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
+				RPC:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
+				LCD:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
 			})
 		}
 

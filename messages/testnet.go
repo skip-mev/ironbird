@@ -20,8 +20,8 @@ type RunnerType string
 type Node struct {
 	Name    string
 	Address string
-	Rpc     string
-	Lcd     string
+	RPC     string
+	LCD     string
 }
 
 type CreateProviderRequest struct {

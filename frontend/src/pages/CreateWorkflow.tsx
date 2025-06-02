@@ -27,7 +27,6 @@ import type { TestnetWorkflowRequest, GenesisModification, LoadTestSpec } from '
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 
-// Gaia genesis modifications preset
 const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
   {
     key: "app_state.staking.params.bond_denom",
@@ -181,7 +180,6 @@ const CreateWorkflow = () => {
       
       let hasChanges = false;
       
-      // Basic fields
       if (params.get('repo')) {
         newFormData.Repo = params.get('repo')!;
         hasChanges = true;
@@ -200,7 +198,6 @@ const CreateWorkflow = () => {
         console.log("Setting runnerType:", newFormData.RunnerType);
       }
       
-      // Chain config
       if (params.get('chainName')) {
         newFormData.ChainConfig.Name = params.get('chainName')!;
         hasChanges = true;
@@ -246,21 +243,18 @@ const CreateWorkflow = () => {
         }
       }
       
-      // Long running testnet
       if (params.get('longRunningTestnet')) {
         newFormData.LongRunningTestnet = params.get('longRunningTestnet') === 'true';
         hasChanges = true;
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
-      // GaiaEVM setting
       if (params.get('gaiaEVM')) {
         newFormData.GaiaEVM = params.get('gaiaEVM') === 'true';
         hasChanges = true;
         console.log("Setting gaiaEVM:", newFormData.GaiaEVM);
       }
       
-      // Testnet duration
       if (params.get('testnetDuration')) {
         const duration = parseFloat(params.get('testnetDuration')!);
         if (!isNaN(duration)) {
@@ -270,7 +264,6 @@ const CreateWorkflow = () => {
         }
       }
       
-      // Number of wallets
       if (params.get('numWallets')) {
         const numWallets = parseInt(params.get('numWallets')!, 10);
         if (!isNaN(numWallets)) {
@@ -280,7 +273,6 @@ const CreateWorkflow = () => {
         }
       }
       
-      // Load test spec
       const loadTestSpecParam = params.get('loadTestSpec');
       if (loadTestSpecParam) {
         try {
@@ -329,7 +321,7 @@ const CreateWorkflow = () => {
         console.log("No changes to form data");
       }
     }
-  }, [location.search]); // Only run when URL parameters change - removed toast dependency
+  }, [location.search]); // Only run when URL parameters change
 
   const [newKeyValue, setNewKeyValue] = useState<GenesisModification>({
     key: '',

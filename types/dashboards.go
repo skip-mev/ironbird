@@ -8,25 +8,21 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// DashboardsConfig represents the configuration for monitoring dashboards
 type DashboardsConfig struct {
 	Grafana GrafanaConfig `yaml:"grafana"`
 }
 
-// GrafanaConfig represents Grafana-specific configuration
 type GrafanaConfig struct {
 	URL        string      `yaml:"url"`
 	Dashboards []Dashboard `yaml:"dashboards"`
 }
 
-// Dashboard represents a single dashboard configuration
 type Dashboard struct {
 	ID        string `yaml:"id"`
 	Name      string `yaml:"name"`
 	HumanName string `yaml:"human_name"`
 }
 
-// ParseDashboardsConfig parses the dashboards configuration file
 func ParseDashboardsConfig(filePath string) (*DashboardsConfig, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -41,7 +37,6 @@ func ParseDashboardsConfig(filePath string) (*DashboardsConfig, error) {
 	return &config, nil
 }
 
-// GenerateMonitoringLinks generates monitoring URLs for a given chain ID and start time
 func (c *DashboardsConfig) GenerateMonitoringLinks(chainID string, startTime time.Time) map[string]string {
 	urls := make(map[string]string)
 

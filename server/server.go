@@ -25,25 +25,15 @@ type WorkflowResponse struct {
 	Status     string `json:"Status"`
 }
 
-// Node represents a testnet node with its endpoints
-type Node struct {
-	Name    string `json:"Name"`
-	RPC     string `json:"RPC"`
-	LCD     string `json:"LCD"`
-	Address string `json:"Address"`
-}
-
-// WorkflowStatus represents the complete status of a workflow
-type WorkflowStatus struct {
+type Workflow struct {
 	WorkflowID    string                          `json:"WorkflowID"`
 	Status        string                          `json:"Status"`
-	Nodes         []Node                          `json:"Nodes"`
-	Validators    []Node                          `json:"Validators"`
-	LoadBalancers []Node                          `json:"LoadBalancers"`
+	Nodes         []messages.Node                 `json:"Nodes"`
+	Validators    []messages.Node                 `json:"Validators"`
+	LoadBalancers []messages.Node                 `json:"LoadBalancers"`
 	Monitoring    map[string]string               `json:"Monitoring"`
 	Config        messages.TestnetWorkflowRequest `json:"Config,omitempty"`
 
-	// Individual fields from the database
 	Repo               string          `json:"repo,omitempty"`
 	SHA                string          `json:"sha,omitempty"`
 	ChainName          string          `json:"chainName,omitempty"`
@@ -288,7 +278,6 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 		return nil
 	}
 
-	// Get workflow from database
 	workflow, err := s.db.GetWorkflow(workflowID)
 	if err != nil {
 		fmt.Printf("Error getting workflow from database %s: %v\n", workflowID, err)
@@ -315,51 +304,17 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 		status = "unknown"
 	}
 
-	// Convert nodes from database format
-	var nodes []Node
-	for _, node := range workflow.Nodes {
-		nodes = append(nodes, Node{
-			Name:    node.Name,
-			RPC:     node.Rpc,
-			LCD:     node.Lcd,
-			Address: node.Address,
-		})
-	}
-
-	// Convert validators from database format
-	var validators []Node
-	for _, validator := range workflow.Validators {
-		validators = append(validators, Node{
-			Name:    validator.Name,
-			RPC:     validator.Rpc,
-			LCD:     validator.Lcd,
-			Address: validator.Address,
-		})
-	}
-
-	// Convert loadbalancers from database format
-	var loadBalancers []Node
-	for _, lb := range workflow.LoadBalancers {
-		loadBalancers = append(loadBalancers, Node{
-			Name:    lb.Name,
-			RPC:     lb.Rpc,
-			LCD:     lb.Lcd,
-			Address: lb.Address,
-		})
-	}
-
-	// Create monitoring links
 	monitoring := map[string]string{}
 	if workflow.MonitoringLinks != nil {
 		monitoring = workflow.MonitoringLinks
 	}
 
-	response := WorkflowStatus{
+	response := Workflow{
 		WorkflowID:         workflowID,
 		Status:             status,
-		Nodes:              nodes,
-		Validators:         validators,
-		LoadBalancers:      loadBalancers,
+		Nodes:              workflow.Nodes,
+		Validators:         workflow.Validators,
+		LoadBalancers:      workflow.LoadBalancers,
 		Monitoring:         monitoring,
 		Config:             workflow.Config,
 		Repo:               workflow.Repo,
@@ -387,6 +342,7 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
+// TODO(nadim-az): implement adhoc load test runs
 func (s *IronbirdServer) HandleRunLoadTest(w http.ResponseWriter, r *http.Request) error {
 	//workflowID := strings.TrimPrefix(r.URL.Path, "/ironbird/loadtest/")
 
@@ -427,9 +383,7 @@ func (s *IronbirdServer) HandleRunLoadTest(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
-// HandleCancelWorkflow cancels a workflow using the Temporal client
 func (s *IronbirdServer) HandleCancelWorkflow(w http.ResponseWriter, r *http.Request) error {
-	// Extract workflow ID from the URL path
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 	if len(parts) < 4 {
@@ -437,18 +391,14 @@ func (s *IronbirdServer) HandleCancelWorkflow(w http.ResponseWriter, r *http.Req
 		return nil
 	}
 	workflowID := parts[3]
-
 	fmt.Printf("Canceling workflow: %s\n", workflowID)
 
-	// Cancel the workflow using the Temporal client
 	err := s.temporalClient.CancelWorkflow(context.Background(), workflowID, "")
 	if err != nil {
 		fmt.Printf("Error canceling workflow %s: %v\n", workflowID, err)
 		http.Error(w, fmt.Sprintf("failed to cancel workflow: %v", err), http.StatusInternalServerError)
 		return err
 	}
-
-	// No need to update the database for now
 
 	response := WorkflowResponse{
 		WorkflowID: workflowID,
@@ -464,9 +414,7 @@ func (s *IronbirdServer) HandleCancelWorkflow(w http.ResponseWriter, r *http.Req
 	return nil
 }
 
-// HandleSignalWorkflow sends a signal to a workflow using the Temporal client
 func (s *IronbirdServer) HandleSignalWorkflow(w http.ResponseWriter, r *http.Request) error {
-	// Extract workflow ID and signal name from the URL path
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 	if len(parts) < 5 {
@@ -478,7 +426,6 @@ func (s *IronbirdServer) HandleSignalWorkflow(w http.ResponseWriter, r *http.Req
 
 	fmt.Printf("Sending signal '%s' to workflow: %s\n", signalName, workflowID)
 
-	// Send the signal to the workflow using the Temporal client
 	err := s.temporalClient.SignalWorkflow(context.Background(), workflowID, "", signalName, nil)
 	if err != nil {
 		fmt.Printf("Error sending signal to workflow %s: %v\n", workflowID, err)
@@ -488,7 +435,6 @@ func (s *IronbirdServer) HandleSignalWorkflow(w http.ResponseWriter, r *http.Req
 
 	response := WorkflowResponse{
 		WorkflowID: workflowID,
-		Status:     "signaled",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -501,10 +447,7 @@ func (s *IronbirdServer) HandleSignalWorkflow(w http.ResponseWriter, r *http.Req
 }
 
 func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Request) error {
-	fmt.Printf("HandleListWorkflows called\n")
-
-	// Get workflows from database
-	dbWorkflows, err := s.db.ListWorkflows(100, 0) // Limit to 100 workflows for now
+	dbWorkflows, err := s.db.ListWorkflows(100, 0)
 	if err != nil {
 		fmt.Printf("Error listing workflows from database: %v\n", err)
 		http.Error(w, fmt.Sprintf("failed to list workflows: %v", err), http.StatusInternalServerError)
@@ -513,7 +456,6 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 
 	var workflows []WorkflowSummary
 	for _, workflow := range dbWorkflows {
-		// Convert database status to response format
 		var status string
 		switch workflow.Status {
 		case "pending":
@@ -547,8 +489,6 @@ func (s *IronbirdServer) HandleListWorkflows(w http.ResponseWriter, r *http.Requ
 		Workflows: workflows,
 		Count:     len(workflows),
 	}
-
-	fmt.Printf("Returning %d workflows\n", len(workflows))
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {

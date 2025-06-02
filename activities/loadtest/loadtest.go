@@ -11,8 +11,7 @@ import (
 	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
-
-	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -97,14 +96,8 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	logger, _ := zap.NewDevelopment()
 	logger.Info("req", zap.Any("req", req))
 
-	var p provider.ProviderI
-	var err error
-	if req.RunnerType == messages.Docker {
-		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
-	} else {
-		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
-			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to restore provider: %w", err)

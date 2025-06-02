@@ -7,6 +7,7 @@ import (
 	evmhd "github.com/cosmos/evm/crypto/hd"
 	"github.com/skip-mev/ironbird/database"
 	types2 "github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/ironbird/messages"
 
@@ -82,15 +83,8 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	var p provider.ProviderI
-	var err error
-
-	if req.RunnerType == messages.Docker {
-		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
-	} else {
-		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
-			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.TeardownProviderResponse{}, err
@@ -158,8 +152,8 @@ func (a *Activity) processNode(ctx context.Context, nodeProvider types.NodeI) (m
 
 	return messages.Node{
 		Name:    nodeProvider.GetDefinition().Name,
-		Rpc:     fmt.Sprintf("http://%s", cometIp),
-		Lcd:     fmt.Sprintf("http://%s", cosmosIp),
+		RPC:     fmt.Sprintf("http://%s", cometIp),
+		LCD:     fmt.Sprintf("http://%s", cosmosIp),
 		Address: ip,
 	}, nil
 }
@@ -192,14 +186,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
 	startTime := time.Now()
 
-	var p provider.ProviderI
-
-	if req.RunnerType == messages.Docker {
-		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
-	} else {
-		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings, digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings))
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return

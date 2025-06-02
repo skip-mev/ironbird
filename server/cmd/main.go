@@ -68,24 +68,54 @@ func (m *CaddyModule) Cleanup() error {
 	return nil
 }
 
-func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+func handleIronbirdRoutes(w http.ResponseWriter, r *http.Request, server *server.IronbirdServer) bool {
 	switch {
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.HasSuffix(r.URL.Path, "/cancel"):
-		m.server.HandleCancelWorkflow(w, r)
+		err := server.HandleCancelWorkflow(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.Contains(r.URL.Path, "/signal/"):
-		m.server.HandleSignalWorkflow(w, r)
+		err := server.HandleSignalWorkflow(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
-		m.server.HandleCreateWorkflow(w, r)
+		err := server.HandleCreateWorkflow(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
-		m.server.HandleListWorkflows(w, r)
+		err := server.HandleListWorkflows(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-		m.server.HandleGetWorkflow(w, r)
+		err := server.HandleGetWorkflow(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
-		m.server.HandleRunLoadTest(w, r)
+		err := server.HandleRunLoadTest(w, r)
+		if err != nil {
+			return false
+		}
+		return true
 	default:
-		return next.ServeHTTP(w, r)
+		return false
 	}
-	return nil
+}
+
+func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
+	if handleIronbirdRoutes(w, r, m.server) {
+		return nil
+	}
+	return next.ServeHTTP(w, r)
 }
 
 var (
@@ -101,53 +131,32 @@ func init() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stderr))
 }
 
-// startAPIServer starts a standard HTTP server that uses the existing IronbirdServer
 func startAPIServer() {
-	// Create a default temporal config
 	temporalConfig := types.TemporalConfig{
-		Host:      "127.0.0.1:7233", // Use IPv4 address instead of localhost
-		Namespace: "default",        // Default Temporal namespace
+		Host:      "127.0.0.1:7233",
+		Namespace: "default",
 	}
 
-	// Database configuration for reading
 	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
 
-	// Initialize database for reading
 	database, err := db.NewSQLiteDB(dbPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Create shared server instance to be reused by requests
 	ironbirdServer, err := server.NewIronbirdServer(temporalConfig, database)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating Ironbird server: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Create a handler that uses the shared server instance
 	ironbirdHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.HasSuffix(r.URL.Path, "/cancel"):
-			ironbirdServer.HandleCancelWorkflow(w, r)
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow") && strings.Contains(r.URL.Path, "/signal/"):
-			ironbirdServer.HandleSignalWorkflow(w, r)
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/workflow"):
-			ironbirdServer.HandleCreateWorkflow(w, r)
-		case r.Method == http.MethodGet && r.URL.Path == "/ironbird/workflows":
-			ironbirdServer.HandleListWorkflows(w, r)
-		case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/ironbird/workflow/"):
-			ironbirdServer.HandleGetWorkflow(w, r)
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/ironbird/loadtest/"):
-			ironbirdServer.HandleRunLoadTest(w, r)
-		default:
+		if !handleIronbirdRoutes(w, r, ironbirdServer) {
 			http.NotFound(w, r)
-			return
 		}
 	})
 
-	// Start the server in a goroutine
 	go func() {
 		fmt.Println("Starting API server on :8090")
 		if err := http.ListenAndServe(":8090", ironbirdHandler); err != nil {
@@ -163,7 +172,6 @@ func main() {
 	caddyfileFlag := flag.String("caddyfile", "./server/Caddyfile", "Path to Caddyfile")
 	flag.Parse()
 
-	// Start the API server that will be proxied by Caddy
 	startAPIServer()
 
 	caddyfileBytes, err := os.ReadFile(*caddyfileFlag)
@@ -193,7 +201,6 @@ func main() {
 	select {}
 }
 
-// getEnvOrDefault returns the environment variable value or a default value if not set
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

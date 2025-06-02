@@ -8,15 +8,13 @@ import (
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/util"
 
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/walletcreator"
 	"github.com/skip-mev/ironbird/messages"
+	ironbirdutil "github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
@@ -233,8 +231,8 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		loadBalancers = append(loadBalancers, messages.Node{
 			Name:    node.Name,
 			Address: node.Address,
-			Rpc:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
-			Lcd:     fmt.Sprintf("https://%s-lcd.%s", node.Name, loadBalancerResp.RootDomain),
+			RPC:     fmt.Sprintf("https://%s-rpc.%s", node.Name, loadBalancerResp.RootDomain),
+			LCD:     fmt.Sprintf("https://%s-lcd.%s", node.Name, loadBalancerResp.RootDomain),
 		})
 	}
 
@@ -382,28 +380,13 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 		ctx,
 		updateHandler,
 		func(ctx workflow.Context, updateReq messages.TestnetWorkflowRequest) error {
-			logger, _ := zap.NewDevelopment()
+			workflow.GetLogger(ctx).Info("received update", zap.Any("updateReq", updateReq))
+
 			stdCtx := context.Background()
-			ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
+			logger, _ := zap.NewDevelopment()
 
-			var p provider.ProviderI
-			var err error
-
-			if updateReq.RunnerType == messages.Docker {
-				p, err = docker.RestoreProvider(
-					stdCtx,
-					logger,
-					*providerState,
-				)
-			} else {
-				p, err = digitalocean.RestoreProvider(
-					stdCtx,
-					*providerState,
-					"",
-					testnetActivities.TailscaleSettings,
-					digitalocean.WithLogger(logger),
-				)
-			}
+			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, *providerState, ironbirdutil.ProviderOptions{
+				DOToken: testnetActivities.DOToken, TailscaleSettings: testnetActivities.TailscaleSettings, TelemetrySettings: testnetActivities.TelemetrySettings})
 
 			if err != nil {
 				return fmt.Errorf("failed to restore provider: %w", err)

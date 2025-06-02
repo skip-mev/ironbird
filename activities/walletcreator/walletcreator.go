@@ -6,9 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
@@ -17,6 +15,7 @@ import (
 
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/util"
 )
 
 type Activity struct {
@@ -29,14 +28,8 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	logger, _ := zap.NewDevelopment()
 	logger.Info("Creating wallets", zap.Int("numWallets", req.NumWallets))
 
-	var p provider.ProviderI
-	var err error
-	if req.RunnerType == string(messages.Docker) {
-		p, err = docker.RestoreProvider(ctx, logger, req.ProviderState)
-	} else {
-		p, err = digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
-			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
-	}
+	p, err := util.RestoreProvider(ctx, logger, messages.RunnerType(req.RunnerType), req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore provider: %w", err)
