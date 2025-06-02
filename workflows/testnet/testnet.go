@@ -97,7 +97,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 			chainImageKey = req.Repo
 		default:
 			// for SDK testing default to simapp
-			// todo(nadim-az): remove simapp v47 and v50 images and just keep one generic simapp image
+			// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
 			chainImageKey = "simapp-v53"
 		}
 	}
@@ -303,15 +303,10 @@ func determineProviderOptions(runnerType messages.RunnerType) map[string]string 
 }
 
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
-	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
+	chainState, providerState, nodes, _, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
 	}
-
-	// Log validators for debugging
-	workflow.GetLogger(ctx).Info("validators from launchTestnet",
-		zap.Int("count", len(validators)),
-		zap.String("workflowID", workflowID))
 
 	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes)
 	if err != nil {
@@ -333,7 +328,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		return err
 	}
 
-	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout) // default runtime to 1 hour
+	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout)
 
 	if err := waitForTestnetCompletion(ctx, req, testnetRuntime, providerState); err != nil {
 		return err
