@@ -89,12 +89,15 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
+	// If the image is set (e.g. when running a testnet for CometBFT testing)
 	chainImageKey := req.ChainConfig.Image
 	if chainImageKey == "" {
 		switch req.Repo {
 		case "gaia":
 			chainImageKey = req.Repo
 		default:
+			// for SDK testing default to simapp
+			// todo(nadim-az): remove simapp v47 and v50 images and just keep one generic simapp image
 			chainImageKey = "simapp-v53"
 		}
 	}
@@ -221,9 +224,6 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		logger.Error("Failed to launch loadbalancer", zap.Error(err))
 		return providerState, err
 	}
-
-	logger.Info("LaunchLoadBalancer activity completed successfully",
-		zap.String("rootDomain", loadBalancerResp.RootDomain))
 
 	return loadBalancerResp.ProviderState, nil
 }

@@ -6,7 +6,7 @@ import (
 
 	evmhd "github.com/cosmos/evm/crypto/hd"
 	"github.com/skip-mev/ironbird/database"
-	types2 "github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/ironbird/messages"
@@ -18,7 +18,7 @@ import (
 
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/types"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 	"go.temporal.io/sdk/activity"
@@ -30,20 +30,20 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
-	ChainImages       types2.ChainImages
+	ChainImages       types.ChainImages
 	DatabaseService   *database.DatabaseService
-	DashboardsConfig  *types2.DashboardsConfig
+	DashboardsConfig  *types.DashboardsConfig
 }
 
 var (
-	CosmosWalletConfig = types.WalletConfig{
+	CosmosWalletConfig = petritypes.WalletConfig{
 		SigningAlgorithm: "secp256k1",
 		Bech32Prefix:     "cosmos",
 		HDPath:           hd.CreateHDPath(118, 0, 0),
 		DerivationFn:     hd.Secp256k1.Derive(),
 		GenerationFn:     hd.Secp256k1.Generate(),
 	}
-	EVMCosmosWalletConfig = types.WalletConfig{
+	EVMCosmosWalletConfig = petritypes.WalletConfig{
 		SigningAlgorithm: "eth_secp256k1",
 		Bech32Prefix:     "cosmos",
 		HDPath:           hd.CreateHDPath(60, 0, 0),
@@ -94,7 +94,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) constructChainConfig(req messages.LaunchTestnetRequest, logger *zap.Logger) (types.ChainConfig, types.WalletConfig) {
+func (a *Activity) constructChainConfig(req messages.LaunchTestnetRequest) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := a.ChainImages[req.Repo]
 
 	denom := cosmosDenom
@@ -111,7 +111,7 @@ func (a *Activity) constructChainConfig(req messages.LaunchTestnetRequest, logge
 		coinType = "60"
 	}
 
-	chainConfig := types.ChainConfig{
+	chainConfig := petritypes.ChainConfig{
 		Name:          req.Name,
 		Denom:         denom,
 		Decimals:      cosmosDecimals,
@@ -134,7 +134,7 @@ func (a *Activity) constructChainConfig(req messages.LaunchTestnetRequest, logge
 	return chainConfig, walletConfig
 }
 
-func (a *Activity) processNode(ctx context.Context, nodeProvider types.NodeI) (messages.Node, error) {
+func (a *Activity) processNode(ctx context.Context, nodeProvider petritypes.NodeI) (messages.Node, error) {
 	cosmosIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
 	if err != nil {
 		return messages.Node{}, err
@@ -193,23 +193,23 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return
 	}
 
-	nodeOptions := types.NodeOptions{}
+	nodeOptions := petritypes.NodeOptions{}
 
 	if req.RunnerType == messages.DigitalOcean {
-		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 			return definition
 		}
 	}
 
-	chainConfig, walletConfig := a.constructChainConfig(req, logger)
+	chainConfig, walletConfig := a.constructChainConfig(req)
 	logger.Info("creating chain", zap.Any("chain_config", chainConfig))
 	chain, chainErr := petrichain.CreateChain(
 		ctx, logger, p, chainConfig,
-		types.ChainOptions{
+		petritypes.ChainOptions{
 			NodeCreator: node.CreateNode,
-			NodeOptions: types.NodeOptions{
-				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+			NodeOptions: petritypes.NodeOptions{
+				NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 					return definition
 				},
@@ -231,7 +231,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.ChainID = chainConfig.ChainId
 
-	initErr := chain.Init(ctx, types.ChainOptions{
+	initErr := chain.Init(ctx, petritypes.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,

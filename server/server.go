@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	types2 "github.com/skip-mev/catalyst/pkg/types"
+	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
@@ -327,7 +327,7 @@ func (s *IronbirdServer) HandleGetWorkflow(w http.ResponseWriter, r *http.Reques
 func (s *IronbirdServer) HandleRunLoadTest(w http.ResponseWriter, r *http.Request) error {
 	//workflowID := strings.TrimPrefix(r.URL.Path, "/ironbird/loadtest/")
 
-	var req types2.LoadTestSpec
+	var req catalysttypes.LoadTestSpec
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, fmt.Sprintf("invalid request body: %v", err), http.StatusBadRequest)
 		return nil
