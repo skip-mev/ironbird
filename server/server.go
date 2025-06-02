@@ -28,13 +28,14 @@ type WorkflowResponse struct {
 }
 
 type Workflow struct {
-	WorkflowID    string                          `json:"WorkflowID"`
-	Status        string                          `json:"Status"`
-	Nodes         []messages.Node                 `json:"Nodes"`
-	Validators    []messages.Node                 `json:"Validators"`
-	LoadBalancers []messages.Node                 `json:"LoadBalancers"`
-	Monitoring    map[string]string               `json:"Monitoring"`
-	Config        messages.TestnetWorkflowRequest `json:"Config,omitempty"`
+	WorkflowID    string            `json:"WorkflowID"`
+	Status        string            `json:"Status"`
+	Nodes         []messages.Node   `json:"Nodes"`
+	Validators    []messages.Node   `json:"Validators"`
+	LoadBalancers []messages.Node   `json:"LoadBalancers"`
+	Monitoring    map[string]string `json:"Monitoring"`
+	// TODO(nadim-az): keep either config, or individual fields in the Workflow struct
+	Config messages.TestnetWorkflowRequest `json:"Config,omitempty"`
 
 	Repo               string          `json:"repo,omitempty"`
 	SHA                string          `json:"sha,omitempty"`
