@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types/testnet"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.temporal.io/api/enums/v1"
 )
 
 func TestSQLiteDB(t *testing.T) {
@@ -27,10 +27,10 @@ func TestSQLiteDB(t *testing.T) {
 	// Test creating a workflow
 	workflow := &Workflow{
 		WorkflowID:      "test-workflow-123",
-		Nodes:           []testnet.Node{},
-		Validators:      []testnet.Node{},
+		Nodes:           []messages.Node{},
+		Validators:      []messages.Node{},
 		MonitoringLinks: make(map[string]string),
-		Status:          WorkflowStatusPending,
+		Status:          enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED, // Pending
 		Config:          messages.TestnetWorkflowRequest{},
 	}
 
@@ -47,7 +47,7 @@ func TestSQLiteDB(t *testing.T) {
 	assert.Equal(t, workflow.Status, retrieved.Status)
 
 	// Test updating the workflow
-	newStatus := WorkflowStatusRunning
+	newStatus := enums.WORKFLOW_EXECUTION_STATUS_RUNNING
 	update := WorkflowUpdate{
 		Status: &newStatus,
 	}
@@ -57,7 +57,7 @@ func TestSQLiteDB(t *testing.T) {
 	// Verify the update
 	updated, err := db.GetWorkflow("test-workflow-123")
 	require.NoError(t, err)
-	assert.Equal(t, WorkflowStatusRunning, updated.Status)
+	assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_RUNNING, updated.Status)
 	assert.True(t, updated.UpdatedAt.After(updated.CreatedAt))
 
 	// Test listing workflows

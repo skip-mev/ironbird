@@ -5,8 +5,28 @@ import (
 
 	"github.com/skip-mev/ironbird/db"
 	"github.com/skip-mev/ironbird/messages"
+	"go.temporal.io/api/enums/v1"
 	"go.uber.org/zap"
 )
+
+func StringToWorkflowStatus(status string) db.WorkflowStatus {
+	switch status {
+	case "pending":
+		return enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED
+	case "running":
+		return enums.WORKFLOW_EXECUTION_STATUS_RUNNING
+	case "completed":
+		return enums.WORKFLOW_EXECUTION_STATUS_COMPLETED
+	case "failed":
+		return enums.WORKFLOW_EXECUTION_STATUS_FAILED
+	case "canceled":
+		return enums.WORKFLOW_EXECUTION_STATUS_CANCELED
+	case "terminated":
+		return enums.WORKFLOW_EXECUTION_STATUS_TERMINATED
+	default:
+		return enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED
+	}
+}
 
 // DatabaseService provides simple database operations (not activities)
 type DatabaseService struct {
@@ -26,10 +46,7 @@ func NewDatabaseService(database db.DB, logger *zap.Logger) *DatabaseService {
 func (s *DatabaseService) CreateWorkflow(workflowID string, config messages.TestnetWorkflowRequest, status string) error {
 	s.Logger.Info("Creating workflow record", zap.String("workflow_id", workflowID))
 
-	dbStatus := db.WorkflowStatus(status)
-	if dbStatus == "" {
-		dbStatus = db.WorkflowStatusPending
-	}
+	dbStatus := StringToWorkflowStatus(status)
 
 	workflow := &db.Workflow{
 		WorkflowID:      workflowID,
@@ -55,7 +72,7 @@ func (s *DatabaseService) UpdateWorkflowStatus(workflowID string, status string)
 		zap.String("workflow_id", workflowID),
 		zap.String("status", status))
 
-	dbStatus := db.WorkflowStatus(status)
+	dbStatus := StringToWorkflowStatus(status)
 	update := db.WorkflowUpdate{
 		Status: &dbStatus,
 	}

@@ -5,19 +5,34 @@ import (
 	"time"
 
 	"github.com/skip-mev/ironbird/messages"
+	"go.temporal.io/api/enums/v1"
 )
 
-// WorkflowStatus represents the status of a workflow
-type WorkflowStatus string
+// WorkflowStatus is an alias for Temporal's WorkflowExecutionStatus
+type WorkflowStatus = enums.WorkflowExecutionStatus
 
-const (
-	WorkflowStatusPending    WorkflowStatus = "pending"
-	WorkflowStatusRunning    WorkflowStatus = "running"
-	WorkflowStatusCompleted  WorkflowStatus = "completed"
-	WorkflowStatusFailed     WorkflowStatus = "failed"
-	WorkflowStatusCanceled   WorkflowStatus = "canceled"
-	WorkflowStatusTerminated WorkflowStatus = "terminated"
-)
+func WorkflowStatusToString(status WorkflowStatus) string {
+	switch status {
+	case enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED:
+		return "pending"
+	case enums.WORKFLOW_EXECUTION_STATUS_RUNNING:
+		return "running"
+	case enums.WORKFLOW_EXECUTION_STATUS_COMPLETED:
+		return "completed"
+	case enums.WORKFLOW_EXECUTION_STATUS_FAILED:
+		return "failed"
+	case enums.WORKFLOW_EXECUTION_STATUS_CANCELED:
+		return "canceled"
+	case enums.WORKFLOW_EXECUTION_STATUS_TERMINATED:
+		return "terminated"
+	case enums.WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW:
+		return "running" // Treat as still running
+	case enums.WORKFLOW_EXECUTION_STATUS_TIMED_OUT:
+		return "failed" // Treat as failed
+	default:
+		return "unknown"
+	}
+}
 
 // Workflow represents a workflow record in the database
 type Workflow struct {
@@ -57,22 +72,18 @@ func (w *Workflow) NodesJSON() ([]byte, error) {
 	return json.Marshal(w.Nodes)
 }
 
-// ToJSON converts validators to JSON for database storage
 func (w *Workflow) ValidatorsJSON() ([]byte, error) {
 	return json.Marshal(w.Validators)
 }
 
-// ToJSON converts loadbalancers to JSON for database storage
 func (w *Workflow) LoadBalancersJSON() ([]byte, error) {
 	return json.Marshal(w.LoadBalancers)
 }
 
-// ToJSON converts config to JSON for database storage
 func (w *Workflow) ConfigJSON() ([]byte, error) {
 	return json.Marshal(w.Config)
 }
 
-// LoadTestSpecJSON converts load test spec to JSON for database storage
 func (w *Workflow) LoadTestSpecJSON() ([]byte, error) {
 	if w.LoadTestSpec == nil {
 		return []byte("{}"), nil

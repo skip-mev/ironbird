@@ -54,7 +54,9 @@ func (m *CaddyModule) Provision(ctx caddy.Context) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	m.server, err = server.NewIronbirdServer(m.config, database)
+	logger, _ := zap.NewDevelopment()
+
+	m.server, err = server.NewIronbirdServer(m.config, database, logger)
 	return err
 }
 
@@ -77,7 +79,8 @@ func handleIronbirdRoutes(w http.ResponseWriter, r *http.Request, server *server
 
 	handleRequest := func(handlerFunc func(http.ResponseWriter, *http.Request) error) bool {
 		if err := handlerFunc(w, r); err != nil {
-			http.Error(w, fmt.Sprintf("Error: %v", err), http.StatusInternalServerError)
+			errMsg := fmt.Sprintf("Error: %v", err)
+			http.Error(w, errMsg, http.StatusInternalServerError)
 			return false
 		}
 		return true
@@ -115,7 +118,10 @@ func handleIronbirdRoutes(w http.ResponseWriter, r *http.Request, server *server
 }
 
 func (m *CaddyModule) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	if handleIronbirdRoutes(w, r, m.server) {
+	if strings.HasPrefix(r.URL.Path, "/ironbird/") {
+		if !handleIronbirdRoutes(w, r, m.server) {
+			http.NotFound(w, r)
+		}
 		return nil
 	}
 	return next.ServeHTTP(w, r)
@@ -134,72 +140,35 @@ func init() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stderr))
 }
 
-func startAPIServer() {
-	temporalConfig := types.TemporalConfig{
-		Host:      "127.0.0.1:7233",
-		Namespace: "default",
-	}
-
-	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
-
-	database, err := db.NewSQLiteDB(dbPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error connecting to database: %v\n", err)
-		os.Exit(1)
-	}
-
-	ironbirdServer, err := server.NewIronbirdServer(temporalConfig, database)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating Ironbird server: %v\n", err)
-		os.Exit(1)
-	}
-
-	ironbirdHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !handleIronbirdRoutes(w, r, ironbirdServer) {
-			http.NotFound(w, r)
-		}
-	})
-
-	go func() {
-		fmt.Println("Starting API server on :8090")
-		if err := http.ListenAndServe(":8090", ironbirdHandler); err != nil {
-			fmt.Fprintf(os.Stderr, "Error starting API server: %v\n", err)
-			os.Exit(1)
-		}
-	}()
-}
-
 func main() {
 	logger, _ := zap.NewDevelopment()
 
 	caddyfileFlag := flag.String("caddyfile", "./server/Caddyfile", "Path to Caddyfile")
 	flag.Parse()
 
-	startAPIServer()
-
 	caddyfileBytes, err := os.ReadFile(*caddyfileFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading Caddyfile: %v\n", err)
+		logger.Error("reading Caddyfile", zap.Error(err))
 		os.Exit(1)
 	}
 
 	cfgAdapter := caddyconfig.GetAdapter("caddyfile")
 	config, warn, err := cfgAdapter.Adapt(caddyfileBytes, nil)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error adapting Caddyfile: %v\n", err)
+		logger.Error("adapting Caddyfile", zap.Error(err))
 		os.Exit(1)
 	}
 	if warn != nil {
-		fmt.Fprintf(os.Stderr, "Warnings: %v\n", warn)
+		logger.Warn("warnings during Caddyfile adaptation", zap.Any("warnings", warn))
 	}
 
 	err = caddy.Load(config, true)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading configuration: %v\n", err)
+		logger.Error("loading configuration", zap.Error(err))
 		os.Exit(1)
 	}
 
-	logger.Info("Server started successfully - only reading from database")
+	logger.Info("server started successfully - only reading from database")
 
 	select {}
 }
