@@ -28,7 +28,6 @@ func StringToWorkflowStatus(status string) db.WorkflowStatus {
 	}
 }
 
-// DatabaseService provides simple database operations (not activities)
 type DatabaseService struct {
 	DB     db.DB
 	Logger *zap.Logger
