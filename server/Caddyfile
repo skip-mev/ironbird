@@ -1,0 +1,16 @@
+{
+    admin off
+    debug
+}
+
+:8080 {
+    log {
+        output stdout
+        format console
+        level DEBUG
+    }
+    
+    handle /ironbird/* {
+        reverse_proxy localhost:8090
+    }
+} 
