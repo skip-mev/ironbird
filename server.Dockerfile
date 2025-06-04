@@ -12,4 +12,4 @@ FROM alpine:latest
 WORKDIR /usr/local/bin
 COPY --from=build /app/build/server /usr/local/bin/server
 EXPOSE 9006
-ENTRYPOINT ["/usr/local/bin/server"] 
+ENTRYPOINT ["server", "-config"]

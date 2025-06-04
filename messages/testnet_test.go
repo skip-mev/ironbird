@@ -20,32 +20,12 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 				Repo: "ironbird",
 				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: false,
-		},
-		{
-			name: "missing installation ID",
-			request: TestnetWorkflowRequest{
-				Repo: "ironbird",
-				SHA:  "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "installationID is required",
 		},
 		{
 			name: "missing repo",
@@ -53,13 +33,10 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 				Repo: "",
 				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "repo is required",
@@ -70,13 +47,10 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 				Repo: "ironbird",
 				SHA:  "",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "SHA is required",
@@ -87,50 +61,13 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 				Repo: "ironbird",
 				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "chain name is required",
-		},
-		{
-			name: "missing binary name",
-			request: TestnetWorkflowRequest{
-				Repo: "ironbird",
-				SHA:  "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "binary name is required",
-		},
-		{
-			name: "missing home dir",
-			request: TestnetWorkflowRequest{
-				Repo: "ironbird",
-				SHA:  "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "home directory is required",
 		},
 		{
 			name: "invalid runner type",
@@ -138,11 +75,8 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 				Repo: "ironbird",
 				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
 				RunnerType: "invalid-runner",
 			},
