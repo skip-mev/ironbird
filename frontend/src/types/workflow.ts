@@ -33,19 +33,18 @@ export interface LoadTestSpec {
   name: string;
   description: string;
   chain_id: string;
-  num_of_blocks: number;
-  num_of_txs?: number;
-  NumOfBlocks?: number;
-  NumOfTxs?: number;
+  NumOfBlocks: number;
+  NumOfTxs: number;
   msgs: Message[];
   unordered_txs: boolean;
   tx_timeout: string;
+  evm?: boolean;
 }
 
 export interface TestnetWorkflowRequest {
   Repo: string;
   SHA: string;
-  GaiaEVM: boolean;
+  evm: boolean;
   ChainConfig: ChainConfig;
   RunnerType: string;
   LoadTestSpec?: LoadTestSpec;
@@ -68,18 +67,7 @@ export interface WorkflowStatus {
   Validators: Node[];
   LoadBalancers: Node[];
   Monitoring: Record<string, string>;
-  Config?: TestnetWorkflowRequest;
-  
-  // Individual fields from the database
-  repo?: string;
-  sha?: string;
-  chainName?: string;
-  runnerType?: string;
-  numOfNodes?: number;
-  numOfValidators?: number;
-  longRunningTestnet?: boolean;
-  testnetDuration?: number;
-  numWallets?: number;
+  config?: TestnetWorkflowRequest;
   loadTestSpec?: any;
 }
 

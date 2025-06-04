@@ -2,7 +2,7 @@
 ARG IMG_TAG=latest
 
 # Compile the gaiad binary
-FROM --platform=linux/amd64 golang:1.23-alpine AS gaiad-builder
+FROMw golang:1.23-alpine AS gaiad-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 WORKDIR /src/
@@ -39,7 +39,7 @@ RUN LEDGER_ENABLED=false LINK_STATICALLY=true BUILD_TAGS="muslc netgo" make buil
 RUN echo "Ensuring binary is statically linked ..."  \
     && file /src/app/build/gaiad | grep "statically linked"
 
-FROM --platform=linux/amd64 alpine:$IMG_TAG
+FROM alpine:$IMG_TAG
 RUN apk add --no-cache build-base jq
 RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot

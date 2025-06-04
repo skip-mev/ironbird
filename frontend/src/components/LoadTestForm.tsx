@@ -41,9 +41,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
     name: '',
     description: '',
     chain_id: '',
-    num_of_blocks: 0,
     NumOfBlocks: 0,
-    num_of_txs: 0,
     NumOfTxs: 0,
     msgs: [],
     unordered_txs: false,
@@ -65,9 +63,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       name: '',
       description: '',
       chain_id: initialData.chain_id || '', // Keep chain_id from initialData
-      num_of_blocks: 0,
       NumOfBlocks: 0,
-      num_of_txs: 0,
       NumOfTxs: 0,
       msgs: [],
       unordered_txs: false,
@@ -90,8 +86,8 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
     const requiredFields = [
       { name: 'Test Name', value: formData.name },
       { name: 'Description', value: formData.description },
-      { name: 'Number of Transactions', value: formData.num_of_txs },
-      { name: 'Number of Blocks', value: formData.num_of_blocks }
+      { name: 'Number of Transactions', value: formData.NumOfTxs },
+      { name: 'Number of Blocks', value: formData.NumOfBlocks }
     ];
 
     // Add Transaction Timeout if unordered_txs is true
@@ -259,15 +255,15 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             <FormControl>
               <FormLabel color="text">Number of Transactions</FormLabel>
               <NumberInput
-              value={formData.num_of_txs || ''}
+              value={formData.NumOfTxs || ''}
               min={1}
-              onChange={(_, value) => setFormData({ ...formData, num_of_txs: value, NumOfTxs: value })}
+              onChange={(_, value) => setFormData({ ...formData, NumOfTxs: value })}
               >
                 <NumberInputField 
                   bg="surface"
                   color="text"
                   borderColor="divider"
-                  placeholder={defaultValues.num_of_txs?.toString() || "1000"}
+                  placeholder={defaultValues.NumOfTxs?.toString() || "1000"}
                 />
               </NumberInput>
             </FormControl>
@@ -275,15 +271,15 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
             <FormControl>
               <FormLabel color="text">Number of Blocks</FormLabel>
               <NumberInput
-                value={formData.num_of_blocks || ''}
+                value={formData.NumOfBlocks || ''}
                 min={1}
-                onChange={(_, value) => setFormData({ ...formData, num_of_blocks: value, NumOfBlocks: value })}
+                onChange={(_, value) => setFormData({ ...formData, NumOfBlocks: value })}
               >
                 <NumberInputField 
                   bg="surface"
                   color="text"
                   borderColor="divider"
-                  placeholder={defaultValues.num_of_blocks?.toString() || "100"}
+                  placeholder={defaultValues.NumOfBlocks?.toString() || "100"}
                 />
               </NumberInput>
             </FormControl>

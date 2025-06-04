@@ -3,10 +3,10 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
-	"github.com/skip-mev/ironbird/db"
+	"github.com/skip-mev/ironbird/core/db"
 	"strings"
 
-	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/core/messages"
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"go.uber.org/zap"

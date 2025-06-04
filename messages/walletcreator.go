@@ -2,7 +2,7 @@ package messages
 
 type CreateWalletsRequest struct {
 	NumWallets    int
-	GaiaEVM       bool
+	Evm           bool
 	ChainState    []byte
 	ProviderState []byte
 	RunnerType    string

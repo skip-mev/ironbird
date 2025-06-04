@@ -9,7 +9,7 @@ type RunLoadTestRequest struct {
 	ProviderState []byte
 	LoadTestSpec  catalysttypes.LoadTestSpec
 	RunnerType    RunnerType
-	GaiaEVM       bool
+	Evm           bool
 	Mnemonics     []string
 }
 

@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/ironbird/messages"
 	"time"
+
+	"github.com/skip-mev/ironbird/core/messages"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -111,36 +112,13 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		return fmt.Errorf("failed to marshal load test spec: %w", err)
 	}
 
-	// Extract individual fields from config
-	if workflow.Config.Repo != "" {
-		workflow.Repo = workflow.Config.Repo
-	}
-	if workflow.Config.SHA != "" {
-		workflow.SHA = workflow.Config.SHA
-	}
-	if workflow.Config.ChainConfig.Name != "" {
-		workflow.ChainName = workflow.Config.ChainConfig.Name
-	}
-	if workflow.Config.RunnerType != "" {
-		workflow.RunnerType = string(workflow.Config.RunnerType)
-	}
-	if workflow.Config.ChainConfig.NumOfNodes > 0 {
-		workflow.NumOfNodes = int(workflow.Config.ChainConfig.NumOfNodes)
-	}
-	if workflow.Config.ChainConfig.NumOfValidators > 0 {
-		workflow.NumOfValidators = int(workflow.Config.ChainConfig.NumOfValidators)
-	}
-	workflow.LongRunningTestnet = workflow.Config.LongRunningTestnet
-	workflow.TestnetDuration = int64(workflow.Config.TestnetDuration)
-
 	now := time.Now()
 	query := `
 		INSERT INTO workflows (
 			workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
-			repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
-			long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
+			load_test_spec, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id`
 
 	err = s.db.QueryRow(
@@ -152,14 +130,6 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		string(monitoringLinksJSON),
 		workflow.Status,
 		string(configJSON),
-		workflow.Repo,
-		workflow.SHA,
-		workflow.ChainName,
-		workflow.RunnerType,
-		workflow.NumOfNodes,
-		workflow.NumOfValidators,
-		workflow.LongRunningTestnet,
-		workflow.TestnetDuration,
 		string(loadTestSpecJSON),
 		now,
 		now,
@@ -179,8 +149,7 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
-		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
-		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
+		    load_test_spec, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
@@ -196,14 +165,6 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		&monitoringLinksJSON,
 		&workflow.Status,
 		&configJSON,
-		&workflow.Repo,
-		&workflow.SHA,
-		&workflow.ChainName,
-		&workflow.RunnerType,
-		&workflow.NumOfNodes,
-		&workflow.NumOfValidators,
-		&workflow.LongRunningTestnet,
-		&workflow.TestnetDuration,
 		&loadTestSpecJSON,
 		&workflow.CreatedAt,
 		&workflow.UpdatedAt,
@@ -335,8 +296,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
-		       repo, sha, chain_name, runner_type, num_of_nodes, num_of_validators, 
-		       long_running_testnet, testnet_duration, load_test_spec, created_at, updated_at
+		    load_test_spec, created_at, updated_at
 		FROM workflows
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -362,14 +322,6 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			&monitoringLinksJSON,
 			&workflow.Status,
 			&configJSON,
-			&workflow.Repo,
-			&workflow.SHA,
-			&workflow.ChainName,
-			&workflow.RunnerType,
-			&workflow.NumOfNodes,
-			&workflow.NumOfValidators,
-			&workflow.LongRunningTestnet,
-			&workflow.TestnetDuration,
 			&loadTestSpecJSON,
 			&workflow.CreatedAt,
 			&workflow.UpdatedAt,

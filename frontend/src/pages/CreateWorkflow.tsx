@@ -124,7 +124,7 @@ const CreateWorkflow = () => {
       NumOfValidators: 3,
     },
     RunnerType: 'Docker',
-    GaiaEVM: false,
+    evm: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
@@ -143,7 +143,7 @@ const CreateWorkflow = () => {
       NumOfValidators: 0,
     },
     RunnerType: '',
-    GaiaEVM: false,
+    evm: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 0,
@@ -171,7 +171,7 @@ const CreateWorkflow = () => {
           NumOfValidators: 0,
         },
         RunnerType: '',
-        GaiaEVM: false,
+        evm: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
         TestnetDuration: 0,
@@ -249,10 +249,10 @@ const CreateWorkflow = () => {
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
-      if (params.get('gaiaEVM')) {
-        newFormData.GaiaEVM = params.get('gaiaEVM') === 'true';
+      if (params.get('evm')) {
+        newFormData.evm = params.get('evm') === 'true';
         hasChanges = true;
-        console.log("Setting gaiaEVM:", newFormData.GaiaEVM);
+        console.log("Setting evm flag:", newFormData.evm);
       }
       
       if (params.get('testnetDuration')) {
@@ -284,10 +284,8 @@ const CreateWorkflow = () => {
             name: parsedLoadTestSpec.Name || parsedLoadTestSpec.name || "",
             description: parsedLoadTestSpec.Description || parsedLoadTestSpec.description || "",
             chain_id: parsedLoadTestSpec.ChainID || parsedLoadTestSpec.chain_id || "",
-            num_of_blocks: parsedLoadTestSpec.NumOfBlocks || parsedLoadTestSpec.num_of_blocks || 0,
-            NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || parsedLoadTestSpec.num_of_blocks || 0,
-            num_of_txs: parsedLoadTestSpec.NumOfTxs || parsedLoadTestSpec.num_of_txs || 0,
-            NumOfTxs: parsedLoadTestSpec.NumOfTxs || parsedLoadTestSpec.num_of_txs || 0,
+            NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || 0,
+            NumOfTxs: parsedLoadTestSpec.NumOfTxs || 0,
             msgs: Array.isArray(parsedLoadTestSpec.Msgs) 
               ? parsedLoadTestSpec.Msgs.map((msg: any) => ({
                   type: msg.Type || msg.type,
@@ -411,7 +409,7 @@ const CreateWorkflow = () => {
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
       },
-      GaiaEVM: formData.GaiaEVM || false,
+      evm: formData.evm || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
@@ -510,7 +508,7 @@ const CreateWorkflow = () => {
         ...formData.ChainConfig!,
         GenesisModifications: [...GAIA_GENESIS_MODIFICATIONS],
       },
-      GaiaEVM: true,
+      evm: true,
     });
 
     toast({
@@ -808,9 +806,7 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
-                      num_of_blocks: 100,
                       NumOfBlocks: 100,
-                      num_of_txs: 1000,
                       NumOfTxs: 1000,
                       msgs: [],
                       unordered_txs: false,
@@ -848,8 +844,8 @@ const CreateWorkflow = () => {
                 />
               </Flex>
               <Text color="text">Name: {formData.LoadTestSpec.name}</Text>
-              <Text color="text">Transactions: {formData.LoadTestSpec.num_of_txs}</Text>
-              <Text color="text">Blocks: {formData.LoadTestSpec.num_of_blocks}</Text>
+              <Text color="text">Transactions: {formData.LoadTestSpec.NumOfTxs}</Text>
+              <Text color="text">Blocks: {formData.LoadTestSpec.NumOfBlocks}</Text>
               {formData.LoadTestSpec.unordered_txs && (
                 <>
                   <Text color="text">Unordered Transactions: Yes</Text>
@@ -939,9 +935,7 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
-          num_of_blocks: 100,
           NumOfBlocks: 100,
-          num_of_txs: 1000,
           NumOfTxs: 1000,
           msgs: [],
           unordered_txs: false,

@@ -1,6 +1,6 @@
 # Ironbird Server
 
-The Ironbird Server provides a REST API for managing testnet environments and load tests. It uses Caddy as the web server and integrates with Temporal for workflow management.
+The Ironbird Server provides a gRPC API with gRPC-Web support for managing testnet environments and load tests. It integrates with Temporal for workflow management.
 
 ## Setup
 
@@ -16,16 +16,16 @@ go build -o ironbird-server cmd/main.go
 
 3. Run the server:
 ```bash
-./ironbird-server -caddyfile Caddyfile
+./ironbird-server -grpc-addr :50051
 ```
 
-The server will start on port 8080 by default.
+The server will start on port 50051 by default.
 
 ## API Endpoints
 
 ### 1. Create a New Testnet Workflow
 
-**Endpoint:** `POST /ironbird/workflow`
+**Endpoint:** `CreateWorkflow`
 
 Creates a new testnet environment with the specified configuration.
 
@@ -60,45 +60,59 @@ Example request:
 }
 ```
 
-### 2. Update an Existing Testnet Workflow
+### 2. Get Testnet Workflow Status
 
-**Endpoint:** `PUT /ironbird/workflow/{workflow_id}`
-
-Updates the configuration of an existing testnet environment.
-
-### 3. Get Testnet Workflow Status
-
-**Endpoint:** `GET /ironbird/workflow/{workflow_id}`
+**Endpoint:** `GetWorkflow`
 
 Retrieves the current status and details of a specific testnet workflow.
 
-### 4. Run Load Test on Existing Testnet
+### 3. List Testnet Workflows
 
-**Endpoint:** `POST /ironbird/loadtest/{workflow_id}`
+**Endpoint:** `ListWorkflows`
+
+Lists all testnet workflows with their statuses.
+
+### 4. Cancel Testnet Workflow
+
+**Endpoint:** `CancelWorkflow`
+
+Cancels a running testnet workflow.
+
+### 5. Signal Testnet Workflow
+
+**Endpoint:** `SignalWorkflow`
+
+Sends a signal to a running testnet workflow.
+
+### 6. Run Load Test on Existing Testnet
+
+**Endpoint:** `RunLoadTest`
 
 Initiates a load test on an existing testnet environment.
 
 Example request:
 ```json
 {
-  "name": "sustained-load-test",
-  "description": "High transaction volume test",
-  "chain_id": "test-chain",
-  "num_of_txs": 1000,
-  "num_of_blocks": 200,
-  "msgs": [],
-  "unordered_txs": true,
-  "tx_timeout": "30s"
+  "workflow_id": "workflow-id",
+  "load_test_spec": {
+    "name": "sustained-load-test",
+    "description": "High transaction volume test",
+    "chain_id": "test-chain",
+    "num_of_txs": 1000,
+    "num_of_blocks": 200,
+    "msgs": [],
+    "unordered_txs": true,
+    "tx_timeout": "30s"
+  }
 }
 ```
 
 ## Development
 
-The server is implemented as a Caddy module and uses the following components:
+The server is implemented as a gRPC server with gRPC-Web support and uses the following components:
 
-- `server.go`: Main server implementation with request handlers
-- `types.go`: Type definitions for requests and responses
-- `Caddyfile`: Caddy server configuration
+- `grpc_server.go`: Main server implementation with gRPC service handlers
+- `proto/ironbird.proto`: Protocol buffer definitions for the gRPC service
 - `cmd/main.go`: Server entry point
 
-To add new endpoints or modify existing ones, update the relevant handler functions in `server.go`. 
+To add new endpoints or modify existing ones, update the proto definitions in `proto/ironbird.proto` and implement the corresponding handler functions in `grpc_server.go`.

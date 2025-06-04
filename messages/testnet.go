@@ -5,7 +5,7 @@ import (
 	"time"
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/core/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
@@ -47,7 +47,7 @@ type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
 	Name                    string
-	GaiaEVM                 bool
+	Evm                     bool
 	Repo                    string
 	SHA                     string
 	Image                   string
@@ -72,7 +72,7 @@ type LaunchTestnetResponse struct {
 type TestnetWorkflowRequest struct {
 	Repo               string
 	SHA                string
-	GaiaEVM            bool
+	Evm                bool
 	ChainConfig        types.ChainsConfig
 	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec

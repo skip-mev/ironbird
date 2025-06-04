@@ -3,8 +3,7 @@ package messages
 import (
 	"testing"
 
-	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/types/testnet"
+	"github.com/skip-mev/ironbird/core/types"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -13,9 +13,9 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/wallet"
 	"go.uber.org/zap"
 
-	"github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/util"
+	"github.com/skip-mev/ironbird/core/activities/testnet"
+	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/core/util"
 )
 
 type Activity struct {
@@ -36,8 +36,8 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	}
 
 	walletConfig := testnet.CosmosWalletConfig
-	if req.GaiaEVM {
-		walletConfig = testnet.EVMCosmosWalletConfig
+	if req.Evm {
+		walletConfig = testnet.EvmCosmosWalletConfig
 	}
 
 	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)

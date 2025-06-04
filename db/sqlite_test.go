@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/core/messages"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/api/enums/v1"

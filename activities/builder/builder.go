@@ -22,8 +22,8 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/util/staticfs"
-	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/core/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
 )
@@ -47,10 +47,10 @@ var (
 	// and then replace the cometbft dependency with the intended commit version)
 	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia"}
 	dependencies       = map[string]string{
-		"ironbird-cometbft":   "github.com/cometbft/cometbft",
-		"ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
-		"cometbft":            "github.com/cometbft/cometbft",
-		"cosmos-sdk":          "github.com/cosmos/cosmos-sdk",
+		"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
+		"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+		"cometbft/cometbft":            "github.com/cometbft/cometbft",
+		"cosmos/cosmos-sdk":            "github.com/cosmos/cosmos-sdk",
 	}
 	repoOwners = map[string]string{
 		"ironbird-cometbft":   "skip-mev",

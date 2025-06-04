@@ -44,28 +44,25 @@ const WorkflowDetails = () => {
   useEffect(() => {
     if (workflow) {
       console.log("Workflow data received:", workflow);
-      console.log("Config field:", workflow.Config);
       
       // Add more detailed logging for debugging the gray screen issue
-      if (workflow.Config?.LoadTestSpec) {
-        console.log("LoadTestSpec found:", workflow.Config.LoadTestSpec);
+      if (workflow.loadTestSpec) {
+        console.log("LoadTestSpec found:", workflow.loadTestSpec);
         try {
           // Safely stringify the LoadTestSpec to check for circular references or other issues
-          const loadTestSpecString = JSON.stringify(workflow.Config.LoadTestSpec);
+          const loadTestSpecString = JSON.stringify(workflow.loadTestSpec);
           console.log("LoadTestSpec stringified successfully:", loadTestSpecString);
           
           // Normalize the LoadTestSpec structure to match the expected interface
           // Use type assertion to avoid TypeScript errors
-          const loadTestSpec = workflow.Config.LoadTestSpec as any;
+          const loadTestSpec = workflow.loadTestSpec as any;
           
           const normalizedLoadTestSpec: LoadTestSpec = {
             name: loadTestSpec.Name || loadTestSpec.name || "",
             description: loadTestSpec.Description || loadTestSpec.description || "",
             chain_id: loadTestSpec.ChainID || loadTestSpec.chain_id || "",
-            num_of_blocks: loadTestSpec.NumOfBlocks || loadTestSpec.num_of_blocks || 0,
-            NumOfBlocks: loadTestSpec.NumOfBlocks || loadTestSpec.num_of_blocks || 0,
-            num_of_txs: loadTestSpec.NumOfTxs || loadTestSpec.num_of_txs || 0,
-            NumOfTxs: loadTestSpec.NumOfTxs || loadTestSpec.num_of_txs || 0,
+            NumOfBlocks: loadTestSpec.NumOfBlocks  || 0,
+            NumOfTxs: loadTestSpec.NumOfTxs || 0,
             msgs: Array.isArray(loadTestSpec.Msgs) 
               ? loadTestSpec.Msgs 
               : (Array.isArray(loadTestSpec.msgs) 
@@ -78,12 +75,12 @@ const WorkflowDetails = () => {
           console.log("Normalized LoadTestSpec:", normalizedLoadTestSpec);
           
           // Replace the original LoadTestSpec with the normalized version
-          workflow.Config.LoadTestSpec = normalizedLoadTestSpec;
+          workflow.loadTestSpec = normalizedLoadTestSpec;
         } catch (error) {
           console.error("Error normalizing LoadTestSpec:", error);
         }
       } else {
-        console.log("No LoadTestSpec found in workflow.Config");
+        console.log("No LoadTestSpec found in workflow");
       }
     }
   }, [workflow]);
@@ -113,7 +110,7 @@ const WorkflowDetails = () => {
       if (!workflow) return Promise.reject('No workflow data available');
       
       // Check if this is a long running testnet
-      const isLongRunning = workflow.Config?.LongRunningTestnet || workflow.longRunningTestnet;
+      const isLongRunning = workflow.config?.LongRunningTestnet;
       
       if (isLongRunning) {
         // For long running testnets, send a shutdown signal
@@ -124,7 +121,7 @@ const WorkflowDetails = () => {
       }
     },
     onSuccess: () => {
-      const isLongRunning = workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet;
+      const isLongRunning = workflow?.config?.LongRunningTestnet;
       toast({
         title: isLongRunning ? 'Shutdown signal sent' : 'Workflow canceled',
         description: isLongRunning 
@@ -151,7 +148,8 @@ const WorkflowDetails = () => {
       name: 'basic-load-test',
       description: 'Basic load test configuration',
       chain_id: 'test-chain',
-      num_of_blocks: 100,
+      NumOfBlocks: 10,
+      NumOfTxs: 5,
       msgs: [],
       unordered_txs: true,
       tx_timeout: '30s',
@@ -162,7 +160,7 @@ const WorkflowDetails = () => {
   const handleCancelWorkflow = () => {
     if (!workflow) return;
     
-    const isLongRunning = workflow.Config?.LongRunningTestnet || workflow.longRunningTestnet;
+    const isLongRunning = workflow.config?.LongRunningTestnet;
     const confirmMessage = isLongRunning 
       ? 'Are you sure you want to send a shutdown signal to this long-running testnet?'
       : 'Are you sure you want to cancel this workflow?';
@@ -180,126 +178,61 @@ const WorkflowDetails = () => {
     // Create query parameters with workflow data
     const params = new URLSearchParams();
     
-    // Add workflow configuration parameters if available
-    if (workflow.Config) {
-      console.log("Using Config from workflow:", workflow.Config);
+    // Use the config field if available
+    if (workflow.config) {
+      console.log("Using config field for cloning:", workflow.config);
       
-      // Basic fields
-      params.append('repo', workflow.Config.Repo || '');
-      params.append('sha', workflow.Config.SHA || '');
-      params.append('runnerType', workflow.Config.RunnerType || 'Docker');
-      params.append('longRunningTestnet', workflow.Config.LongRunningTestnet ? 'true' : 'false');
+      // Basic workflow parameters
+      if (workflow.config.Repo) params.append('repo', workflow.config.Repo);
+      if (workflow.config.SHA) params.append('sha', workflow.config.SHA);
+      if (workflow.config.RunnerType) params.append('runnerType', workflow.config.RunnerType);
       
-      if (workflow.Config.TestnetDuration) {
+      // EVM flag - always include it regardless of value
+      params.append('evm', workflow.config.evm === true ? 'true' : 'false');
+      
+      // Long running testnet and duration
+      if (workflow.config.LongRunningTestnet !== undefined) {
+        params.append('longRunningTestnet', workflow.config.LongRunningTestnet ? 'true' : 'false');
+      }
+      
+      if (workflow.config.TestnetDuration) {
         // Convert nanoseconds to hours if needed
-        let duration = workflow.Config.TestnetDuration;
+        let duration = workflow.config.TestnetDuration;
         if (duration > 1000000000) { // If it's in nanoseconds
           duration = duration / (60 * 60 * 1000000000); // Convert to hours
         }
         params.append('testnetDuration', duration.toString());
-      } else {
-        params.append('testnetDuration', '2');
+      }
+      
+      // Number of wallets
+      if (workflow.config.NumWallets) {
+        params.append('numWallets', workflow.config.NumWallets.toString());
       }
       
       // Chain config
-      if (workflow.Config.ChainConfig) {
-        params.append('chainName', workflow.Config.ChainConfig.Name || 'test-chain');
-        
-        if (workflow.Config.ChainConfig.Image) {
-          params.append('image', workflow.Config.ChainConfig.Image);
+      if (workflow.config.ChainConfig) {
+        if (workflow.config.ChainConfig.Name) {
+          params.append('chainName', workflow.config.ChainConfig.Name);
         }
         
-        params.append('numOfNodes', 
-          (workflow.Config.ChainConfig.NumOfNodes || 1).toString());
+        if (workflow.config.ChainConfig.NumOfNodes) {
+          params.append('numOfNodes', workflow.config.ChainConfig.NumOfNodes.toString());
+        }
         
-        params.append('numOfValidators', 
-          (workflow.Config.ChainConfig.NumOfValidators || 1).toString());
+        if (workflow.config.ChainConfig.NumOfValidators) {
+          params.append('numOfValidators', workflow.config.ChainConfig.NumOfValidators.toString());
+        }
+
         
-        if (workflow.Config.ChainConfig.GenesisModifications && 
-            workflow.Config.ChainConfig.GenesisModifications.length > 0) {
+        // Genesis modifications
+        if (workflow.config.ChainConfig.GenesisModifications && 
+            workflow.config.ChainConfig.GenesisModifications.length > 0) {
           params.append('genesisModifications', 
-            JSON.stringify(workflow.Config.ChainConfig.GenesisModifications));
-          
-          if (workflow.Config.GaiaEVM) {
-            params.append('gaiaEVM', 'true');
-          }
+            JSON.stringify(workflow.config.ChainConfig.GenesisModifications));
         }
-      }
-      
-      // Add NumWallets to the URL parameters
-      if (workflow.Config.NumWallets) {
-        params.append('numWallets', workflow.Config.NumWallets.toString());
-      }
-      
-      // Handle load test spec
-      if (workflow.Config.LoadTestSpec) {
-        // Ensure the LoadTestSpec is normalized before adding it to URL parameters
-        const loadTestSpec = workflow.Config.LoadTestSpec as any;
-        
-        // Create a normalized version that follows the expected structure
-        const normalizedLoadTestSpec: LoadTestSpec = {
-          name: loadTestSpec.name || loadTestSpec.Name || "",
-          description: loadTestSpec.description || loadTestSpec.Description || "",
-          chain_id: loadTestSpec.chain_id || loadTestSpec.ChainID || "",
-          num_of_blocks: loadTestSpec.num_of_blocks || loadTestSpec.NumOfBlocks || 0,
-          NumOfBlocks: loadTestSpec.num_of_blocks || loadTestSpec.NumOfBlocks || 0,
-          num_of_txs: loadTestSpec.num_of_txs || loadTestSpec.NumOfTxs || 0,
-          NumOfTxs: loadTestSpec.num_of_txs || loadTestSpec.NumOfTxs || 0,
-          msgs: Array.isArray(loadTestSpec.msgs) 
-            ? loadTestSpec.msgs 
-            : (Array.isArray(loadTestSpec.Msgs) 
-              ? loadTestSpec.Msgs.map((msg: any) => ({
-                  type: msg.type || msg.Type,
-                  weight: msg.weight || msg.Weight || 0,
-                  NumMsgs: msg.NumMsgs || msg.numMsgs,
-                  ContainedType: msg.ContainedType || msg.containedType,
-                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients
-                }))
-              : []),
-          unordered_txs: loadTestSpec.unordered_txs || false,
-          tx_timeout: loadTestSpec.tx_timeout || "",
-        };
-        
-        console.log("Normalized LoadTestSpec for cloning:", normalizedLoadTestSpec);
-        params.append('loadTestSpec', JSON.stringify(normalizedLoadTestSpec));
-      }
-    } else {
-      // If no Config is available, use the individual fields from the database
-      // These fields should be populated from the database
-      if (workflow.repo) params.append('repo', workflow.repo);
-      if (workflow.sha) params.append('sha', workflow.sha);
-      if (workflow.chainName) params.append('chainName', workflow.chainName);
-      if (workflow.runnerType) params.append('runnerType', workflow.runnerType);
-      
-      if (workflow.numOfNodes) {
-        params.append('numOfNodes', workflow.numOfNodes.toString());
-      }
-      
-      if (workflow.numOfValidators) {
-        params.append('numOfValidators', workflow.numOfValidators.toString());
-      }
-      
-      if (workflow.longRunningTestnet !== undefined) {
-        params.append('longRunningTestnet', workflow.longRunningTestnet ? 'true' : 'false');
-      }
-      
-      if (workflow.testnetDuration) {
-        // Convert nanoseconds to hours if needed
-        let duration = workflow.testnetDuration;
-        if (duration > 1000000000) { // If it's in nanoseconds
-          duration = duration / (60 * 60 * 1000000000); // Convert to hours
-        }
-        params.append('testnetDuration', duration.toString());
-      }
-      
-      // Add NumWallets from database fields if available
-      if (workflow.numWallets) {
-        params.append('numWallets', workflow.numWallets.toString());
       }
     }
-    
-    console.log("Final URL parameters:", Object.fromEntries(params.entries()));
-    
+        
     // Navigate to root path (which is the create workflow page) with parameters
     navigate(`/?${params.toString()}`);
     
@@ -635,13 +568,13 @@ const WorkflowDetails = () => {
 
         {/* Monitoring Card */}
         {(workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0) || 
-         (workflow.Config?.RunnerType === 'Docker' || workflow.runnerType === 'Docker') ? (
+         (workflow.config?.RunnerType === 'Docker') ? (
           <Card>
             <CardHeader>
               <Heading size="md">Monitoring Dashboards</Heading>
             </CardHeader>
             <CardBody>
-              {(workflow.Config?.RunnerType === 'Docker' || workflow.runnerType === 'Docker') ? (
+              {(workflow.config?.RunnerType === 'Docker') ? (
                 <Alert status="info">
                   <AlertIcon />
                   <Box>
@@ -709,13 +642,13 @@ const WorkflowDetails = () => {
                   colorScheme="red"
                   onClick={handleCancelWorkflow}
                   isLoading={cancelWorkflowMutation.isPending}
-                  loadingText={workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet 
+                  loadingText={workflow?.config?.LongRunningTestnet 
                     ? "Sending Shutdown Signal..." 
                     : "Canceling Workflow..."}
                   disabled={workflow.Status !== 'running'}
                   size="lg"
                 >
-                  {workflow?.Config?.LongRunningTestnet || workflow?.longRunningTestnet 
+                  {workflow?.config?.LongRunningTestnet 
                     ? "Shutdown Testnet" 
                     : "Cancel Workflow"}
                 </Button>

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/core/messages"
 	"go.temporal.io/api/enums/v1"
 )
 
@@ -36,26 +36,17 @@ func WorkflowStatusToString(status WorkflowStatus) string {
 
 // Workflow represents a workflow record in the database
 type Workflow struct {
-	ID                 int                             `json:"id" db:"id"`
-	WorkflowID         string                          `json:"workflow_id" db:"workflow_id"`
-	Nodes              []messages.Node                 `json:"nodes" db:"nodes"`
-	Validators         []messages.Node                 `json:"validators" db:"validators"`
-	LoadBalancers      []messages.Node                 `json:"loadbalancers" db:"loadbalancers"`
-	MonitoringLinks    map[string]string               `json:"monitoring_links" db:"monitoring_links"`
-	Status             WorkflowStatus                  `json:"status" db:"status"`
-	Config             messages.TestnetWorkflowRequest `json:"config" db:"config"`
-	Repo               string                          `json:"repo" db:"repo"`
-	SHA                string                          `json:"sha" db:"sha"`
-	ChainName          string                          `json:"chain_name" db:"chain_name"`
-	RunnerType         string                          `json:"runner_type" db:"runner_type"`
-	NumOfNodes         int                             `json:"num_of_nodes" db:"num_of_nodes"`
-	NumOfValidators    int                             `json:"num_of_validators" db:"num_of_validators"`
-	NumWallets         int                             `json:"num_wallets" db:"num_wallets"`
-	LongRunningTestnet bool                            `json:"long_running_testnet" db:"long_running_testnet"`
-	TestnetDuration    int64                           `json:"testnet_duration" db:"testnet_duration"`
-	LoadTestSpec       json.RawMessage                 `json:"load_test_spec" db:"load_test_spec"`
-	CreatedAt          time.Time                       `json:"created_at" db:"created_at"`
-	UpdatedAt          time.Time                       `json:"updated_at" db:"updated_at"`
+	ID              int                             `json:"id" db:"id"`
+	WorkflowID      string                          `json:"workflow_id" db:"workflow_id"`
+	Nodes           []messages.Node                 `json:"nodes" db:"nodes"`
+	Validators      []messages.Node                 `json:"validators" db:"validators"`
+	LoadBalancers   []messages.Node                 `json:"loadbalancers" db:"loadbalancers"`
+	MonitoringLinks map[string]string               `json:"monitoring_links" db:"monitoring_links"`
+	Status          WorkflowStatus                  `json:"status" db:"status"`
+	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
+	LoadTestSpec    json.RawMessage                 `json:"load_test_spec" db:"load_test_spec"`
+	CreatedAt       time.Time                       `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time                       `json:"updated_at" db:"updated_at"`
 }
 
 // WorkflowUpdate represents fields that can be updated

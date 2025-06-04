@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/core/messages"
 	"os"
 
-	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
-	"github.com/skip-mev/ironbird/db"
-	"github.com/skip-mev/ironbird/util"
+	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/core/activities/walletcreator"
+	"github.com/skip-mev/ironbird/core/db"
+	"github.com/skip-mev/ironbird/core/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"go.uber.org/zap"
 
@@ -19,11 +19,11 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
 
-	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/loadtest"
-	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/types"
-	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
+	"github.com/skip-mev/ironbird/core/activities/builder"
+	"github.com/skip-mev/ironbird/core/activities/loadtest"
+	testnetactivity "github.com/skip-mev/ironbird/core/activities/testnet"
+	"github.com/skip-mev/ironbird/core/types"
+	testnetworkflow "github.com/skip-mev/ironbird/core/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )

@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 
-	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/core/messages"
 	"go.temporal.io/api/enums/v1"
 	"go.uber.org/zap"
 )

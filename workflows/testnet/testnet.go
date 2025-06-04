@@ -11,14 +11,14 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
-	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
-	"github.com/skip-mev/ironbird/messages"
-	ironbirdutil "github.com/skip-mev/ironbird/util"
+	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/core/activities/walletcreator"
+	"github.com/skip-mev/ironbird/core/messages"
+	ironbirdutil "github.com/skip-mev/ironbird/core/util"
 
-	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/loadtest"
-	"github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/core/activities/builder"
+	"github.com/skip-mev/ironbird/core/activities/loadtest"
+	"github.com/skip-mev/ironbird/core/activities/testnet"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
@@ -151,7 +151,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			Name:                    req.ChainConfig.Name,
 			Repo:                    req.Repo,
 			SHA:                     req.SHA,
-			GaiaEVM:                 req.GaiaEVM,
+			Evm:                     req.Evm,
 			Image:                   buildResult.FQDNTag,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
 			RunnerType:              req.RunnerType,
@@ -242,7 +242,7 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 		walletCreatorActivities.CreateWallets,
 		messages.CreateWalletsRequest{
 			NumWallets: req.NumWallets,
-			GaiaEVM:    req.GaiaEVM,
+			Evm:        req.Evm,
 			RunnerType: string(req.RunnerType),
 		},
 	).Get(ctx, &createWalletsResp)
@@ -268,7 +268,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 		loadTestTimeout = loadTestTimeout + 1*time.Hour
 
 		var loadTestResp messages.RunLoadTestResponse
-		req.LoadTestSpec.GaiaEVM = req.GaiaEVM
+		req.LoadTestSpec.Evm = req.Evm
 		activityErr := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
@@ -277,7 +277,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				ProviderState: providerState,
 				LoadTestSpec:  *req.LoadTestSpec,
 				RunnerType:    req.RunnerType,
-				GaiaEVM:       req.GaiaEVM,
+				Evm:           req.Evm,
 				Mnemonics:     mnemonics,
 			},
 		).Get(ctx, &loadTestResp)
@@ -323,7 +323,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, req.GaiaEVM, workflowID)
+	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, req.Evm, workflowID)
 	if err != nil {
 		return err
 	}
@@ -337,7 +337,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, gaiaEVM bool, workflowID string) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, Evm bool, workflowID string) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		updateHandler,
@@ -355,8 +355,8 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			}
 
 			walletConfig := testnet.CosmosWalletConfig
-			if gaiaEVM {
-				walletConfig = testnet.EVMCosmosWalletConfig
+			if Evm {
+				walletConfig = testnet.EvmCosmosWalletConfig
 			}
 			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
 

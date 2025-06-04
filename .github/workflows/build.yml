@@ -19,6 +19,7 @@ jobs:
         builds:
           [
             { image: 'worker', file: 'worker.Dockerfile' },
+            { image: 'server', file: 'server.Dockerfile' },
           ]
     runs-on: ubuntu-latest
     permissions:

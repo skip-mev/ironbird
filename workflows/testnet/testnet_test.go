@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"log"
@@ -18,12 +18,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/loadtest"
-	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types"
-	testnettype "github.com/skip-mev/ironbird/types/testnet"
+	"github.com/skip-mev/ironbird/core/activities/builder"
+	"github.com/skip-mev/ironbird/core/activities/loadtest"
+	testnettypes "github.com/skip-mev/ironbird/core/activities/testnet"
+	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/core/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -79,7 +78,7 @@ var (
 	gaiaReq = messages.TestnetWorkflowRequest{
 		Repo:            "gaia",
 		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
-		RunnerType:      testnettype.Docker,
+		RunnerType:      messages.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
 			Name: "cosmos_22222-1",
@@ -369,7 +368,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
@@ -387,7 +386,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq := simappReq
 	doReq.Repo = "ironbird-cometbft"
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
-	doReq.RunnerType = testnettype.DigitalOcean
+	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
@@ -404,7 +403,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
@@ -423,7 +422,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
@@ -453,13 +452,12 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq := simappReq
 	dockerReq.Repo = "ironbird-cosmos-sdk"
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = testnettype.Docker
+	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = 0
 
 	updatedReq := dockerReq
-	updatedReq.ChainConfig.Version = "0.50.12"
 	updatedReq.ChainConfig.Name = "updated-stake"
 
 	done := make(chan struct{})

@@ -1,5 +1,5 @@
 WORKER_BIN=./build/worker
-APP_BIN=./build/app
+SERVER_BIN=./build/server
 GO_FILES=$(shell find . -name '*.go' -type f -not -path "./vendor/*")
 GO_DEPS=go.mod go.sum
 
@@ -35,10 +35,36 @@ deps:
 ${WORKER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@echo "Building worker binary..."
 	@mkdir -p ./build
-	go build -o ./build/ github.com/skip-mev/ironbird/cmd/worker
+	go build -o ./build/ github.com/skip-mev/ironbird/core/cmd/worker
+
+${SERVER_BIN}: ${GO_FILES} ${GO_DEPS}
+	@echo "Building server binary..."
+	@mkdir -p ./build
+	cd server && go build -o ../build/server ./cmd
 
 .PHONY: build
-build: ${WORKER_BIN}
+build: ${WORKER_BIN} ${SERVER_BIN}
+
+###############################################################################
+###                                  Proto                                  ###
+###############################################################################
+
+.PHONY: proto-gen
+proto-gen:
+	@echo "Generating gRPC code from proto files..."
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		server/proto/ironbird.proto
+	@echo "Generating frontend TypeScript code from proto files..."
+	cd frontend && npm run generate-proto
+
+.PHONY: proto-tools
+proto-tools:
+	@echo "Installing protoc-gen-go and protoc-gen-go-grpc..."
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@echo "Installing frontend proto tools..."
+	cd frontend && npm install --save-dev @bufbuild/protoc-gen-connect-es @bufbuild/protoc-gen-es
 
 ###############################################################################
 ###                                  Testing                                ###

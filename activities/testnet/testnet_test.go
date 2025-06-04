@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/core/types"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/assert"
