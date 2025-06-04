@@ -52,13 +52,13 @@ func main() {
 
 	database, err := db.NewSQLiteDB(dbPath)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	defer database.Close()
 
 	migrationsPath := "./migrations"
 	if err := database.RunMigrations(migrationsPath); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
 	logger.Info("Database initialized successfully")
