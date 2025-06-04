@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 
 	"log"
@@ -18,11 +18,11 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/core/activities/builder"
-	"github.com/skip-mev/ironbird/core/activities/loadtest"
-	testnettypes "github.com/skip-mev/ironbird/core/activities/testnet"
-	"github.com/skip-mev/ironbird/core/messages"
-	"github.com/skip-mev/ironbird/core/types"
+	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/activities/loadtest"
+	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"

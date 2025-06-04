@@ -22,8 +22,8 @@ import (
 	"github.com/moby/buildkit/session"
 	"github.com/moby/buildkit/session/auth/authprovider"
 	"github.com/moby/buildkit/util/staticfs"
-	"github.com/skip-mev/ironbird/core/messages"
-	"github.com/skip-mev/ironbird/core/types"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
 )

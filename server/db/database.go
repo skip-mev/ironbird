@@ -3,7 +3,8 @@ package db
 import (
 	"fmt"
 
-	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/messages"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"go.temporal.io/api/enums/v1"
 	"go.uber.org/zap"
 )
@@ -49,8 +50,8 @@ func (s *DatabaseService) CreateWorkflow(workflowID string, config messages.Test
 
 	workflow := &Workflow{
 		WorkflowID:      workflowID,
-		Nodes:           []messages.Node{},
-		Validators:      []messages.Node{},
+		Nodes:           []pb.Node{},
+		Validators:      []pb.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          dbStatus,
 		Config:          config,
@@ -86,7 +87,7 @@ func (s *DatabaseService) UpdateWorkflowStatus(workflowID string, status string)
 }
 
 // UpdateWorkflowNodes updates the nodes and validators for a workflow
-func (s *DatabaseService) UpdateWorkflowNodes(workflowID string, nodes []messages.Node, validators []messages.Node) error {
+func (s *DatabaseService) UpdateWorkflowNodes(workflowID string, nodes []pb.Node, validators []pb.Node) error {
 	s.Logger.Info("Updating workflow nodes",
 		zap.String("workflow_id", workflowID),
 		zap.Int("nodes_count", len(nodes)),
@@ -126,7 +127,7 @@ func (s *DatabaseService) UpdateWorkflowMonitoring(workflowID string, monitoring
 }
 
 // UpdateWorkflowLoadBalancers updates the loadbalancers for a workflow
-func (s *DatabaseService) UpdateWorkflowLoadBalancers(workflowID string, loadbalancers []messages.Node) error {
+func (s *DatabaseService) UpdateWorkflowLoadBalancers(workflowID string, loadbalancers []pb.Node) error {
 	s.Logger.Info("Updating workflow loadbalancers",
 		zap.String("workflow_id", workflowID),
 		zap.Int("loadbalancers_count", len(loadbalancers)))

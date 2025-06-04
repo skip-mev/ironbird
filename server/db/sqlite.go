@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
-
-	"github.com/skip-mev/ironbird/core/messages"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -15,26 +14,21 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// DB interface defines the database operations
 type DB interface {
-	// Workflow operations
 	CreateWorkflow(workflow *Workflow) error
 	GetWorkflow(workflowID string) (*Workflow, error)
 	UpdateWorkflow(workflowID string, update WorkflowUpdate) error
 	ListWorkflows(limit, offset int) ([]Workflow, error)
 	DeleteWorkflow(workflowID string) error
 
-	// Health check
 	Ping() error
 	Close() error
 }
 
-// SQLiteDB implements the DB interface for SQLite
 type SQLiteDB struct {
 	db *sql.DB
 }
 
-// NewSQLiteDB creates a new SQLite database connection
 func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -45,7 +39,6 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Enable foreign keys and WAL mode for better performance
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
@@ -57,7 +50,6 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 	return &SQLiteDB{db: db}, nil
 }
 
-// RunMigrations runs the database migrations
 func (s *SQLiteDB) RunMigrations(migrationsPath string) error {
 	driver, err := sqlite3.WithInstance(s.db, &sqlite3.Config{})
 	if err != nil {
@@ -80,7 +72,6 @@ func (s *SQLiteDB) RunMigrations(migrationsPath string) error {
 	return nil
 }
 
-// CreateWorkflow creates a new workflow record
 func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 	nodesJSON, err := workflow.NodesJSON()
 	if err != nil {
@@ -145,7 +136,6 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 	return nil
 }
 
-// GetWorkflow retrieves a workflow by workflow ID
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
@@ -177,7 +167,6 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		return nil, fmt.Errorf("failed to get workflow: %w", err)
 	}
 
-	// Unmarshal JSON fields
 	if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal nodes: %w", err)
 	}
@@ -205,7 +194,6 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	return &workflow, nil
 }
 
-// UpdateWorkflow updates a workflow record
 func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) error {
 	setParts := []string{}
 	args := []interface{}{}
@@ -255,11 +243,9 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 		return fmt.Errorf("no fields to update")
 	}
 
-	// Add updated_at field
 	setParts = append(setParts, "updated_at = ?")
 	args = append(args, time.Now())
 
-	// Build the query
 	setClause := ""
 	for i, part := range setParts {
 		if i > 0 {
@@ -288,10 +274,8 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 	return nil
 }
 
-// ListWorkflows retrieves a list of workflows with pagination
 func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
-	// Set a timeout for the query to prevent long-running operations
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	query := `
@@ -301,7 +285,6 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
 
-	// Use QueryContext instead of Query to respect the timeout
 	rows, err := s.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workflows: %w", err)
@@ -329,33 +312,26 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan workflow: %w", err)
 		}
-
-		// Unmarshal JSON fields with error handling
 		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
-			// Log the error but continue with empty nodes
 			fmt.Printf("Warning: failed to unmarshal nodes for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Nodes = make([]messages.Node, 0)
+			workflow.Nodes = make([]pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
-			// Log the error but continue with empty validators
 			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Validators = make([]messages.Node, 0)
+			workflow.Validators = make([]pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
-			// Log the error but continue with empty loadbalancers
 			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.LoadBalancers = make([]messages.Node, 0)
+			workflow.LoadBalancers = make([]pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
-			// Log the error but continue with empty config
 			fmt.Printf("Warning: failed to unmarshal config for workflow %s: %v\n", workflow.WorkflowID, err)
 		}
 
 		if err := json.Unmarshal([]byte(monitoringLinksJSON), &workflow.MonitoringLinks); err != nil {
-			// Log the error but continue with empty monitoring links
 			fmt.Printf("Warning: failed to unmarshal monitoring links for workflow %s: %v\n", workflow.WorkflowID, err)
 			workflow.MonitoringLinks = map[string]string{}
 		}
@@ -374,7 +350,6 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	return workflows, nil
 }
 
-// DeleteWorkflow deletes a workflow record
 func (s *SQLiteDB) DeleteWorkflow(workflowID string) error {
 	query := "DELETE FROM workflows WHERE workflow_id = ?"
 
@@ -395,12 +370,10 @@ func (s *SQLiteDB) DeleteWorkflow(workflowID string) error {
 	return nil
 }
 
-// Ping checks if the database connection is alive
 func (s *SQLiteDB) Ping() error {
 	return s.db.Ping()
 }
 
-// Close closes the database connection
 func (s *SQLiteDB) Close() error {
 	return s.db.Close()
 }

@@ -13,9 +13,9 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/wallet"
 	"go.uber.org/zap"
 
-	"github.com/skip-mev/ironbird/core/activities/testnet"
-	"github.com/skip-mev/ironbird/core/messages"
-	"github.com/skip-mev/ironbird/core/util"
+	"github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/util"
 )
 
 type Activity struct {

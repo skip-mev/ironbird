@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/messages"
+	pb "github.com/skip-mev/ironbird/server/proto"
+
 	"go.temporal.io/api/enums/v1"
 )
 
@@ -38,9 +40,9 @@ func WorkflowStatusToString(status WorkflowStatus) string {
 type Workflow struct {
 	ID              int                             `json:"id" db:"id"`
 	WorkflowID      string                          `json:"workflow_id" db:"workflow_id"`
-	Nodes           []messages.Node                 `json:"nodes" db:"nodes"`
-	Validators      []messages.Node                 `json:"validators" db:"validators"`
-	LoadBalancers   []messages.Node                 `json:"loadbalancers" db:"loadbalancers"`
+	Nodes           []pb.Node                       `json:"nodes" db:"nodes"`
+	Validators      []pb.Node                       `json:"validators" db:"validators"`
+	LoadBalancers   []pb.Node                       `json:"loadbalancers" db:"loadbalancers"`
 	MonitoringLinks map[string]string               `json:"monitoring_links" db:"monitoring_links"`
 	Status          WorkflowStatus                  `json:"status" db:"status"`
 	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
@@ -51,9 +53,9 @@ type Workflow struct {
 
 // WorkflowUpdate represents fields that can be updated
 type WorkflowUpdate struct {
-	Nodes           *[]messages.Node   `json:"nodes,omitempty"`
-	Validators      *[]messages.Node   `json:"validators,omitempty"`
-	LoadBalancers   *[]messages.Node   `json:"loadbalancers,omitempty"`
+	Nodes           *[]pb.Node         `json:"nodes,omitempty"`
+	Validators      *[]pb.Node         `json:"validators,omitempty"`
+	LoadBalancers   *[]pb.Node         `json:"loadbalancers,omitempty"`
 	MonitoringLinks *map[string]string `json:"monitoring_links,omitempty"`
 	Status          *WorkflowStatus    `json:"status,omitempty"`
 }

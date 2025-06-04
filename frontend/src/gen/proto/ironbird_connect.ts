@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CancelWorkflowRequest, CreateWorkflowRequest, GetWorkflowRequest, ListWorkflowsRequest, RunLoadTestRequest, SignalWorkflowRequest, Workflow, WorkflowListResponse, WorkflowResponse } from "./ironbird_pb.js";
+import { CancelWorkflowRequest, CreateWorkflowRequest, GetWorkflowRequest, ListWorkflowsRequest, RunLoadTestRequest, SignalWorkflowRequest, UpdateWorkflowDataRequest, Workflow, WorkflowListResponse, WorkflowResponse } from "./ironbird_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -67,6 +67,17 @@ export const IronbirdService = {
     runLoadTest: {
       name: "RunLoadTest",
       I: RunLoadTestRequest,
+      O: WorkflowResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Workflow update operations
+     *
+     * @generated from rpc skip.ironbird.IronbirdService.UpdateWorkflowData
+     */
+    updateWorkflowData: {
+      name: "UpdateWorkflowData",
+      I: UpdateWorkflowDataRequest,
       O: WorkflowResponse,
       kind: MethodKind.Unary,
     },

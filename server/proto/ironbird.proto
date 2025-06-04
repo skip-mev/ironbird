@@ -14,6 +14,9 @@ service IronbirdService {
     
     // Load test operations
     rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
+    
+    // Workflow update operations
+    rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
 }
 
 // Request and response messages
@@ -97,7 +100,6 @@ message RunLoadTestRequest {
 
 message WorkflowResponse {
     string workflow_id = 1;
-    string status = 2;
 }
 
 message Node {
@@ -124,6 +126,14 @@ message WorkflowSummary {
     string start_time = 3;
     string repo = 4;
     string sha = 5;
+}
+
+message UpdateWorkflowDataRequest {
+    string workflow_id = 1;
+    repeated Node load_balancers = 2;
+    map<string, string> monitoring = 3;
+    repeated Node nodes = 4;
+    repeated Node validators = 5;
 }
 
 message WorkflowListResponse {

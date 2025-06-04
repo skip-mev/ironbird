@@ -19,12 +19,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IronbirdService_CreateWorkflow_FullMethodName = "/skip.ironbird.IronbirdService/CreateWorkflow"
-	IronbirdService_GetWorkflow_FullMethodName    = "/skip.ironbird.IronbirdService/GetWorkflow"
-	IronbirdService_ListWorkflows_FullMethodName  = "/skip.ironbird.IronbirdService/ListWorkflows"
-	IronbirdService_CancelWorkflow_FullMethodName = "/skip.ironbird.IronbirdService/CancelWorkflow"
-	IronbirdService_SignalWorkflow_FullMethodName = "/skip.ironbird.IronbirdService/SignalWorkflow"
-	IronbirdService_RunLoadTest_FullMethodName    = "/skip.ironbird.IronbirdService/RunLoadTest"
+	IronbirdService_CreateWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/CreateWorkflow"
+	IronbirdService_GetWorkflow_FullMethodName        = "/skip.ironbird.IronbirdService/GetWorkflow"
+	IronbirdService_ListWorkflows_FullMethodName      = "/skip.ironbird.IronbirdService/ListWorkflows"
+	IronbirdService_CancelWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/CancelWorkflow"
+	IronbirdService_SignalWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/SignalWorkflow"
+	IronbirdService_RunLoadTest_FullMethodName        = "/skip.ironbird.IronbirdService/RunLoadTest"
+	IronbirdService_UpdateWorkflowData_FullMethodName = "/skip.ironbird.IronbirdService/UpdateWorkflowData"
 )
 
 // IronbirdServiceClient is the client API for IronbirdService service.
@@ -39,6 +40,8 @@ type IronbirdServiceClient interface {
 	SignalWorkflow(ctx context.Context, in *SignalWorkflowRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 	// Load test operations
 	RunLoadTest(ctx context.Context, in *RunLoadTestRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
+	// Workflow update operations
+	UpdateWorkflowData(ctx context.Context, in *UpdateWorkflowDataRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 }
 
 type ironbirdServiceClient struct {
@@ -109,6 +112,16 @@ func (c *ironbirdServiceClient) RunLoadTest(ctx context.Context, in *RunLoadTest
 	return out, nil
 }
 
+func (c *ironbirdServiceClient) UpdateWorkflowData(ctx context.Context, in *UpdateWorkflowDataRequest, opts ...grpc.CallOption) (*WorkflowResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_UpdateWorkflowData_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IronbirdServiceServer is the server API for IronbirdService service.
 // All implementations must embed UnimplementedIronbirdServiceServer
 // for forward compatibility.
@@ -121,6 +134,8 @@ type IronbirdServiceServer interface {
 	SignalWorkflow(context.Context, *SignalWorkflowRequest) (*WorkflowResponse, error)
 	// Load test operations
 	RunLoadTest(context.Context, *RunLoadTestRequest) (*WorkflowResponse, error)
+	// Workflow update operations
+	UpdateWorkflowData(context.Context, *UpdateWorkflowDataRequest) (*WorkflowResponse, error)
 	mustEmbedUnimplementedIronbirdServiceServer()
 }
 
@@ -148,6 +163,9 @@ func (UnimplementedIronbirdServiceServer) SignalWorkflow(context.Context, *Signa
 }
 func (UnimplementedIronbirdServiceServer) RunLoadTest(context.Context, *RunLoadTestRequest) (*WorkflowResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RunLoadTest not implemented")
+}
+func (UnimplementedIronbirdServiceServer) UpdateWorkflowData(context.Context, *UpdateWorkflowDataRequest) (*WorkflowResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateWorkflowData not implemented")
 }
 func (UnimplementedIronbirdServiceServer) mustEmbedUnimplementedIronbirdServiceServer() {}
 func (UnimplementedIronbirdServiceServer) testEmbeddedByValue()                         {}
@@ -278,6 +296,24 @@ func _IronbirdService_RunLoadTest_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IronbirdService_UpdateWorkflowData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWorkflowDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).UpdateWorkflowData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_UpdateWorkflowData_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).UpdateWorkflowData(ctx, req.(*UpdateWorkflowDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IronbirdService_ServiceDesc is the grpc.ServiceDesc for IronbirdService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -308,6 +344,10 @@ var IronbirdService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunLoadTest",
 			Handler:    _IronbirdService_RunLoadTest_Handler,
+		},
+		{
+			MethodName: "UpdateWorkflowData",
+			Handler:    _IronbirdService_UpdateWorkflowData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

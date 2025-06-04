@@ -2,10 +2,11 @@ package messages
 
 import (
 	"fmt"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/core/types"
+	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
@@ -21,13 +22,6 @@ var (
 )
 
 type RunnerType string
-
-type Node struct {
-	Name    string
-	Address string
-	RPC     string
-	LCD     string
-}
 
 type CreateProviderRequest struct {
 	RunnerType RunnerType
@@ -65,8 +59,8 @@ type LaunchTestnetResponse struct {
 	ProviderState []byte
 	ChainState    []byte
 	ChainID       string
-	Nodes         []Node
-	Validators    []Node
+	Nodes         []pb.Node
+	Validators    []pb.Node
 }
 
 type TestnetWorkflowRequest struct {

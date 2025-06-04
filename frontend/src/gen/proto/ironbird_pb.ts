@@ -620,11 +620,6 @@ export class WorkflowResponse extends Message<WorkflowResponse> {
    */
   workflowId = "";
 
-  /**
-   * @generated from field: string status = 2;
-   */
-  status = "";
-
   constructor(data?: PartialMessage<WorkflowResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -634,7 +629,6 @@ export class WorkflowResponse extends Message<WorkflowResponse> {
   static readonly typeName = "skip.ironbird.WorkflowResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "workflow_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowResponse {
@@ -846,6 +840,67 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
 
   static equals(a: WorkflowSummary | PlainMessage<WorkflowSummary> | undefined, b: WorkflowSummary | PlainMessage<WorkflowSummary> | undefined): boolean {
     return proto3.util.equals(WorkflowSummary, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.UpdateWorkflowDataRequest
+ */
+export class UpdateWorkflowDataRequest extends Message<UpdateWorkflowDataRequest> {
+  /**
+   * @generated from field: string workflow_id = 1;
+   */
+  workflowId = "";
+
+  /**
+   * @generated from field: repeated skip.ironbird.Node load_balancers = 2;
+   */
+  loadBalancers: Node[] = [];
+
+  /**
+   * @generated from field: map<string, string> monitoring = 3;
+   */
+  monitoring: { [key: string]: string } = {};
+
+  /**
+   * @generated from field: repeated skip.ironbird.Node nodes = 4;
+   */
+  nodes: Node[] = [];
+
+  /**
+   * @generated from field: repeated skip.ironbird.Node validators = 5;
+   */
+  validators: Node[] = [];
+
+  constructor(data?: PartialMessage<UpdateWorkflowDataRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.UpdateWorkflowDataRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "workflow_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "load_balancers", kind: "message", T: Node, repeated: true },
+    { no: 3, name: "monitoring", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
+    { no: 4, name: "nodes", kind: "message", T: Node, repeated: true },
+    { no: 5, name: "validators", kind: "message", T: Node, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateWorkflowDataRequest {
+    return new UpdateWorkflowDataRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateWorkflowDataRequest {
+    return new UpdateWorkflowDataRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateWorkflowDataRequest {
+    return new UpdateWorkflowDataRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateWorkflowDataRequest | PlainMessage<UpdateWorkflowDataRequest> | undefined, b: UpdateWorkflowDataRequest | PlainMessage<UpdateWorkflowDataRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateWorkflowDataRequest, a, b);
   }
 }
 

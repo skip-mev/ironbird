@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/apps"
@@ -11,14 +12,14 @@ import (
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 
-	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/core/activities/walletcreator"
-	"github.com/skip-mev/ironbird/core/messages"
-	ironbirdutil "github.com/skip-mev/ironbird/core/util"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
+	"github.com/skip-mev/ironbird/messages"
+	ironbirdutil "github.com/skip-mev/ironbird/util"
 
-	"github.com/skip-mev/ironbird/core/activities/builder"
-	"github.com/skip-mev/ironbird/core/activities/loadtest"
-	"github.com/skip-mev/ironbird/core/activities/testnet"
+	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/activities/loadtest"
+	"github.com/skip-mev/ironbird/activities/testnet"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 	"go.uber.org/zap"
@@ -123,7 +124,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	return "", nil
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []messages.Node, []messages.Node, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []pb.Node, []pb.Node, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
@@ -170,7 +171,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []messages.Node) ([]byte, error) {
+	nodes []pb.Node) ([]byte, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 

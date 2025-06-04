@@ -3,13 +3,15 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
-	"github.com/skip-mev/ironbird/core/db"
 	"strings"
 
-	"github.com/skip-mev/ironbird/core/messages"
+	pb "github.com/skip-mev/ironbird/server/proto"
+
+	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 type Activity struct {
@@ -19,7 +21,7 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
-	DatabaseService   *db.DatabaseService
+	ServerAddress     string
 }
 
 func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLoadBalancerRequest) (messages.LaunchLoadBalancerResponse, error) {
@@ -61,7 +63,8 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 
 	workflowID := req.WorkflowID
 
-	if a.DatabaseService != nil {
+	// Update server with loadbalancers if server address is provided
+	if a.ServerAddress != "" {
 		nodeNames := make(map[string]bool)
 		for _, domain := range req.Domains {
 			parts := strings.Split(domain.Domain, "-")
@@ -70,25 +73,51 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			}
 		}
 
-		var loadBalancers []messages.Node
+		var loadBalancers []pb.Node
 		for nodeName := range nodeNames {
-			loadBalancers = append(loadBalancers, messages.Node{
+			loadBalancers = append(loadBalancers, pb.Node{
 				Name:    nodeName,
 				Address: a.RootDomain,
-				RPC:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
-				LCD:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
+				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
+				Lcd:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
 			})
 		}
 
 		if len(loadBalancers) > 0 {
-			logger.Info("updating database with loadbalancers",
+			logger.Info("updating server with loadbalancers",
 				zap.Any("loadBalancers", loadBalancers))
 
-			if err := a.DatabaseService.UpdateWorkflowLoadBalancers(workflowID, loadBalancers); err != nil {
-				logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
+			conn, err := grpc.Dial(a.ServerAddress, grpc.WithInsecure())
+			if err != nil {
+				logger.Error("Failed to connect to server", zap.Error(err))
+			} else {
+				defer conn.Close()
+				client := pb.NewIronbirdServiceClient(conn)
+
+				var pbLoadBalancers []*pb.Node
+				for _, lb := range loadBalancers {
+					pbLoadBalancers = append(pbLoadBalancers, &pb.Node{
+						Name:    lb.Name,
+						Address: lb.Address,
+						Rpc:     lb.Rpc,
+						Lcd:     lb.Lcd,
+					})
+				}
+
+				updateReq := &pb.UpdateWorkflowDataRequest{
+					WorkflowId:    workflowID,
+					LoadBalancers: pbLoadBalancers,
+				}
+
+				_, err = client.UpdateWorkflowData(ctx, updateReq)
+				if err != nil {
+					logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
+				} else {
+					logger.Info("Successfully updated workflow loadbalancers")
+				}
 			}
 		} else {
-			logger.Warn("No loadbalancers to update in database")
+			logger.Warn("No loadbalancers to update in server")
 		}
 	}
 

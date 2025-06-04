@@ -3,13 +3,16 @@ package testnet
 import (
 	"context"
 	"fmt"
-	"github.com/skip-mev/ironbird/core/db"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
+
+	"github.com/skip-mev/ironbird/server/db"
 
 	evmhd "github.com/cosmos/evm/crypto/hd"
-	"github.com/skip-mev/ironbird/core/types"
-	"github.com/skip-mev/ironbird/core/util"
+	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/util"
 
-	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/skip-mev/petri/core/v3/provider"
@@ -94,7 +97,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) updateDatabase(workflowID string, nodes []messages.Node, validators []messages.Node, chainID string, startTime time.Time, logger *zap.Logger) {
+func (a *Activity) updateDatabase(workflowID string, nodes []pb.Node, validators []pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
 	if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, nodes, validators); err != nil {
 		logger.Error("Failed to update workflow nodes", zap.Error(err))
 	}
@@ -200,8 +203,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.ChainState = chainState
 
-	testnetValidators := make([]messages.Node, 0, len(chain.GetValidators()))
-	testnetNodes := make([]messages.Node, 0, len(chain.GetNodes()))
+	testnetValidators := make([]pb.Node, 0, len(chain.GetValidators()))
+	testnetNodes := make([]pb.Node, 0, len(chain.GetNodes()))
 
 	for _, validator := range chain.GetValidators() {
 		validatorInfo, err := processNodeInfo(ctx, validator)
@@ -322,26 +325,26 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	return chainConfig, walletConfig
 }
 
-func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (messages.Node, error) {
+func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (pb.Node, error) {
 	cosmosIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
 	if err != nil {
-		return messages.Node{}, err
+		return pb.Node{}, err
 	}
 
 	cometIp, err := nodeProvider.GetExternalAddress(ctx, "26657")
 	if err != nil {
-		return messages.Node{}, err
+		return pb.Node{}, err
 	}
 
 	ip, err := nodeProvider.GetIP(ctx)
 	if err != nil {
-		return messages.Node{}, err
+		return pb.Node{}, err
 	}
 
-	return messages.Node{
+	return pb.Node{
 		Name:    nodeProvider.GetDefinition().Name,
-		RPC:     fmt.Sprintf("http://%s", cometIp),
-		LCD:     fmt.Sprintf("http://%s", cosmosIp),
+		Rpc:     fmt.Sprintf("http://%s", cometIp),
+		Lcd:     fmt.Sprintf("http://%s", cosmosIp),
 		Address: ip,
 	}, nil
 }

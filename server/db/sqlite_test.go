@@ -4,7 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/skip-mev/ironbird/core/messages"
+	"github.com/skip-mev/ironbird/messages"
+	pb "github.com/skip-mev/ironbird/server/proto"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/api/enums/v1"
@@ -27,8 +29,8 @@ func TestSQLiteDB(t *testing.T) {
 	// Test creating a workflow
 	workflow := &Workflow{
 		WorkflowID:      "test-workflow-123",
-		Nodes:           []messages.Node{},
-		Validators:      []messages.Node{},
+		Nodes:           []pb.Node{},
+		Validators:      []pb.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED, // Pending
 		Config:          messages.TestnetWorkflowRequest{},

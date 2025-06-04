@@ -35,7 +35,7 @@ deps:
 ${WORKER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@echo "Building worker binary..."
 	@mkdir -p ./build
-	go build -o ./build/ github.com/skip-mev/ironbird/core/cmd/worker
+	go build -o ./build/ github.com/skip-mev/ironbird/cmd/worker
 
 ${SERVER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@echo "Building server binary..."
@@ -119,3 +119,40 @@ start-backend:
 .PHONY: dev
 dev:
 	make -j2 start-frontend start-backend
+
+###############################################################################
+###                                Docker                                   ###
+###############################################################################
+
+.PHONY: docker-build docker-up docker-down docker-logs docker-dev
+
+# Build Docker images
+docker-build:
+	@echo "--> Building Docker images..."
+	docker-compose build
+
+# Start services in production mode
+docker-up:
+	@echo "--> Starting services with Docker Compose..."
+	docker-compose up -d
+
+# Stop and remove services
+docker-down:
+	@echo "--> Stopping services..."
+	docker-compose down
+
+# View logs from all services
+docker-logs:
+	@echo "--> Showing logs..."
+	docker-compose logs -f
+
+# Start services in development mode (with logs)
+docker-dev:
+	@echo "--> Starting services in development mode..."
+	docker-compose up --build
+
+# Clean up Docker resources
+docker-clean:
+	@echo "--> Cleaning up Docker resources..."
+	docker-compose down --volumes --remove-orphans
+	docker system prune -f

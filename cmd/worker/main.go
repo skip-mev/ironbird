@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/skip-mev/ironbird/core/messages"
 	"os"
 
-	"github.com/skip-mev/ironbird/core/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/core/activities/walletcreator"
-	"github.com/skip-mev/ironbird/core/db"
-	"github.com/skip-mev/ironbird/core/util"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
 	"go.uber.org/zap"
 
@@ -19,11 +18,11 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
 
-	"github.com/skip-mev/ironbird/core/activities/builder"
-	"github.com/skip-mev/ironbird/core/activities/loadtest"
-	testnetactivity "github.com/skip-mev/ironbird/core/activities/testnet"
-	"github.com/skip-mev/ironbird/core/types"
-	testnetworkflow "github.com/skip-mev/ironbird/core/workflows/testnet"
+	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/activities/loadtest"
+	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/types"
+	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -46,24 +45,6 @@ func main() {
 	logger, _ := zap.NewDevelopment()
 
 	flag.Parse()
-
-	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
-	logger.Info("Connecting to database", zap.String("path", dbPath))
-
-	database, err := db.NewSQLiteDB(dbPath)
-	if err != nil {
-		logger.Fatal("Failed to connect to database", zap.Error(err))
-	}
-	defer database.Close()
-
-	migrationsPath := "./migrations"
-	if err := database.RunMigrations(migrationsPath); err != nil {
-		logger.Fatal("Failed to run migrations", zap.Error(err))
-	}
-
-	logger.Info("Database initialized successfully")
-
-	databaseService := db.NewDatabaseService(database, logger)
 
 	cfg, err := types.ParseWorkerConfig(*configFlag)
 
@@ -133,7 +114,6 @@ func main() {
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
 		ChainImages:       chainImages,
-		DatabaseService:   databaseService,
 		DashboardsConfig:  dashboardsConfig,
 	}
 
@@ -164,7 +144,6 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
-		DatabaseService:   databaseService,
 	}
 
 	walletCreatorActivity := walletcreator.Activity{

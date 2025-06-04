@@ -1,4 +1,4 @@
-module github.com/skip-mev/ironbird/core
+module github.com/skip-mev/ironbird
 
 go 1.24.0
 
@@ -20,6 +20,7 @@ require (
 	github.com/docker/cli v27.4.1+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/golangci/golangci-lint v1.57.1
+	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/moby/buildkit v0.18.0
 	github.com/prometheus/client_golang v1.22.0
@@ -33,6 +34,8 @@ require (
 	go.temporal.io/sdk v1.30.1
 	go.temporal.io/sdk/contrib/tally v0.2.0
 	go.uber.org/zap v1.27.0
+	google.golang.org/grpc v1.72.0
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -251,7 +254,6 @@ require (
 	github.com/huandu/skiplist v1.2.1 // indirect
 	github.com/iancoleman/strcase v0.3.0 // indirect
 	github.com/illarion/gonotify/v3 v3.0.2 // indirect
-	github.com/improbable-eng/grpc-web v0.15.0 // indirect
 	github.com/in-toto/in-toto-golang v0.5.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jgautheron/goconst v1.7.0 // indirect
@@ -440,8 +442,6 @@ require (
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250422160041-2d3770c4ea7f // indirect
-	google.golang.org/grpc v1.72.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
 	gotest.tools/v3 v3.5.2 // indirect
 	gvisor.dev/gvisor v0.0.0-20250205023644-9414b50a5633 // indirect
 	honnef.co/go/tools v0.5.1 // indirect

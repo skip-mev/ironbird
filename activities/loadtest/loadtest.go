@@ -9,9 +9,9 @@ import (
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/core/activities/testnet"
-	"github.com/skip-mev/ironbird/core/messages"
-	"github.com/skip-mev/ironbird/core/util"
+	"github.com/skip-mev/ironbird/activities/testnet"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"

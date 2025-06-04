@@ -772,7 +772,6 @@ func (x *RunLoadTestRequest) GetLoadTestSpec() *LoadTestSpec {
 type WorkflowResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -810,13 +809,6 @@ func (*WorkflowResponse) Descriptor() ([]byte, []int) {
 func (x *WorkflowResponse) GetWorkflowId() string {
 	if x != nil {
 		return x.WorkflowId
-	}
-	return ""
-}
-
-func (x *WorkflowResponse) GetStatus() string {
-	if x != nil {
-		return x.Status
 	}
 	return ""
 }
@@ -1065,6 +1057,82 @@ func (x *WorkflowSummary) GetSha() string {
 	return ""
 }
 
+type UpdateWorkflowDataRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
+	LoadBalancers []*Node                `protobuf:"bytes,2,rep,name=load_balancers,json=loadBalancers,proto3" json:"load_balancers,omitempty"`
+	Monitoring    map[string]string      `protobuf:"bytes,3,rep,name=monitoring,proto3" json:"monitoring,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Nodes         []*Node                `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Validators    []*Node                `protobuf:"bytes,5,rep,name=validators,proto3" json:"validators,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateWorkflowDataRequest) Reset() {
+	*x = UpdateWorkflowDataRequest{}
+	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateWorkflowDataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateWorkflowDataRequest) ProtoMessage() {}
+
+func (x *UpdateWorkflowDataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateWorkflowDataRequest.ProtoReflect.Descriptor instead.
+func (*UpdateWorkflowDataRequest) Descriptor() ([]byte, []int) {
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateWorkflowDataRequest) GetWorkflowId() string {
+	if x != nil {
+		return x.WorkflowId
+	}
+	return ""
+}
+
+func (x *UpdateWorkflowDataRequest) GetLoadBalancers() []*Node {
+	if x != nil {
+		return x.LoadBalancers
+	}
+	return nil
+}
+
+func (x *UpdateWorkflowDataRequest) GetMonitoring() map[string]string {
+	if x != nil {
+		return x.Monitoring
+	}
+	return nil
+}
+
+func (x *UpdateWorkflowDataRequest) GetNodes() []*Node {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *UpdateWorkflowDataRequest) GetValidators() []*Node {
+	if x != nil {
+		return x.Validators
+	}
+	return nil
+}
+
 type WorkflowListResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Workflows     []*WorkflowSummary     `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
@@ -1075,7 +1143,7 @@ type WorkflowListResponse struct {
 
 func (x *WorkflowListResponse) Reset() {
 	*x = WorkflowListResponse{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_server_proto_ironbird_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1155,7 @@ func (x *WorkflowListResponse) String() string {
 func (*WorkflowListResponse) ProtoMessage() {}
 
 func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_server_proto_ironbird_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1168,7 @@ func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowListResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowListResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{15}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WorkflowListResponse) GetWorkflows() []*WorkflowSummary {
@@ -1187,11 +1255,10 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x12RunLoadTestRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12A\n" +
-	"\x0eload_test_spec\x18\x02 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\"K\n" +
+	"\x0eload_test_spec\x18\x02 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\"3\n" +
 	"\x10WorkflowResponse\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
-	"workflowId\x12\x16\n" +
-	"\x06status\x18\x02 \x01(\tR\x06status\"X\n" +
+	"workflowId\"X\n" +
 	"\x04Node\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x10\n" +
@@ -1221,17 +1288,32 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
 	"start_time\x18\x03 \x01(\tR\tstartTime\x12\x12\n" +
 	"\x04repo\x18\x04 \x01(\tR\x04repo\x12\x10\n" +
-	"\x03sha\x18\x05 \x01(\tR\x03sha\"j\n" +
+	"\x03sha\x18\x05 \x01(\tR\x03sha\"\xf1\x02\n" +
+	"\x19UpdateWorkflowDataRequest\x12\x1f\n" +
+	"\vworkflow_id\x18\x01 \x01(\tR\n" +
+	"workflowId\x12:\n" +
+	"\x0eload_balancers\x18\x02 \x03(\v2\x13.skip.ironbird.NodeR\rloadBalancers\x12X\n" +
+	"\n" +
+	"monitoring\x18\x03 \x03(\v28.skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntryR\n" +
+	"monitoring\x12)\n" +
+	"\x05nodes\x18\x04 \x03(\v2\x13.skip.ironbird.NodeR\x05nodes\x123\n" +
+	"\n" +
+	"validators\x18\x05 \x03(\v2\x13.skip.ironbird.NodeR\n" +
+	"validators\x1a=\n" +
+	"\x0fMonitoringEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"j\n" +
 	"\x14WorkflowListResponse\x12<\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1e.skip.ironbird.WorkflowSummaryR\tworkflows\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count2\xa1\x04\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count2\x84\x05\n" +
 	"\x0fIronbirdService\x12Y\n" +
 	"\x0eCreateWorkflow\x12$.skip.ironbird.CreateWorkflowRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00\x12K\n" +
 	"\vGetWorkflow\x12!.skip.ironbird.GetWorkflowRequest\x1a\x17.skip.ironbird.Workflow\"\x00\x12[\n" +
 	"\rListWorkflows\x12#.skip.ironbird.ListWorkflowsRequest\x1a#.skip.ironbird.WorkflowListResponse\"\x00\x12Y\n" +
 	"\x0eCancelWorkflow\x12$.skip.ironbird.CancelWorkflowRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00\x12Y\n" +
 	"\x0eSignalWorkflow\x12$.skip.ironbird.SignalWorkflowRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00\x12S\n" +
-	"\vRunLoadTest\x12!.skip.ironbird.RunLoadTestRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00B2Z0github.com/skip-mev/ironbird/server/gen/ironbirdb\x06proto3"
+	"\vRunLoadTest\x12!.skip.ironbird.RunLoadTestRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00\x12a\n" +
+	"\x12UpdateWorkflowData\x12(.skip.ironbird.UpdateWorkflowDataRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00B2Z0github.com/skip-mev/ironbird/server/gen/ironbirdb\x06proto3"
 
 var (
 	file_server_proto_ironbird_proto_rawDescOnce sync.Once
@@ -1245,25 +1327,27 @@ func file_server_proto_ironbird_proto_rawDescGZIP() []byte {
 	return file_server_proto_ironbird_proto_rawDescData
 }
 
-var file_server_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_server_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_server_proto_ironbird_proto_goTypes = []any{
-	(*CreateWorkflowRequest)(nil), // 0: skip.ironbird.CreateWorkflowRequest
-	(*GenesisKV)(nil),             // 1: skip.ironbird.GenesisKV
-	(*ChainConfig)(nil),           // 2: skip.ironbird.ChainConfig
-	(*NodeAddress)(nil),           // 3: skip.ironbird.NodeAddress
-	(*LoadTestMsg)(nil),           // 4: skip.ironbird.LoadTestMsg
-	(*LoadTestSpec)(nil),          // 5: skip.ironbird.LoadTestSpec
-	(*GetWorkflowRequest)(nil),    // 6: skip.ironbird.GetWorkflowRequest
-	(*ListWorkflowsRequest)(nil),  // 7: skip.ironbird.ListWorkflowsRequest
-	(*CancelWorkflowRequest)(nil), // 8: skip.ironbird.CancelWorkflowRequest
-	(*SignalWorkflowRequest)(nil), // 9: skip.ironbird.SignalWorkflowRequest
-	(*RunLoadTestRequest)(nil),    // 10: skip.ironbird.RunLoadTestRequest
-	(*WorkflowResponse)(nil),      // 11: skip.ironbird.WorkflowResponse
-	(*Node)(nil),                  // 12: skip.ironbird.Node
-	(*Workflow)(nil),              // 13: skip.ironbird.Workflow
-	(*WorkflowSummary)(nil),       // 14: skip.ironbird.WorkflowSummary
-	(*WorkflowListResponse)(nil),  // 15: skip.ironbird.WorkflowListResponse
-	nil,                           // 16: skip.ironbird.Workflow.MonitoringEntry
+	(*CreateWorkflowRequest)(nil),     // 0: skip.ironbird.CreateWorkflowRequest
+	(*GenesisKV)(nil),                 // 1: skip.ironbird.GenesisKV
+	(*ChainConfig)(nil),               // 2: skip.ironbird.ChainConfig
+	(*NodeAddress)(nil),               // 3: skip.ironbird.NodeAddress
+	(*LoadTestMsg)(nil),               // 4: skip.ironbird.LoadTestMsg
+	(*LoadTestSpec)(nil),              // 5: skip.ironbird.LoadTestSpec
+	(*GetWorkflowRequest)(nil),        // 6: skip.ironbird.GetWorkflowRequest
+	(*ListWorkflowsRequest)(nil),      // 7: skip.ironbird.ListWorkflowsRequest
+	(*CancelWorkflowRequest)(nil),     // 8: skip.ironbird.CancelWorkflowRequest
+	(*SignalWorkflowRequest)(nil),     // 9: skip.ironbird.SignalWorkflowRequest
+	(*RunLoadTestRequest)(nil),        // 10: skip.ironbird.RunLoadTestRequest
+	(*WorkflowResponse)(nil),          // 11: skip.ironbird.WorkflowResponse
+	(*Node)(nil),                      // 12: skip.ironbird.Node
+	(*Workflow)(nil),                  // 13: skip.ironbird.Workflow
+	(*WorkflowSummary)(nil),           // 14: skip.ironbird.WorkflowSummary
+	(*UpdateWorkflowDataRequest)(nil), // 15: skip.ironbird.UpdateWorkflowDataRequest
+	(*WorkflowListResponse)(nil),      // 16: skip.ironbird.WorkflowListResponse
+	nil,                               // 17: skip.ironbird.Workflow.MonitoringEntry
+	nil,                               // 18: skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
 }
 var file_server_proto_ironbird_proto_depIdxs = []int32{
 	2,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ChainConfig
@@ -1275,27 +1359,33 @@ var file_server_proto_ironbird_proto_depIdxs = []int32{
 	12, // 6: skip.ironbird.Workflow.nodes:type_name -> skip.ironbird.Node
 	12, // 7: skip.ironbird.Workflow.validators:type_name -> skip.ironbird.Node
 	12, // 8: skip.ironbird.Workflow.load_balancers:type_name -> skip.ironbird.Node
-	16, // 9: skip.ironbird.Workflow.monitoring:type_name -> skip.ironbird.Workflow.MonitoringEntry
+	17, // 9: skip.ironbird.Workflow.monitoring:type_name -> skip.ironbird.Workflow.MonitoringEntry
 	0,  // 10: skip.ironbird.Workflow.config:type_name -> skip.ironbird.CreateWorkflowRequest
 	5,  // 11: skip.ironbird.Workflow.load_test_spec:type_name -> skip.ironbird.LoadTestSpec
-	14, // 12: skip.ironbird.WorkflowListResponse.workflows:type_name -> skip.ironbird.WorkflowSummary
-	0,  // 13: skip.ironbird.IronbirdService.CreateWorkflow:input_type -> skip.ironbird.CreateWorkflowRequest
-	6,  // 14: skip.ironbird.IronbirdService.GetWorkflow:input_type -> skip.ironbird.GetWorkflowRequest
-	7,  // 15: skip.ironbird.IronbirdService.ListWorkflows:input_type -> skip.ironbird.ListWorkflowsRequest
-	8,  // 16: skip.ironbird.IronbirdService.CancelWorkflow:input_type -> skip.ironbird.CancelWorkflowRequest
-	9,  // 17: skip.ironbird.IronbirdService.SignalWorkflow:input_type -> skip.ironbird.SignalWorkflowRequest
-	10, // 18: skip.ironbird.IronbirdService.RunLoadTest:input_type -> skip.ironbird.RunLoadTestRequest
-	11, // 19: skip.ironbird.IronbirdService.CreateWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	13, // 20: skip.ironbird.IronbirdService.GetWorkflow:output_type -> skip.ironbird.Workflow
-	15, // 21: skip.ironbird.IronbirdService.ListWorkflows:output_type -> skip.ironbird.WorkflowListResponse
-	11, // 22: skip.ironbird.IronbirdService.CancelWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	11, // 23: skip.ironbird.IronbirdService.SignalWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	11, // 24: skip.ironbird.IronbirdService.RunLoadTest:output_type -> skip.ironbird.WorkflowResponse
-	19, // [19:25] is the sub-list for method output_type
-	13, // [13:19] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	12, // 12: skip.ironbird.UpdateWorkflowDataRequest.load_balancers:type_name -> skip.ironbird.Node
+	18, // 13: skip.ironbird.UpdateWorkflowDataRequest.monitoring:type_name -> skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
+	12, // 14: skip.ironbird.UpdateWorkflowDataRequest.nodes:type_name -> skip.ironbird.Node
+	12, // 15: skip.ironbird.UpdateWorkflowDataRequest.validators:type_name -> skip.ironbird.Node
+	14, // 16: skip.ironbird.WorkflowListResponse.workflows:type_name -> skip.ironbird.WorkflowSummary
+	0,  // 17: skip.ironbird.IronbirdService.CreateWorkflow:input_type -> skip.ironbird.CreateWorkflowRequest
+	6,  // 18: skip.ironbird.IronbirdService.GetWorkflow:input_type -> skip.ironbird.GetWorkflowRequest
+	7,  // 19: skip.ironbird.IronbirdService.ListWorkflows:input_type -> skip.ironbird.ListWorkflowsRequest
+	8,  // 20: skip.ironbird.IronbirdService.CancelWorkflow:input_type -> skip.ironbird.CancelWorkflowRequest
+	9,  // 21: skip.ironbird.IronbirdService.SignalWorkflow:input_type -> skip.ironbird.SignalWorkflowRequest
+	10, // 22: skip.ironbird.IronbirdService.RunLoadTest:input_type -> skip.ironbird.RunLoadTestRequest
+	15, // 23: skip.ironbird.IronbirdService.UpdateWorkflowData:input_type -> skip.ironbird.UpdateWorkflowDataRequest
+	11, // 24: skip.ironbird.IronbirdService.CreateWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	13, // 25: skip.ironbird.IronbirdService.GetWorkflow:output_type -> skip.ironbird.Workflow
+	16, // 26: skip.ironbird.IronbirdService.ListWorkflows:output_type -> skip.ironbird.WorkflowListResponse
+	11, // 27: skip.ironbird.IronbirdService.CancelWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	11, // 28: skip.ironbird.IronbirdService.SignalWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	11, // 29: skip.ironbird.IronbirdService.RunLoadTest:output_type -> skip.ironbird.WorkflowResponse
+	11, // 30: skip.ironbird.IronbirdService.UpdateWorkflowData:output_type -> skip.ironbird.WorkflowResponse
+	24, // [24:31] is the sub-list for method output_type
+	17, // [17:24] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_server_proto_ironbird_proto_init() }
@@ -1309,7 +1399,7 @@ func file_server_proto_ironbird_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_proto_ironbird_proto_rawDesc), len(file_server_proto_ironbird_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
