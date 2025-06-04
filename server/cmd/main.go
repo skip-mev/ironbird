@@ -13,35 +13,39 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
+var (
+	config = flag.String("config", "./conf/server.yaml", "Path to the server configuration file")
+)
+
 func init() {
 	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stderr))
 }
 
 func main() {
 	logger, _ := zap.NewDevelopment()
-
-	grpcAddrFlag := flag.String("grpc-addr", ":9006", "gRpc server address")
 	flag.Parse()
 
-	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")
-	logger.Info("Connecting to database", zap.String("path", dbPath))
+	cfg, err := types.ParseServerConfig(*config)
 
-	database, err := db.NewSQLiteDB(dbPath)
+	if err != nil {
+		panic(err)
+	}
+
+	database, err := db.NewSQLiteDB(cfg.DatabasePath)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	defer database.Close()
 
-	migrationsPath := "./migrations"
-	if err := database.RunMigrations(migrationsPath); err != nil {
+	if err := database.RunMigrations(cfg.MigrationsPath); err != nil {
 		logger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
 	logger.Info("Database initialized successfully")
 
 	temporalConfig := types.TemporalConfig{
-		Host:      getEnvOrDefault("TEMPORAL_HOST", "127.0.0.1:7233"),
-		Namespace: getEnvOrDefault("TEMPORAL_NAMESPACE", "default"),
+		Host:      cfg.Temporal.Host,
+		Namespace: cfg.Temporal.Namespace,
 	}
 
 	grpcServer, err := server.NewGRpcServer(temporalConfig, database, logger)
@@ -51,8 +55,8 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("starting gRpc server", zap.String("address", *grpcAddrFlag))
-		if err := grpcServer.Start(*grpcAddrFlag); err != nil {
+		logger.Info("starting gRpc server", zap.String("address", cfg.GrpcAddress))
+		if err := grpcServer.Start(cfg.GrpcAddress); err != nil {
 			logger.Error("starting gRpc server", zap.Error(err))
 			os.Exit(1)
 		}

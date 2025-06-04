@@ -31,9 +31,7 @@ import (
 )
 
 var (
-	configFlag     = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
-	chainsFlag     = flag.String("chains", "./conf/server.yaml", "Path to the chain images configuration file")
-	dashboardsFlag = flag.String("dashboards", "./conf/dashboards.yaml", "Path to the dashboards configuration file")
+	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
 )
 
 func getEnvOrDefault(key, defaultValue string) string {
@@ -55,16 +53,11 @@ func main() {
 		panic(err)
 	}
 
-	serverConfig, err := types.ParseServerConfig(*chainsFlag)
-	if err != nil {
-		panic(err)
-	}
-
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9091",
+			ListenAddress: "0.0.0.0:9092",
 			TimerType:     "histogram",
 		})),
 	})
@@ -81,7 +74,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig, Chains: serverConfig.Chains}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder,
+		AwsConfig: &awsConfig, Chains: cfg.Chains}
 
 	var grpcClient pb.IronbirdServiceClient
 	if cfg.ServerAddress != "" {
@@ -118,8 +112,8 @@ func main() {
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
-		Chains:            serverConfig.Chains,
-		GrafanaConfig:     serverConfig.Grafana,
+		Chains:            cfg.Chains,
+		GrafanaConfig:     cfg.Grafana,
 		GRPCClient:        grpcClient,
 	}
 

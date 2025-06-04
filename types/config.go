@@ -22,6 +22,8 @@ type WorkerConfig struct {
 	LoadBalancer  LoadBalancerConfig `yaml:"load_balancer"`
 	Telemetry     TelemetryConfig    `yaml:"telemetry"`
 	Builder       BuilderConfig      `yaml:"builder"`
+	Chains        Chains             `yaml:"chains"`
+	Grafana       GrafanaConfig      `yaml:"grafana"`
 	ServerAddress string             `yaml:"server_address"`
 }
 
@@ -91,9 +93,10 @@ type GrafanaConfig struct {
 }
 
 type ServerConfig struct {
-	Chains   Chains         `yaml:"chains"`
-	Grafana  GrafanaConfig  `yaml:"grafana"`
-	Temporal TemporalConfig `yaml:"temporal"`
+	Temporal       TemporalConfig `yaml:"temporal"`
+	DatabasePath   string         `yaml:"database_path"`
+	MigrationsPath string         `yaml:"migrations_path"`
+	GrpcAddress    string         `yaml:"grpc_address"`
 }
 
 type Chains map[string]ImageConfig

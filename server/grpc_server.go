@@ -36,7 +36,7 @@ func NewGRpcServer(config types.TemporalConfig, database db.DB, logger *zap.Logg
 		HostPort:  config.Host,
 		Namespace: config.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9091",
+			ListenAddress: "0.0.0.0:9090",
 			TimerType:     "histogram",
 		})),
 	})
