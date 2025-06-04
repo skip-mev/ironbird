@@ -13,9 +13,6 @@ permissions:
 
 jobs:
   golangci:
-    strategy:
-      matrix:
-        module: ["cosmos", "core"]
     name: golangci-lint
     runs-on: ubuntu-latest
     steps:
@@ -28,8 +25,6 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
           only-new-issues: true
           args: --timeout=5m
-          working-directory: ${{ matrix.module }}
