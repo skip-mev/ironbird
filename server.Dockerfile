@@ -1,4 +1,4 @@
-FROM golang:1.24-bookworm as build
+FROM golang:1.24-bookworm AS build
 WORKDIR /app/
 
 COPY . ./
@@ -11,5 +11,5 @@ RUN go build -o ./build/server ./server/cmd
 FROM alpine:latest
 WORKDIR /usr/local/bin
 COPY --from=build /app/build/server /usr/local/bin/server
-EXPOSE 50051
+EXPOSE 9006
 ENTRYPOINT ["/usr/local/bin/server"] 

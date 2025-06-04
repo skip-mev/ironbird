@@ -20,7 +20,7 @@ func init() {
 func main() {
 	logger, _ := zap.NewDevelopment()
 
-	grpcAddrFlag := flag.String("grpc-addr", ":50051", "gRpc server address")
+	grpcAddrFlag := flag.String("grpc-addr", ":9006", "gRpc server address")
 	flag.Parse()
 
 	dbPath := getEnvOrDefault("DATABASE_PATH", "./ironbird.db")

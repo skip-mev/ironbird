@@ -14,11 +14,9 @@ import {
   LoadTestSpec
 } from "../gen/proto/ironbird_pb.js";
 
-// Create a gRPC-web transport with debugging
 const transport = createGrpcWebTransport({
-  baseUrl: "http://localhost:50051",
-  credentials: "omit", // Changed from "include" to "omit" to fix CORS issues
-  // Add interceptors for debugging
+  baseUrl: "http://localhost:9006",
+  credentials: "omit",
   interceptors: [
     (next) => async (req) => {
       console.log("gRPC request:", req.method, req.url);

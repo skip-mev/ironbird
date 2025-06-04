@@ -16,10 +16,10 @@ go build -o ironbird-server cmd/main.go
 
 3. Run the server:
 ```bash
-./ironbird-server -grpc-addr :50051
+./ironbird-server -grpc-addr :9006
 ```
 
-The server will start on port 50051 by default.
+The server will start on port 9006 by default.
 
 ## API Endpoints
 
