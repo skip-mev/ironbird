@@ -85,23 +85,23 @@ var (
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
-					Value: "atest",
+					Value: "uatom",
 				},
 				{
 					Key:   "app_state.gov.deposit_params.min_deposit.0.denom",
-					Value: "atest",
+					Value: "uatom",
 				},
 				{
 					Key:   "app_state.gov.params.min_deposit.0.denom",
-					Value: "atest",
+					Value: "uatom",
 				},
 				{
 					Key:   "app_state.evm.params.evm_denom",
-					Value: "atest",
+					Value: "uatom",
 				},
 				{
 					Key:   "app_state.mint.params.mint_denom",
-					Value: "atest",
+					Value: "uatom",
 				},
 				{
 					Key: "app_state.bank.denom_metadata",
@@ -110,7 +110,7 @@ var (
 							"description": "The native staking token for evmd.",
 							"denom_units": []map[string]interface{}{
 								{
-									"denom":    "atest",
+									"denom":    "uatom",
 									"exponent": 0,
 									"aliases":  []string{"attotest"},
 								},
@@ -120,7 +120,7 @@ var (
 									"aliases":  []string{},
 								},
 							},
-							"base":     "atest",
+							"base":     "uatom",
 							"display":  "test",
 							"name":     "Test Token",
 							"symbol":   "TEST",
@@ -152,7 +152,7 @@ var (
 						{
 							"contract_owner": 1,
 							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-							"denom":          "atest",
+							"denom":          "uatom",
 							"enabled":        true,
 						},
 					},

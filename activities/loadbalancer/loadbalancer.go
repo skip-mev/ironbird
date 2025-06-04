@@ -11,7 +11,6 @@ import (
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 type Activity struct {
@@ -21,7 +20,7 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
-	ServerAddress     string
+	GRPCClient        pb.IronbirdServiceClient
 }
 
 func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLoadBalancerRequest) (messages.LaunchLoadBalancerResponse, error) {
@@ -64,7 +63,7 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 	workflowID := req.WorkflowID
 
 	// Update server with loadbalancers if server address is provided
-	if a.ServerAddress != "" {
+	if a.GRPCClient != nil {
 		nodeNames := make(map[string]bool)
 		for _, domain := range req.Domains {
 			parts := strings.Split(domain.Domain, "-")
@@ -87,34 +86,26 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			logger.Info("updating server with loadbalancers",
 				zap.Any("loadBalancers", loadBalancers))
 
-			conn, err := grpc.Dial(a.ServerAddress, grpc.WithInsecure())
+			var pbLoadBalancers []*pb.Node
+			for _, lb := range loadBalancers {
+				pbLoadBalancers = append(pbLoadBalancers, &pb.Node{
+					Name:    lb.Name,
+					Address: lb.Address,
+					Rpc:     lb.Rpc,
+					Lcd:     lb.Lcd,
+				})
+			}
+
+			updateReq := &pb.UpdateWorkflowDataRequest{
+				WorkflowId:    workflowID,
+				LoadBalancers: pbLoadBalancers,
+			}
+
+			_, err = a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
 			if err != nil {
-				logger.Error("Failed to connect to server", zap.Error(err))
+				logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
 			} else {
-				defer conn.Close()
-				client := pb.NewIronbirdServiceClient(conn)
-
-				var pbLoadBalancers []*pb.Node
-				for _, lb := range loadBalancers {
-					pbLoadBalancers = append(pbLoadBalancers, &pb.Node{
-						Name:    lb.Name,
-						Address: lb.Address,
-						Rpc:     lb.Rpc,
-						Lcd:     lb.Lcd,
-					})
-				}
-
-				updateReq := &pb.UpdateWorkflowDataRequest{
-					WorkflowId:    workflowID,
-					LoadBalancers: pbLoadBalancers,
-				}
-
-				_, err = client.UpdateWorkflowData(ctx, updateReq)
-				if err != nil {
-					logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
-				} else {
-					logger.Info("Successfully updated workflow loadbalancers")
-				}
+				logger.Info("Successfully updated workflow loadbalancers")
 			}
 		} else {
 			logger.Warn("No loadbalancers to update in server")

@@ -6,8 +6,6 @@ import (
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
-	"github.com/skip-mev/ironbird/server/db"
-
 	evmhd "github.com/cosmos/evm/crypto/hd"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/util"
@@ -33,9 +31,9 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
-	ChainImages       types.ChainImages
-	DatabaseService   *db.DatabaseService
-	DashboardsConfig  *types.DashboardsConfig
+	Chains            types.Chains
+	GrafanaConfig     types.GrafanaConfig
+	GRPCClient        pb.IronbirdServiceClient
 }
 
 var (
@@ -57,7 +55,7 @@ var (
 
 const (
 	cosmosDenom    = "stake"
-	evmDenom       = "atest"
+	evmDenom       = "uatom"
 	cosmosDecimals = 6
 )
 
@@ -97,23 +95,28 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) updateDatabase(workflowID string, nodes []pb.Node, validators []pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
-	if err := a.DatabaseService.UpdateWorkflowNodes(workflowID, nodes, validators); err != nil {
-		logger.Error("Failed to update workflow nodes", zap.Error(err))
+func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
+	if a.GRPCClient == nil {
+		logger.Warn("GRPCClient is nil, skipping workflow data update")
+		return
 	}
 
-	if a.DashboardsConfig != nil {
-		monitoringLinks := a.DashboardsConfig.GenerateMonitoringLinks(chainID, startTime)
-		logger.Info("monitoring links", zap.String("chainID", chainID),
-			zap.Any("monitoringLinks", monitoringLinks))
+	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, a.GrafanaConfig)
+	logger.Info("monitoring links", zap.String("chainID", chainID),
+		zap.Any("monitoringLinks", monitoringLinks))
 
-		if err := a.DatabaseService.UpdateWorkflowMonitoring(workflowID, monitoringLinks); err != nil {
-			logger.Error("Failed to update workflow monitoring links", zap.Error(err))
-		} else {
-			logger.Info("Successfully updated monitoring links in database")
-		}
+	updateReq := &pb.UpdateWorkflowDataRequest{
+		WorkflowId: workflowID,
+		Nodes:      nodes,
+		Validators: validators,
+		Monitoring: monitoringLinks,
+	}
+
+	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
+	if err != nil {
+		logger.Error("Failed to update workflow data", zap.Error(err))
 	} else {
-		logger.Warn("DashboardsConfig is nil, skipping monitoring links generation")
+		logger.Info("Successfully updated workflow data")
 	}
 }
 
@@ -139,7 +142,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
-	chainConfig, walletConfig := constructChainConfig(req, a.ChainImages)
+	chainConfig, walletConfig := constructChainConfig(req, a.Chains)
 	logger.Info("creating chain", zap.Any("chain_config", chainConfig))
 	chain, chainErr := petrichain.CreateChain(
 		ctx, logger, p, chainConfig,
@@ -203,8 +206,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.ChainState = chainState
 
-	testnetValidators := make([]pb.Node, 0, len(chain.GetValidators()))
-	testnetNodes := make([]pb.Node, 0, len(chain.GetNodes()))
+	testnetValidators := make([]*pb.Node, 0, len(chain.GetValidators()))
+	testnetNodes := make([]*pb.Node, 0, len(chain.GetNodes()))
 
 	for _, validator := range chain.GetValidators() {
 		validatorInfo, err := processNodeInfo(ctx, validator)
@@ -225,8 +228,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.Nodes = testnetNodes
 	resp.Validators = testnetValidators
 
-	if a.DatabaseService != nil {
-		a.updateDatabase(workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, logger)
+	if a.GRPCClient != nil {
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, logger)
 	}
 
 	go func() {
@@ -285,8 +288,8 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 }
 
 func constructChainConfig(req messages.LaunchTestnetRequest,
-	chainImages types.ChainImages) (petritypes.ChainConfig, petritypes.WalletConfig) {
-	chainImage := chainImages[req.Repo]
+	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
+	chainImage := chains[req.Repo]
 
 	denom := cosmosDenom
 	chainID := req.Name
@@ -297,7 +300,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	if req.Evm {
 		denom = evmDenom
 		chainID = "cosmos_22222-1"
-		gasPrice = "0.0005atest"
+		gasPrice = "0.0005uatom"
 		walletConfig = EvmCosmosWalletConfig
 		coinType = "60"
 	}
@@ -325,23 +328,23 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	return chainConfig, walletConfig
 }
 
-func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (pb.Node, error) {
+func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
 	cosmosIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
 	if err != nil {
-		return pb.Node{}, err
+		return &pb.Node{}, err
 	}
 
 	cometIp, err := nodeProvider.GetExternalAddress(ctx, "26657")
 	if err != nil {
-		return pb.Node{}, err
+		return &pb.Node{}, err
 	}
 
 	ip, err := nodeProvider.GetIP(ctx)
 	if err != nil {
-		return pb.Node{}, err
+		return &pb.Node{}, err
 	}
 
-	return pb.Node{
+	return &pb.Node{
 		Name:    nodeProvider.GetDefinition().Name,
 		Rpc:     fmt.Sprintf("http://%s", cometIp),
 		Lcd:     fmt.Sprintf("http://%s", cosmosIp),

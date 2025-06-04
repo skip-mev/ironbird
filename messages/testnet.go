@@ -2,8 +2,9 @@ package messages
 
 import (
 	"fmt"
-	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
@@ -59,8 +60,8 @@ type LaunchTestnetResponse struct {
 	ProviderState []byte
 	ChainState    []byte
 	ChainID       string
-	Nodes         []pb.Node
-	Validators    []pb.Node
+	Nodes         []*pb.Node
+	Validators    []*pb.Node
 }
 
 type TestnetWorkflowRequest struct {

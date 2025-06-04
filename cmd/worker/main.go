@@ -25,11 +25,14 @@ import (
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"google.golang.org/grpc"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
 )
 
 var (
 	configFlag     = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
-	chainsFlag     = flag.String("chains", "./conf/chains.yaml", "Path to the chain images configuration file")
+	chainsFlag     = flag.String("chains", "./conf/server.yaml", "Path to the chain images configuration file")
 	dashboardsFlag = flag.String("dashboards", "./conf/dashboards.yaml", "Path to the dashboards configuration file")
 )
 
@@ -52,19 +55,9 @@ func main() {
 		panic(err)
 	}
 
-	chainImages, err := types.ParseChainImagesConfig(*chainsFlag)
+	serverConfig, err := types.ParseServerConfig(*chainsFlag)
 	if err != nil {
 		panic(err)
-	}
-
-	var dashboardsConfig *types.DashboardsConfig
-	if *dashboardsFlag != "" {
-		dashboardsConfig, err = types.ParseDashboardsConfig(*dashboardsFlag)
-		if err != nil {
-			logger.Fatal("Failed to load dashboards config", zap.Error(err))
-		} else {
-			logger.Info("Successfully loaded dashboards config", zap.Any("config", dashboardsConfig))
-		}
 	}
 
 	c, err := client.Dial(client.Options{
@@ -88,7 +81,19 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig, ChainImages: chainImages}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig, Chains: serverConfig.Chains}
+
+	var grpcClient pb.IronbirdServiceClient
+	if cfg.ServerAddress != "" {
+		conn, err := grpc.Dial(cfg.ServerAddress, grpc.WithInsecure())
+		if err != nil {
+			log.Printf("Failed to connect to server at %s: %v", cfg.ServerAddress, err)
+		} else {
+			defer conn.Close()
+			grpcClient = pb.NewIronbirdServiceClient(conn)
+			logger.Info("Successfully connected to server", zap.String("address", cfg.ServerAddress))
+		}
+	}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
 		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
@@ -113,8 +118,9 @@ func main() {
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
-		ChainImages:       chainImages,
-		DashboardsConfig:  dashboardsConfig,
+		Chains:            serverConfig.Chains,
+		GrafanaConfig:     serverConfig.Grafana,
+		GRPCClient:        grpcClient,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -144,6 +150,7 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
+		GRPCClient:        grpcClient,
 	}
 
 	walletCreatorActivity := walletcreator.Activity{

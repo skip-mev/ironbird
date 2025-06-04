@@ -30,23 +30,23 @@ import LoadTestForm from '../components/LoadTestForm';
 const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
   {
     key: "app_state.staking.params.bond_denom",
-    value: "atest",
+    value: "uatom",
   },
   {
     key: "app_state.gov.deposit_params.min_deposit.0.denom",
-    value: "atest",
+    value: "uatom",
   },
   {
     key: "app_state.gov.params.min_deposit.0.denom",
-    value: "atest",
+    value: "uatom",
   },
   {
     key: "app_state.evm.params.evm_denom",
-    value: "atest",
+    value: "uatom",
   },
   {
     key: "app_state.mint.params.mint_denom",
-    value: "atest",
+    value: "uatom",
   },
   {
     key: "app_state.bank.denom_metadata",
@@ -55,7 +55,7 @@ const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
         "description": "The native staking token for evmd.",
         "denom_units": [
           {
-            "denom": "atest",
+            "denom": "uatom",
             "exponent": 0,
             "aliases": ["attotest"],
           },
@@ -65,7 +65,7 @@ const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
             "aliases": [],
           },
         ],
-        "base": "atest",
+        "base": "uatom",
         "display": "test",
         "name": "Test Token",
         "symbol": "TEST",
@@ -97,7 +97,7 @@ const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
       {
         "contract_owner": 1,
         "erc20_address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        "denom": "atest",
+        "denom": "uatom",
         "enabled": true,
       },
     ],

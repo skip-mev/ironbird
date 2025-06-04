@@ -16,12 +16,13 @@ type TailscaleConfig struct {
 }
 
 type WorkerConfig struct {
-	Temporal     TemporalConfig     `yaml:"temporal"`
-	Tailscale    TailscaleConfig    `yaml:"tailscale"`
-	DigitalOcean DigitalOceanConfig `yaml:"digitalocean"`
-	LoadBalancer LoadBalancerConfig `yaml:"load_balancer"`
-	Telemetry    TelemetryConfig    `yaml:"telemetry"`
-	Builder      BuilderConfig      `yaml:"builder"`
+	Temporal      TemporalConfig     `yaml:"temporal"`
+	Tailscale     TailscaleConfig    `yaml:"tailscale"`
+	DigitalOcean  DigitalOceanConfig `yaml:"digitalocean"`
+	LoadBalancer  LoadBalancerConfig `yaml:"load_balancer"`
+	Telemetry     TelemetryConfig    `yaml:"telemetry"`
+	Builder       BuilderConfig      `yaml:"builder"`
+	ServerAddress string             `yaml:"server_address"`
 }
 
 type LoadBalancerConfig struct {
@@ -84,7 +85,18 @@ type ChainsConfig struct {
 	NumOfValidators      uint64                 `yaml:"num_of_validators"`
 }
 
-type ChainImages map[string]ImageConfig
+type GrafanaConfig struct {
+	URL        string      `yaml:"url"`
+	Dashboards []Dashboard `yaml:"dashboards"`
+}
+
+type ServerConfig struct {
+	Chains   Chains         `yaml:"chains"`
+	Grafana  GrafanaConfig  `yaml:"grafana"`
+	Temporal TemporalConfig `yaml:"temporal"`
+}
+
+type Chains map[string]ImageConfig
 
 type ImageConfig struct {
 	Name       string `yaml:"name"`
@@ -117,16 +129,16 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	return config, nil
 }
 
-func ParseChainImagesConfig(path string) (ChainImages, error) {
+func ParseServerConfig(path string) (ServerConfig, error) {
 	file, err := os.ReadFile(path)
 
 	if err != nil {
-		return ChainImages{}, fmt.Errorf("failed to read config: %w", err)
+		return ServerConfig{}, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	var config ChainImages
+	var config ServerConfig
 	if err := yaml.Unmarshal(file, &config); err != nil {
-		return ChainImages{}, fmt.Errorf("failed to unmarshal config: %w", err)
+		return ServerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	return config, nil

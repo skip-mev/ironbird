@@ -31,7 +31,7 @@ import (
 type Activity struct {
 	BuilderConfig types.BuilderConfig
 	AwsConfig     *aws.Config
-	ChainImages   types.ChainImages
+	Chains        types.Chains
 }
 
 type BuildResult struct {
@@ -165,7 +165,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 	defer bkClient.Close()
 
-	image, exists := a.ChainImages[req.ChainConfig.Image]
+	image, exists := a.Chains[req.ChainConfig.Image]
 	if !exists {
 		return messages.BuildDockerImageResponse{}, fmt.Errorf("image config not found for %s", req.ChainConfig.Image)
 	}
