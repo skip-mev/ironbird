@@ -1,4 +1,4 @@
-FROM golang:1.24-bookworm as BUILD
+FROM golang:1.24-bookworm as build
 WORKDIR /app/
 
 COPY . ./
@@ -6,15 +6,10 @@ COPY . ./
 RUN go mod download
 RUN go mod tidy
 
-RUN go build -o ./build/server ./cmd
+RUN go build -o ./build/server ./server/cmd
 
-RUN mkdir lib
-RUN cp "$(ldd ./build/server | awk '/libgcc_s.so.1/ {print $3}')" lib/libgcc_s.so.1 || :
-RUN cp /lib/x86_64-linux-gnu/libgcc_s.so.1 lib/libgcc_s.so.1 || :
-
-FROM gcr.io/distroless/base-debian12:debug
+FROM alpine:latest
 WORKDIR /usr/local/bin
-COPY --from=BUILD /app/server/build/server /usr/local/bin/server
-COPY --from=BUILD /app/server/lib /usr/lib
+COPY --from=build /app/build/server /usr/local/bin/server
 EXPOSE 50051
 ENTRYPOINT ["/usr/local/bin/server"] 
