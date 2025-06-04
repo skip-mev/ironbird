@@ -100,11 +100,13 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 		"--home", chainConfig.HomeDir,
 	)
 
-	_, stderr, exitCode, err := node.RunCommand(ctx, command)
+	stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
 	if err != nil || exitCode != 0 {
 		logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore fund wallets: %w", err)
 	}
+	logger.Error("fund result", zap.String("stdout", stdout), zap.String("stderr", stderr),
+		zap.Int("exitCode", exitCode))
 	time.Sleep(5 * time.Second)
 
 	return messages.CreateWalletsResponse{

@@ -3,8 +3,9 @@ package testnet
 import (
 	"context"
 	"fmt"
-	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
 
 	"github.com/skip-mev/petri/core/v3/apps"
 	"github.com/skip-mev/petri/core/v3/util"
@@ -242,9 +243,11 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 		ctx,
 		walletCreatorActivities.CreateWallets,
 		messages.CreateWalletsRequest{
-			NumWallets: req.NumWallets,
-			Evm:        req.Evm,
-			RunnerType: string(req.RunnerType),
+			NumWallets:    req.NumWallets,
+			Evm:           req.Evm,
+			RunnerType:    string(req.RunnerType),
+			ChainState:    chainState,
+			ProviderState: providerState,
 		},
 	).Get(ctx, &createWalletsResp)
 
