@@ -62,7 +62,6 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 
 	workflowID := req.WorkflowID
 
-	// Update server with loadbalancers if server address is provided
 	if a.GRPCClient != nil {
 		nodeNames := make(map[string]bool)
 		for _, domain := range req.Domains {
@@ -83,16 +82,13 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		}
 
 		if len(loadBalancers) > 0 {
-			logger.Info("updating server with loadbalancers",
-				zap.Any("loadBalancers", loadBalancers))
-
-			var pbLoadBalancers []*pb.Node
-			for _, lb := range loadBalancers {
+			pbLoadBalancers := make([]*pb.Node, 0, len(loadBalancers))
+			for i := range loadBalancers {
 				pbLoadBalancers = append(pbLoadBalancers, &pb.Node{
-					Name:    lb.Name,
-					Address: lb.Address,
-					Rpc:     lb.Rpc,
-					Lcd:     lb.Lcd,
+					Name:    loadBalancers[i].Name,
+					Address: loadBalancers[i].Address,
+					Rpc:     loadBalancers[i].Rpc,
+					Lcd:     loadBalancers[i].Lcd,
 				})
 			}
 
@@ -104,11 +100,7 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			_, err = a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
 			if err != nil {
 				logger.Error("Failed to update workflow loadbalancers", zap.Error(err))
-			} else {
-				logger.Info("Successfully updated workflow loadbalancers")
 			}
-		} else {
-			logger.Warn("No loadbalancers to update in server")
 		}
 	}
 

@@ -100,8 +100,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	}
 
 	if req.LoadTestSpec != nil {
-		var loadTestSpec catalysttypes.LoadTestSpec
-		loadTestSpec = s.convertProtoLoadTestSpec(req.LoadTestSpec)
+		loadTestSpec := s.convertProtoLoadTestSpec(req.LoadTestSpec)
 		workflowReq.LoadTestSpec = &loadTestSpec
 	}
 
@@ -164,34 +163,34 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	}
 
 	if workflow.Nodes != nil {
-		for _, node := range workflow.Nodes {
+		for i := range workflow.Nodes {
 			response.Nodes = append(response.Nodes, &pb.Node{
-				Name:    node.Name,
-				Address: node.Address,
-				Rpc:     node.Rpc,
-				Lcd:     node.Lcd,
+				Name:    workflow.Nodes[i].Name,
+				Address: workflow.Nodes[i].Address,
+				Rpc:     workflow.Nodes[i].Rpc,
+				Lcd:     workflow.Nodes[i].Lcd,
 			})
 		}
 	}
 
 	if workflow.Validators != nil {
-		for _, validator := range workflow.Validators {
+		for i := range workflow.Validators {
 			response.Validators = append(response.Validators, &pb.Node{
-				Name:    validator.Name,
-				Address: validator.Address,
-				Rpc:     validator.Rpc,
-				Lcd:     validator.Lcd,
+				Name:    workflow.Validators[i].Name,
+				Address: workflow.Validators[i].Address,
+				Rpc:     workflow.Validators[i].Rpc,
+				Lcd:     workflow.Validators[i].Lcd,
 			})
 		}
 	}
 
 	if workflow.LoadBalancers != nil {
-		for _, lb := range workflow.LoadBalancers {
+		for i := range workflow.LoadBalancers {
 			response.LoadBalancers = append(response.LoadBalancers, &pb.Node{
-				Name:    lb.Name,
-				Address: lb.Address,
-				Rpc:     lb.Rpc,
-				Lcd:     lb.Lcd,
+				Name:    workflow.LoadBalancers[i].Name,
+				Address: workflow.LoadBalancers[i].Address,
+				Rpc:     workflow.LoadBalancers[i].Rpc,
+				Lcd:     workflow.LoadBalancers[i].Lcd,
 			})
 		}
 	}
@@ -341,32 +340,32 @@ func (s *Service) UpdateWorkflowData(ctx context.Context, req *pb.UpdateWorkflow
 		zap.Int("validators", len(req.Validators)))
 
 	var loadBalancers []pb.Node
-	for _, lb := range req.LoadBalancers {
+	for i := range req.LoadBalancers {
 		loadBalancers = append(loadBalancers, pb.Node{
-			Name:    lb.Name,
-			Address: lb.Address,
-			Rpc:     lb.Rpc,
-			Lcd:     lb.Lcd,
+			Name:    req.LoadBalancers[i].Name,
+			Address: req.LoadBalancers[i].Address,
+			Rpc:     req.LoadBalancers[i].Rpc,
+			Lcd:     req.LoadBalancers[i].Lcd,
 		})
 	}
 
 	var nodes []pb.Node
-	for _, node := range req.Nodes {
+	for i := range req.Nodes {
 		nodes = append(nodes, pb.Node{
-			Name:    node.Name,
-			Address: node.Address,
-			Rpc:     node.Rpc,
-			Lcd:     node.Lcd,
+			Name:    req.Nodes[i].Name,
+			Address: req.Nodes[i].Address,
+			Rpc:     req.Nodes[i].Rpc,
+			Lcd:     req.Nodes[i].Lcd,
 		})
 	}
 
 	var validators []pb.Node
-	for _, validator := range req.Validators {
+	for i := range req.Validators {
 		validators = append(validators, pb.Node{
-			Name:    validator.Name,
-			Address: validator.Address,
-			Rpc:     validator.Rpc,
-			Lcd:     validator.Lcd,
+			Name:    req.Validators[i].Name,
+			Address: req.Validators[i].Address,
+			Rpc:     req.Validators[i].Rpc,
+			Lcd:     req.Validators[i].Lcd,
 		})
 	}
 
@@ -429,8 +428,7 @@ func (s *Service) UpdateWorkflowStatuses() {
 			continue
 		}
 
-		var newStatus db.WorkflowStatus
-		newStatus = desc.WorkflowExecutionInfo.Status
+		newStatus := desc.WorkflowExecutionInfo.Status
 
 		if newStatus != workflow.Status {
 			s.logger.Info("updating workflow status",

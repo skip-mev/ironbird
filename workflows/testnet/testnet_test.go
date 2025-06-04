@@ -175,13 +175,6 @@ var (
 			},
 		},
 	}
-	builderConfig = types.BuilderConfig{
-		BuildKitAddress: "tcp://localhost:1234",
-		Registry: types.RegistryConfig{
-			URL:       "public.ecr.aws",
-			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
-		},
-	}
 )
 
 func (s *TestnetWorkflowTestSuite) SetupTest() {

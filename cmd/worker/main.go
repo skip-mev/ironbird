@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"google.golang.org/grpc/credentials/insecure"
 	"os"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
@@ -33,13 +34,6 @@ import (
 var (
 	configFlag = flag.String("config", "./conf/worker.yaml", "Path to the worker configuration file")
 )
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
 
 func main() {
 	ctx := context.Background()
@@ -79,7 +73,7 @@ func main() {
 
 	var grpcClient pb.IronbirdServiceClient
 	if cfg.ServerAddress != "" {
-		conn, err := grpc.Dial(cfg.ServerAddress, grpc.WithInsecure())
+		conn, err := grpc.NewClient(cfg.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			log.Printf("Failed to connect to server at %s: %v", cfg.ServerAddress, err)
 		} else {

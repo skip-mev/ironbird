@@ -1,0 +1,94 @@
+name: Lint
+on:
+  push:
+    branches:
+      - main
+      - release/**
+  pull_request:
+  merge_group:
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+
+jobs:
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.1
+      - name: Setup the pipeline
+        uses: ./.github/actions/setup
+        with:
+          environment: ${{ needs.gather_env.outputs.env }}
+          tailscale_id: ${{ secrets.TAILSCALE_ID }}
+          tailscale_secret: ${{ secrets.TAILSCALE_SECRET }}
+      - name: Set go environment variables
+        run: |
+          go env -w GONOSUMDB="github.com/skip-mev/*"
+          go env -w GOPROXY="http://athens.prod.skip-internal.money,https://proxy.golang.org,direct"
+          go mod tidy
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
+          version: latest
+  govulncheck:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.1
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Setup the pipeline
+        uses: ./.github/actions/setup
+        with:
+          environment: ${{ needs.gather_env.outputs.env }}
+          tailscale_id: ${{ secrets.TAILSCALE_ID }}
+          tailscale_secret: ${{ secrets.TAILSCALE_SECRET }}
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **/*.go
+            go.mod
+            go.sum
+      - name: govulncheck
+        if: env.GIT_DIFF
+        run: |
+          make govulncheck
+  check-proto:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.21"
+      - name: Setup the pipeline
+        uses: ./.github/actions/setup
+        with:
+          environment: ${{ needs.gather_env.outputs.env }}
+          tailscale_id: ${{ secrets.TAILSCALE_ID }}
+          tailscale_secret: ${{ secrets.TAILSCALE_SECRET }}
+      - name: Check generated proto files
+        run: |
+          make proto-gen
+          if [[ `git status --porcelain` ]]; then
+            echo "Proto files are not up to date. Please run make proto-gen"
+            exit 1
+          fi

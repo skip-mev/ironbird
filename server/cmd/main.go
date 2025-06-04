@@ -74,10 +74,3 @@ func main() {
 
 	logger.Info("server shutdown complete")
 }
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
