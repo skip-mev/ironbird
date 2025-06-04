@@ -63,7 +63,6 @@ github:
 		assert.Equal(t, "do-token-from-env", config.DigitalOcean.Token)
 		assert.Equal(t, "tailscale-node-key", config.Tailscale.NodeAuthKey)
 		assert.Equal(t, "tailscale-oauth-secret", config.Tailscale.ServerOauthSecret)
-		assert.Equal(t, "test-private-key", config.Github.App.PrivateKey)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -101,15 +100,7 @@ chains:
   test-chain:
     name: test-chain
     version: v1.0.0
-    num_of_nodes: 4
-    num_of_validators: 3
-    image:
-      dockerfile: Dockerfile
-      gid: "1000"
-      uid: "1000"
-      binary_name: test-binary
-      home_dir: /home/app
-      gas_prices: 0.0test
+    image: "simapp-v50"
 github:
   app:
     integration_id: 12345
@@ -119,7 +110,7 @@ github:
 	require.NoError(t, os.WriteFile(configPath, []byte(validConfigYaml), 0644))
 
 	t.Run("valid config", func(t *testing.T) {
-		config, err := ParseChainsConfig(configPath)
+		config, err := ParseWorkerConfig(configPath)
 		require.NoError(t, err)
 
 		assert.Equal(t, "localhost:7233", config.Temporal.Host)
@@ -132,12 +123,11 @@ github:
 
 		assert.Contains(t, config.Chains, "test-chain")
 		assert.Equal(t, "test-chain", config.Chains["test-chain"].Name)
-		assert.Equal(t, uint64(4), config.Chains["test-chain"].NumOfNodes)
-		assert.Equal(t, "test-private-key", config.Github.App.PrivateKey)
+		assert.Equal(t, "v0.53.0", config.Chains["test-chain"].Version)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
-		_, err := ParseAppConfig("non_existent_file.yaml")
+		_, err := ParseServerConfig("non_existent_file.yaml")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read config")
 	})
@@ -146,7 +136,7 @@ github:
 		invalidPath := filepath.Join(tempDir, "invalid_app.yaml")
 		require.NoError(t, os.WriteFile(invalidPath, []byte("invalid: yaml: content"), 0644))
 
-		_, err := ParseAppConfig(invalidPath)
+		_, err := ParseServerConfig(invalidPath)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to unmarshal config")
 	})
