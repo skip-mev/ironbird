@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	petritypes "github.com/skip-mev/petri/core/v3/types"
-
 	"github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
@@ -51,8 +49,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	walletConfig petritypes.WalletConfig, loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
-
+	loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
 	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
@@ -94,7 +91,6 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
-	logger.Info("req", zap.Any("req", req))
 
 	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
 		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
@@ -114,7 +110,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, walletConfig, req.LoadTestSpec, req.Mnemonics)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec, req.Mnemonics)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}

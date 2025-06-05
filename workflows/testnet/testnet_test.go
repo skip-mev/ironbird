@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
@@ -177,6 +178,7 @@ var (
 				{Weight: 1, Type: catalysttypes.MsgSend},
 			},
 		},
+		NumWallets: 10,
 	}
 )
 
@@ -239,7 +241,9 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	builderActivity := &builder.Activity{}
+	walletCreatorActivities := walletcreator.Activity{}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
+	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
 
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
@@ -309,10 +313,12 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		TailscaleSettings: tailscaleSettings,
 	}
 
+	walletCreatorActivities := &walletcreator.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
+	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,

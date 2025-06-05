@@ -264,7 +264,6 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	if req.LoadTestSpec == nil {
 		return 0, nil
 	}
-	workflow.GetLogger(ctx).Info("TestnetWorkflowRequest", zap.Any("req", req))
 
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
