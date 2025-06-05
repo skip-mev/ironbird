@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -13,27 +14,25 @@ import (
 )
 
 func TestSQLiteDB(t *testing.T) {
-	// Create a temporary database file
 	dbPath := "/tmp/test_ironbird.db"
 	defer os.Remove(dbPath)
 
-	// Create database connection
 	db, err := NewSQLiteDB(dbPath)
 	require.NoError(t, err)
 	defer db.Close()
 
-	// Run migrations
-	err = db.RunMigrations("../migrations")
+	err = db.RunMigrations("../../migrations")
 	require.NoError(t, err)
 
-	// Test creating a workflow
 	workflow := &Workflow{
 		WorkflowID:      "test-workflow-123",
-		Nodes:           []pb.Node{},
-		Validators:      []pb.Node{},
+		Nodes:           []*pb.Node{},
+		Validators:      []*pb.Node{},
+		LoadBalancers:   []*pb.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          enums.WORKFLOW_EXECUTION_STATUS_UNSPECIFIED, // Pending
 		Config:          messages.TestnetWorkflowRequest{},
+		LoadTestSpec:    json.RawMessage("{}"),
 	}
 
 	err = db.CreateWorkflow(workflow)
@@ -42,44 +41,51 @@ func TestSQLiteDB(t *testing.T) {
 	assert.NotZero(t, workflow.CreatedAt)
 	assert.NotZero(t, workflow.UpdatedAt)
 
-	// Test getting the workflow
 	retrieved, err := db.GetWorkflow("test-workflow-123")
 	require.NoError(t, err)
 	assert.Equal(t, workflow.WorkflowID, retrieved.WorkflowID)
 	assert.Equal(t, workflow.Status, retrieved.Status)
+	assert.NotNil(t, retrieved.LoadBalancers)
+	assert.Equal(t, 0, len(retrieved.LoadBalancers))
 
-	// Test updating the workflow
 	newStatus := enums.WORKFLOW_EXECUTION_STATUS_RUNNING
+	testLoadBalancer := pb.Node{
+		Name:    "test-lb",
+		Address: "192.168.1.100",
+		Rpc:     "http://192.168.1.100:26657",
+		Lcd:     "http://192.168.1.100:1317",
+	}
+	loadBalancers := []pb.Node{testLoadBalancer}
+
 	update := WorkflowUpdate{
-		Status: &newStatus,
+		Status:        &newStatus,
+		LoadBalancers: &loadBalancers,
 	}
 	err = db.UpdateWorkflow("test-workflow-123", update)
 	require.NoError(t, err)
 
-	// Verify the update
 	updated, err := db.GetWorkflow("test-workflow-123")
 	require.NoError(t, err)
 	assert.Equal(t, enums.WORKFLOW_EXECUTION_STATUS_RUNNING, updated.Status)
 	assert.True(t, updated.UpdatedAt.After(updated.CreatedAt))
+	assert.Len(t, updated.LoadBalancers, 1)
+	assert.Equal(t, "test-lb", updated.LoadBalancers[0].Name)
 
-	// Test listing workflows
 	workflows, err := db.ListWorkflows(10, 0)
 	require.NoError(t, err)
 	assert.Len(t, workflows, 1)
 	assert.Equal(t, "test-workflow-123", workflows[0].WorkflowID)
+	assert.NotNil(t, workflows[0].LoadBalancers)
 
-	// Test deleting the workflow
 	err = db.DeleteWorkflow("test-workflow-123")
 	require.NoError(t, err)
 
-	// Verify deletion
 	_, err = db.GetWorkflow("test-workflow-123")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "workflow not found")
 }
 
 func TestSQLiteDB_Interface(t *testing.T) {
-	// Test that SQLiteDB implements the DB interface
 	dbPath := "/tmp/test_interface.db"
 	defer os.Remove(dbPath)
 
@@ -87,7 +93,6 @@ func TestSQLiteDB_Interface(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	// Verify it implements the DB interface
 	var dbInterface DB = db
 	err = dbInterface.Ping()
 	require.NoError(t, err)
