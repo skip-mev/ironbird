@@ -4,9 +4,6 @@
   "devCommand": "cd frontend && npm run dev",
   "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "framework": "vite",
-  "env": {
-    "IRONBIRD_GRPC_ADDRESS": "ironbird.dev.skip-internal.money:443"
-  },
   "rewrites": [
     {
       "source": "/(.*)",
