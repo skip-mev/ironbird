@@ -326,7 +326,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, buildResult, req.Evm, workflowID)
+	err = setUpdateHandler(ctx, &providerState, &chainState, req.Evm, workflowID)
 	if err != nil {
 		return err
 	}
@@ -340,7 +340,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, buildResult messages.BuildDockerImageResponse, Evm bool, workflowID string) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, Evm bool, workflowID string) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		updateHandler,
@@ -374,6 +374,19 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 				return fmt.Errorf("failed to teardown chain: %w", err)
 			}
 
+			var buildResult messages.BuildDockerImageResponse
+			err = workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
+				Repo: updateReq.Repo,
+				SHA:  updateReq.SHA,
+				ChainConfig: messages.ChainConfig{
+					Name:  updateReq.ChainConfig.Name,
+					Image: updateReq.ChainConfig.Image,
+				},
+			}).Get(ctx, &buildResult)
+			if err != nil {
+				return fmt.Errorf("failed to build docker image for update request: %w", err)
+			}
+
 			// update provider and chain state here in case LaunchTestnet activity fails
 			*chainState = []byte{}
 			*providerState, err = p.SerializeProvider(stdCtx)
@@ -385,6 +398,17 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, util.RandomString(6))
 			workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID),
 				zap.String("run_name", runName))
+
+			if updateReq.ChainConfig.Image == "" {
+				switch updateReq.Repo {
+				case "gaia":
+					updateReq.ChainConfig.Image = updateReq.Repo
+				default:
+					// for SDK testing default to simapp
+					// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
+					updateReq.ChainConfig.Image = "simapp-v53"
+				}
+			}
 
 			return runTestnet(ctx, updateReq, runName, buildResult, workflowID)
 		},
