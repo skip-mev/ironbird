@@ -499,7 +499,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 		_, err := rmCmd.CombinedOutput()
 		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
 
-		time.Sleep(2 * time.Minute) // wait for new chain to startup
+		time.Sleep(1 * time.Minute) // wait for new chain to startup
 		s.env.SignalWorkflow("shutdown", nil)
 		time.Sleep(5 * time.Second)
 		close(done)

@@ -346,6 +346,8 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, b
 		func(ctx workflow.Context, updateReq messages.TestnetWorkflowRequest) error {
 			workflow.GetLogger(ctx).Info("received update", zap.Any("updateReq", updateReq))
 
+			ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
+
 			stdCtx := context.Background()
 			logger, _ := zap.NewDevelopment()
 
