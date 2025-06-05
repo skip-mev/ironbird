@@ -108,7 +108,9 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		TaskQueue: messages.TaskQueue,
 	}
 
-	workflowRun, err := s.temporalClient.ExecuteWorkflow(context.TODO(), options, testnet.Workflow, workflowReq)
+	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
+	defer cancel()
+	workflowRun, err := s.temporalClient.ExecuteWorkflow(ctxWithTimeout, options, testnet.Workflow, workflowReq)
 	if err != nil {
 		s.logger.Error("executing workflow", zap.Error(err))
 		return nil, fmt.Errorf("failed to execute workflow: %w", err)
