@@ -48,7 +48,7 @@ func main() {
 		Namespace: cfg.Temporal.Namespace,
 	}
 
-	grpcServer, err := server.NewGRpcServer(temporalConfig, database, logger)
+	grpcServer, err := server.NewGRPCServer(temporalConfig, database, logger)
 	if err != nil {
 		logger.Error("creating gRpc server", zap.Error(err))
 		os.Exit(1)
@@ -56,7 +56,7 @@ func main() {
 
 	go func() {
 		logger.Info("starting gRpc server", zap.String("address", cfg.GrpcAddress))
-		if err := grpcServer.Start(cfg.GrpcAddress); err != nil {
+		if err := grpcServer.Start(cfg.GrpcAddress, cfg.GrpcWebAddress); err != nil {
 			logger.Error("starting gRpc server", zap.Error(err))
 			os.Exit(1)
 		}

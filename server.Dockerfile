@@ -17,5 +17,5 @@ WORKDIR /usr/local/bin
 COPY --from=BUILD /app/build/server /usr/local/bin/server
 COPY --from=BUILD /app/lib /usr/lib
 COPY --from=BUILD /app/migrations /usr/local/bin/migrations
-EXPOSE 9006
+EXPOSE 9006 9007
 ENTRYPOINT ["server", "-config"]

@@ -7,3 +7,5 @@ database_path: "./ironbird.db"
 migrations_path: "./migrations"
 
 grpc_address: "localhost:9006"
+
+grpc_web_address: "localhost:9007"

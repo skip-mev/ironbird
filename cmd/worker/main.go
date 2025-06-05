@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"google.golang.org/grpc/credentials/insecure"
 	"os"
+
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/walletcreator"
@@ -73,14 +74,24 @@ func main() {
 
 	var grpcClient pb.IronbirdServiceClient
 	if cfg.ServerAddress != "" {
+		logger.Info("Attempting to connect to gRPC server", zap.String("address", cfg.ServerAddress))
+
 		conn, err := grpc.NewClient(cfg.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
-			log.Printf("Failed to connect to server at %s: %v", cfg.ServerAddress, err)
+			logger.Error("Failed to connect to server", zap.String("address", cfg.ServerAddress), zap.Error(err))
+			logger.Warn("Continuing without gRPC client - workflow data updates will be skipped")
 		} else {
-			defer conn.Close()
 			grpcClient = pb.NewIronbirdServiceClient(conn)
-			logger.Info("Successfully connected to server", zap.String("address", cfg.ServerAddress))
+			logger.Info("Successfully connected to gRPC server", zap.String("address", cfg.ServerAddress))
+
+			defer func() {
+				if closeErr := conn.Close(); closeErr != nil {
+					logger.Warn("Error closing gRPC connection", zap.Error(closeErr))
+				}
+			}()
 		}
+	} else {
+		logger.Warn("no grpc client configured - workflow data updates will be skipped")
 	}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,

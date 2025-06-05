@@ -143,6 +143,7 @@ temporal:
 database_path: ./test.db
 migrations_path: ./test-migrations
 grpc_address: localhost:9007
+grpc_web_address: localhost:9008
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(validConfigYaml), 0644))
 
@@ -155,6 +156,7 @@ grpc_address: localhost:9007
 		assert.Equal(t, "./test.db", config.DatabasePath)
 		assert.Equal(t, "./test-migrations", config.MigrationsPath)
 		assert.Equal(t, "localhost:9007", config.GrpcAddress)
+		assert.Equal(t, "localhost:9008", config.GrpcWebAddress)
 	})
 
 	t.Run("file not found", func(t *testing.T) {

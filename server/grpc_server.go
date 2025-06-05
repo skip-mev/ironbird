@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type GRpcServer struct {
+type GRPCServer struct {
 	temporalClient  temporalclient.Client
 	config          types.TemporalConfig
 	db              db.DB
@@ -31,7 +31,7 @@ type GRpcServer struct {
 	workflowService *workflow.Service
 }
 
-func NewGRpcServer(config types.TemporalConfig, database db.DB, logger *zap.Logger) (*GRpcServer, error) {
+func NewGRPCServer(config types.TemporalConfig, database db.DB, logger *zap.Logger) (*GRPCServer, error) {
 	temporalClient, err := temporalclient.Dial(temporalclient.Options{
 		HostPort:  config.Host,
 		Namespace: config.Namespace,
@@ -49,7 +49,7 @@ func NewGRpcServer(config types.TemporalConfig, database db.DB, logger *zap.Logg
 
 	workflowService := workflow.NewService(database, logger, temporalClient, config)
 
-	server := &GRpcServer{
+	server := &GRPCServer{
 		temporalClient:  temporalClient,
 		config:          config,
 		db:              database,
@@ -67,26 +67,33 @@ func NewGRpcServer(config types.TemporalConfig, database db.DB, logger *zap.Logg
 	return server, nil
 }
 
-func (s *GRpcServer) Start(address string) error {
+func (s *GRPCServer) Start(address string, webAddress string) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
 
-	wrappedGrpc := grpcweb.WrapServer(s.grpcServer,
+	go func() {
+		s.logger.Info("gRPC server listening", zap.String("address", address))
+		if err := s.grpcServer.Serve(lis); err != nil {
+			s.logger.Error("gRPC server error", zap.Error(err))
+		}
+	}()
+
+	webLis, err := net.Listen("tcp", webAddress)
+	if err != nil {
+		s.logger.Warn("Failed to start gRPC-Web server", zap.Error(err))
+		return nil
+	}
+
+	wrappedGPPC := grpcweb.WrapServer(s.grpcServer,
 		grpcweb.WithCorsForRegisteredEndpointsOnly(false),
 		grpcweb.WithOriginFunc(func(origin string) bool {
 			return true
 		}),
 	)
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("HTTP request received",
-			zap.String("method", r.Method),
-			zap.String("url", r.URL.String()),
-			zap.String("path", r.URL.Path),
-		)
-
+	httpHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-User-Agent, X-Grpc-Web")
@@ -96,14 +103,14 @@ func (s *GRpcServer) Start(address string) error {
 			return
 		}
 
-		wrappedGrpc.ServeHTTP(w, r)
+		wrappedGPPC.ServeHTTP(w, r)
 	})
 
-	s.logger.Info("gRpc server with gRpc-Web support listening", zap.String("address", address))
-	return http.Serve(lis, handler)
+	s.logger.Info("gRPC-Web server listening", zap.String("address", webAddress))
+	return http.Serve(webLis, httpHandler)
 }
 
-func (s *GRpcServer) Stop() {
+func (s *GRPCServer) Stop() {
 	close(s.stopCh)
 
 	if s.grpcServer != nil {
@@ -115,7 +122,7 @@ func (s *GRpcServer) Stop() {
 	}
 }
 
-func (s *GRpcServer) startWorkflowStatusUpdater() {
+func (s *GRPCServer) startWorkflowStatusUpdater() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 

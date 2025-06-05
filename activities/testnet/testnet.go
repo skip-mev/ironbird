@@ -102,8 +102,6 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 	}
 
 	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, a.GrafanaConfig)
-	logger.Info("monitoring links", zap.String("chainID", chainID),
-		zap.Any("monitoringLinks", monitoringLinks))
 
 	updateReq := &pb.UpdateWorkflowDataRequest{
 		WorkflowId: workflowID,
@@ -111,6 +109,7 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 		Validators: validators,
 		Monitoring: monitoringLinks,
 	}
+	logger.Info("updating workflow data", zap.Any("update_req", updateReq))
 
 	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
 	if err != nil {

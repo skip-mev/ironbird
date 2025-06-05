@@ -79,8 +79,6 @@ const WorkflowDetails = () => {
         } catch (error) {
           console.error("Error normalizing LoadTestSpec:", error);
         }
-      } else {
-        console.log("No LoadTestSpec found in workflow");
       }
     }
   }, [workflow]);

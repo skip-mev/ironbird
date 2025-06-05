@@ -17,7 +17,7 @@ import {
 console.log("VITE_IRONBIRD_GRPC_ADDRESS:", import.meta.env.VITE_IRONBIRD_GRPC_ADDRESS);
 
 const transport = createGrpcWebTransport({
-  baseUrl: import.meta.env.VITE_IRONBIRD_GRPC_ADDRESS || "http://localhost:9006",
+  baseUrl: import.meta.env.VITE_IRONBIRD_GRPC_ADDRESS || "http://localhost:9007",
   credentials: "omit",
   interceptors: [
     (next) => async (req) => {

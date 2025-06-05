@@ -77,4 +77,4 @@ grafana:
       name: "comet-performance"
       human_name: "CometBFT Performance"
 
-grpc_address: localhost:9006
+server_address: "localhost:9006"

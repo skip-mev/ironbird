@@ -116,6 +116,7 @@ type ServerConfig struct {
 	DatabasePath   string         `yaml:"database_path"`
 	MigrationsPath string         `yaml:"migrations_path"`
 	GrpcAddress    string         `yaml:"grpc_address"`
+	GrpcWebAddress string         `yaml:"grpc_web_address"`
 }
 
 type Chains map[string]ImageConfig
