@@ -289,7 +289,8 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
-	chainImage := chains[req.Repo]
+	chainImage := chains[req.Image]
+	fmt.Println("chain image + req", chainImage, req, chains)
 
 	denom := cosmosDenom
 	chainID := req.Name

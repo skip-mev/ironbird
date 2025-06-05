@@ -50,8 +50,8 @@ func (s *DatabaseService) CreateWorkflow(workflowID string, config messages.Test
 
 	workflow := &Workflow{
 		WorkflowID:      workflowID,
-		Nodes:           []pb.Node{},
-		Validators:      []pb.Node{},
+		Nodes:           []*pb.Node{},
+		Validators:      []*pb.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          dbStatus,
 		Config:          config,

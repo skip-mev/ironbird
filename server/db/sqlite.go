@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	pb "github.com/skip-mev/ironbird/server/proto"
 	"time"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -314,17 +315,17 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		}
 		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
 			fmt.Printf("Warning: failed to unmarshal nodes for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Nodes = make([]pb.Node, 0)
+			workflow.Nodes = make([]*pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
 			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Validators = make([]pb.Node, 0)
+			workflow.Validators = make([]*pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
 			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.LoadBalancers = make([]pb.Node, 0)
+			workflow.LoadBalancers = make([]*pb.Node, 0)
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {

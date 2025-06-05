@@ -10,7 +10,6 @@ import (
 	"go.temporal.io/api/enums/v1"
 )
 
-// WorkflowStatus is an alias for Temporal's WorkflowExecutionStatus
 type WorkflowStatus = enums.WorkflowExecutionStatus
 
 func WorkflowStatusToString(status WorkflowStatus) string {
@@ -28,21 +27,20 @@ func WorkflowStatusToString(status WorkflowStatus) string {
 	case enums.WORKFLOW_EXECUTION_STATUS_TERMINATED:
 		return "terminated"
 	case enums.WORKFLOW_EXECUTION_STATUS_CONTINUED_AS_NEW:
-		return "running" // Treat as still running
+		return "running"
 	case enums.WORKFLOW_EXECUTION_STATUS_TIMED_OUT:
-		return "failed" // Treat as failed
+		return "failed"
 	default:
 		return "unknown"
 	}
 }
 
-// Workflow represents a workflow record in the database
 type Workflow struct {
 	ID              int                             `json:"id" db:"id"`
 	WorkflowID      string                          `json:"workflow_id" db:"workflow_id"`
-	Nodes           []pb.Node                       `json:"nodes" db:"nodes"`
-	Validators      []pb.Node                       `json:"validators" db:"validators"`
-	LoadBalancers   []pb.Node                       `json:"loadbalancers" db:"loadbalancers"`
+	Nodes           []*pb.Node                      `json:"nodes" db:"nodes"`
+	Validators      []*pb.Node                      `json:"validators" db:"validators"`
+	LoadBalancers   []*pb.Node                      `json:"loadbalancers" db:"loadbalancers"`
 	MonitoringLinks map[string]string               `json:"monitoring_links" db:"monitoring_links"`
 	Status          WorkflowStatus                  `json:"status" db:"status"`
 	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
@@ -51,7 +49,6 @@ type Workflow struct {
 	UpdatedAt       time.Time                       `json:"updated_at" db:"updated_at"`
 }
 
-// WorkflowUpdate represents fields that can be updated
 type WorkflowUpdate struct {
 	Nodes           *[]pb.Node         `json:"nodes,omitempty"`
 	Validators      *[]pb.Node         `json:"validators,omitempty"`
@@ -60,7 +57,6 @@ type WorkflowUpdate struct {
 	Status          *WorkflowStatus    `json:"status,omitempty"`
 }
 
-// ToJSON converts nodes to JSON for database storage
 func (w *Workflow) NodesJSON() ([]byte, error) {
 	return json.Marshal(w.Nodes)
 }

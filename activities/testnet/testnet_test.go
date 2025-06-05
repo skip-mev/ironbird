@@ -34,12 +34,12 @@ func TestProviderLifecycle(t *testing.T) {
 	activity := Activity{}
 	options := createProviderReq
 
-	resp, err := activity.CreateProvider(context.Background(), options)
+	resp, err := activity.CreateProvider(context.TODO(), options)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.ProviderState)
 
-	_, err = activity.TeardownProvider(context.Background(), messages.TeardownProviderRequest{
+	_, err = activity.TeardownProvider(context.TODO(), messages.TeardownProviderRequest{
 		RunnerType:    options.RunnerType,
 		ProviderState: resp.ProviderState,
 	})
@@ -55,21 +55,21 @@ func TestChainLifecycle(t *testing.T) {
 			return
 		}
 
-		_, err := activity.TeardownProvider(context.Background(), messages.TeardownProviderRequest{
+		_, err := activity.TeardownProvider(context.TODO(), messages.TeardownProviderRequest{
 			RunnerType:    launchTestnetReq.RunnerType,
 			ProviderState: providerState,
 		})
 		require.NoError(t, err)
 	}()
 
-	createProviderResp, err := activity.CreateProvider(context.Background(), createProviderReq)
+	createProviderResp, err := activity.CreateProvider(context.TODO(), createProviderReq)
 	require.NoError(t, err)
 	providerState = createProviderResp.ProviderState
 	require.NotEmpty(t, providerState)
 
 	req := launchTestnetReq
 	req.ProviderState = providerState
-	packagedState, err := activity.LaunchTestnet(context.Background(), req)
+	packagedState, err := activity.LaunchTestnet(context.TODO(), req)
 	providerState = packagedState.ProviderState
 	chainState = packagedState.ChainState
 

@@ -5,17 +5,14 @@ package skip.ironbird;
 option go_package = "github.com/skip-mev/ironbird/server/gen/ironbird";
 
 service IronbirdService {
-    // Workflow operations
     rpc CreateWorkflow(CreateWorkflowRequest) returns (WorkflowResponse) {}
     rpc GetWorkflow(GetWorkflowRequest) returns (Workflow) {}
     rpc ListWorkflows(ListWorkflowsRequest) returns (WorkflowListResponse) {}
     rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowResponse) {}
     rpc SignalWorkflow(SignalWorkflowRequest) returns (WorkflowResponse) {}
     
-    // Load test operations
     rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
     
-    // Workflow update operations
     rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
 }
 

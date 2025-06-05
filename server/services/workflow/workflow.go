@@ -119,9 +119,9 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 
 	workflow := &db.Workflow{
 		WorkflowID:      workflowID,
-		Nodes:           []pb.Node{},
-		Validators:      []pb.Node{},
-		LoadBalancers:   []pb.Node{},
+		Nodes:           []*pb.Node{},
+		Validators:      []*pb.Node{},
+		LoadBalancers:   []*pb.Node{},
 		MonitoringLinks: make(map[string]string),
 		Status:          enums.WORKFLOW_EXECUTION_STATUS_RUNNING,
 		Config:          workflowReq,
@@ -162,38 +162,9 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		Status:     status,
 	}
 
-	if workflow.Nodes != nil {
-		for i := range workflow.Nodes {
-			response.Nodes = append(response.Nodes, &pb.Node{
-				Name:    workflow.Nodes[i].Name,
-				Address: workflow.Nodes[i].Address,
-				Rpc:     workflow.Nodes[i].Rpc,
-				Lcd:     workflow.Nodes[i].Lcd,
-			})
-		}
-	}
-
-	if workflow.Validators != nil {
-		for i := range workflow.Validators {
-			response.Validators = append(response.Validators, &pb.Node{
-				Name:    workflow.Validators[i].Name,
-				Address: workflow.Validators[i].Address,
-				Rpc:     workflow.Validators[i].Rpc,
-				Lcd:     workflow.Validators[i].Lcd,
-			})
-		}
-	}
-
-	if workflow.LoadBalancers != nil {
-		for i := range workflow.LoadBalancers {
-			response.LoadBalancers = append(response.LoadBalancers, &pb.Node{
-				Name:    workflow.LoadBalancers[i].Name,
-				Address: workflow.LoadBalancers[i].Address,
-				Rpc:     workflow.LoadBalancers[i].Rpc,
-				Lcd:     workflow.LoadBalancers[i].Lcd,
-			})
-		}
-	}
+	response.Nodes = workflow.Nodes
+	response.Validators = workflow.Validators
+	response.LoadBalancers = workflow.LoadBalancers
 
 	if workflow.MonitoringLinks != nil {
 		response.Monitoring = workflow.MonitoringLinks
@@ -339,35 +310,9 @@ func (s *Service) UpdateWorkflowData(ctx context.Context, req *pb.UpdateWorkflow
 		zap.Int("nodes", len(req.Nodes)),
 		zap.Int("validators", len(req.Validators)))
 
-	var loadBalancers []pb.Node
-	for i := range req.LoadBalancers {
-		loadBalancers = append(loadBalancers, pb.Node{
-			Name:    req.LoadBalancers[i].Name,
-			Address: req.LoadBalancers[i].Address,
-			Rpc:     req.LoadBalancers[i].Rpc,
-			Lcd:     req.LoadBalancers[i].Lcd,
-		})
-	}
-
-	var nodes []pb.Node
-	for i := range req.Nodes {
-		nodes = append(nodes, pb.Node{
-			Name:    req.Nodes[i].Name,
-			Address: req.Nodes[i].Address,
-			Rpc:     req.Nodes[i].Rpc,
-			Lcd:     req.Nodes[i].Lcd,
-		})
-	}
-
-	var validators []pb.Node
-	for i := range req.Validators {
-		validators = append(validators, pb.Node{
-			Name:    req.Validators[i].Name,
-			Address: req.Validators[i].Address,
-			Rpc:     req.Validators[i].Rpc,
-			Lcd:     req.Validators[i].Lcd,
-		})
-	}
+	loadBalancers := convertProtoNodes(req.LoadBalancers)
+	nodes := convertProtoNodes(req.Nodes)
+	validators := convertProtoNodes(req.Validators)
 
 	update := db.WorkflowUpdate{}
 
@@ -407,10 +352,7 @@ func (s *Service) UpdateWorkflowStatuses() {
 	}
 
 	for _, workflow := range workflows {
-		if workflow.Status == enums.WORKFLOW_EXECUTION_STATUS_COMPLETED ||
-			workflow.Status == enums.WORKFLOW_EXECUTION_STATUS_FAILED ||
-			workflow.Status == enums.WORKFLOW_EXECUTION_STATUS_CANCELED ||
-			workflow.Status == enums.WORKFLOW_EXECUTION_STATUS_TERMINATED {
+		if isWorkflowTerminal(workflow.Status) {
 			continue
 		}
 
@@ -449,7 +391,6 @@ func (s *Service) UpdateWorkflowStatuses() {
 	}
 }
 
-// convertProtoLoadTestSpec converts a proto load test spec to a catalyst load test spec
 func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpec) catalysttypes.LoadTestSpec {
 	if spec == nil {
 		return catalysttypes.LoadTestSpec{}
@@ -467,30 +408,9 @@ func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpec) catalysttypes.
 		TxTimeout:    time.Duration(spec.TxTimeout),
 	}
 
-	if spec.NodesAddresses != nil {
-		for _, addr := range spec.NodesAddresses {
-			result.NodesAddresses = append(result.NodesAddresses, catalysttypes.NodeAddress{
-				GRPC: addr.Grpc,
-				RPC:  addr.Rpc,
-			})
-		}
-	}
-
-	if spec.Mnemonics != nil {
-		result.Mnemonics = spec.Mnemonics
-	}
-
-	if spec.Msgs != nil {
-		for _, msg := range spec.Msgs {
-			result.Msgs = append(result.Msgs, catalysttypes.LoadTestMsg{
-				Weight:          float64(msg.Weight),
-				Type:            catalysttypes.MsgType(msg.Type),
-				NumMsgs:         int(msg.NumMsgs),
-				ContainedType:   catalysttypes.MsgType(msg.ContainedType),
-				NumOfRecipients: int(msg.NumOfRecipients),
-			})
-		}
-	}
+	result.NodesAddresses = convertProtoNodeAddresses(spec.NodesAddresses)
+	result.Mnemonics = spec.Mnemonics
+	result.Msgs = convertProtoLoadTestMsgs(spec.Msgs)
 
 	return result
 }
@@ -511,7 +431,6 @@ func isNumericString(s string) bool {
 	return isNumeric
 }
 
-// convertCatalystLoadTestSpecToProto converts a catalyst load test spec to a proto load test spec
 func (s *Service) convertCatalystLoadTestSpecToProto(spec *catalysttypes.LoadTestSpec) *pb.LoadTestSpec {
 	if spec == nil {
 		return nil
@@ -529,30 +448,99 @@ func (s *Service) convertCatalystLoadTestSpecToProto(spec *catalysttypes.LoadTes
 		TxTimeout:    int64(spec.TxTimeout.Seconds()),
 	}
 
-	if spec.NodesAddresses != nil {
-		for _, addr := range spec.NodesAddresses {
-			result.NodesAddresses = append(result.NodesAddresses, &pb.NodeAddress{
-				Grpc: addr.GRPC,
-				Rpc:  addr.RPC,
-			})
-		}
-	}
-
-	if spec.Mnemonics != nil {
-		result.Mnemonics = spec.Mnemonics
-	}
-
-	if spec.Msgs != nil {
-		for _, msg := range spec.Msgs {
-			result.Msgs = append(result.Msgs, &pb.LoadTestMsg{
-				Weight:          float32(msg.Weight),
-				Type:            msg.Type.String(),
-				NumMsgs:         int32(msg.NumMsgs),
-				ContainedType:   msg.ContainedType.String(),
-				NumOfRecipients: int32(msg.NumOfRecipients),
-			})
-		}
-	}
+	result.NodesAddresses = convertCatalystNodeAddresses(spec.NodesAddresses)
+	result.Mnemonics = spec.Mnemonics
+	result.Msgs = convertCatalystLoadTestMsgs(spec.Msgs)
 
 	return result
+}
+
+func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
+	if protoNodes == nil {
+		return nil
+	}
+
+	var result []pb.Node
+	for i := range protoNodes {
+		result = append(result, pb.Node{
+			Name:    protoNodes[i].Name,
+			Address: protoNodes[i].Address,
+			Rpc:     protoNodes[i].Rpc,
+			Lcd:     protoNodes[i].Lcd,
+		})
+	}
+	return result
+}
+
+func convertProtoNodeAddresses(protoAddrs []*pb.NodeAddress) []catalysttypes.NodeAddress {
+	if protoAddrs == nil {
+		return nil
+	}
+
+	var result []catalysttypes.NodeAddress
+	for _, addr := range protoAddrs {
+		result = append(result, catalysttypes.NodeAddress{
+			GRPC: addr.Grpc,
+			RPC:  addr.Rpc,
+		})
+	}
+	return result
+}
+
+func convertCatalystNodeAddresses(addrs []catalysttypes.NodeAddress) []*pb.NodeAddress {
+	if addrs == nil {
+		return nil
+	}
+
+	var result []*pb.NodeAddress
+	for _, addr := range addrs {
+		result = append(result, &pb.NodeAddress{
+			Grpc: addr.GRPC,
+			Rpc:  addr.RPC,
+		})
+	}
+	return result
+}
+
+func convertProtoLoadTestMsgs(protoMsgs []*pb.LoadTestMsg) []catalysttypes.LoadTestMsg {
+	if protoMsgs == nil {
+		return nil
+	}
+
+	var result []catalysttypes.LoadTestMsg
+	for _, msg := range protoMsgs {
+		result = append(result, catalysttypes.LoadTestMsg{
+			Weight:          float64(msg.Weight),
+			Type:            catalysttypes.MsgType(msg.Type),
+			NumMsgs:         int(msg.NumMsgs),
+			ContainedType:   catalysttypes.MsgType(msg.ContainedType),
+			NumOfRecipients: int(msg.NumOfRecipients),
+		})
+	}
+	return result
+}
+
+func convertCatalystLoadTestMsgs(msgs []catalysttypes.LoadTestMsg) []*pb.LoadTestMsg {
+	if msgs == nil {
+		return nil
+	}
+
+	var result []*pb.LoadTestMsg
+	for _, msg := range msgs {
+		result = append(result, &pb.LoadTestMsg{
+			Weight:          float32(msg.Weight),
+			Type:            msg.Type.String(),
+			NumMsgs:         int32(msg.NumMsgs),
+			ContainedType:   msg.ContainedType.String(),
+			NumOfRecipients: int32(msg.NumOfRecipients),
+		})
+	}
+	return result
+}
+
+func isWorkflowTerminal(status enums.WorkflowExecutionStatus) bool {
+	return status == enums.WORKFLOW_EXECUTION_STATUS_COMPLETED ||
+		status == enums.WORKFLOW_EXECUTION_STATUS_FAILED ||
+		status == enums.WORKFLOW_EXECUTION_STATUS_CANCELED ||
+		status == enums.WORKFLOW_EXECUTION_STATUS_TERMINATED
 }

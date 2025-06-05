@@ -71,9 +71,9 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 			}
 		}
 
-		var loadBalancers []pb.Node
+		var loadBalancers []*pb.Node
 		for nodeName := range nodeNames {
-			loadBalancers = append(loadBalancers, pb.Node{
+			loadBalancers = append(loadBalancers, &pb.Node{
 				Name:    nodeName,
 				Address: a.RootDomain,
 				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
@@ -82,19 +82,9 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		}
 
 		if len(loadBalancers) > 0 {
-			pbLoadBalancers := make([]*pb.Node, 0, len(loadBalancers))
-			for i := range loadBalancers {
-				pbLoadBalancers = append(pbLoadBalancers, &pb.Node{
-					Name:    loadBalancers[i].Name,
-					Address: loadBalancers[i].Address,
-					Rpc:     loadBalancers[i].Rpc,
-					Lcd:     loadBalancers[i].Lcd,
-				})
-			}
-
 			updateReq := &pb.UpdateWorkflowDataRequest{
 				WorkflowId:    workflowID,
-				LoadBalancers: pbLoadBalancers,
+				LoadBalancers: loadBalancers,
 			}
 
 			_, err = a.GRPCClient.UpdateWorkflowData(ctx, updateReq)

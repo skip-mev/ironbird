@@ -40,7 +40,8 @@ var (
 	simappReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
-			Name: "stake-1",
+			Name:  "stake-1",
+			Image: "",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "consensus.params.block.max_gas",
@@ -59,6 +60,7 @@ var (
 				{Weight: 1, Type: catalysttypes.MsgSend},
 			},
 		},
+		NumWallets: 20,
 	}
 	callbacks = &testsuite.TestUpdateCallback{
 		OnAccept: func() {
@@ -78,6 +80,7 @@ var (
 	gaiaReq = messages.TestnetWorkflowRequest{
 		Repo:            "gaia",
 		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
+		Evm:             true,
 		RunnerType:      messages.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
@@ -221,8 +224,13 @@ func (s *TestnetWorkflowTestSuite) TearDownSuite() {
 }
 
 func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
-
-	testnetActivity := &testnettypes.Activity{}
+	cfg, err := types.ParseWorkerConfig("../../conf/worker.yaml")
+	if err != nil {
+		s.T().Fatal(err)
+	}
+	testnetActivity := &testnettypes.Activity{
+		Chains: cfg.Chains,
+	}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
@@ -248,20 +256,28 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-			imageTag := "ghcr.io/cosmos/simapp:v0.50"
+			originalTag := "ghcr.io/cosmos/simapp:v0.50"
+			newTag := "simapp-v53"
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				originalTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				newTag = "gaia"
 			}
 
-			cmd := exec.Command("docker", "pull", imageTag)
+			cmd := exec.Command("docker", "pull", originalTag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				return messages.BuildDockerImageResponse{}, err
 			}
 
+			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
+			tagOutput, err := tagCmd.CombinedOutput()
+			if err != nil {
+				return messages.BuildDockerImageResponse{}, err
+			}
+
 			return messages.BuildDockerImageResponse{
-				FQDNTag: imageTag,
-				Logs:    output,
+				FQDNTag: newTag,
+				Logs:    append(output, tagOutput...),
 			}, nil
 		})
 }
@@ -278,9 +294,14 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		panic(err)
 	}
 
+	cfg, err := types.ParseWorkerConfig("../../conf/worker.yaml")
+	if err != nil {
+		s.T().Fatal(err)
+	}
 	testnetActivity := &testnettypes.Activity{
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
+		Chains:            cfg.Chains,
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
 		RootDomain:        "ib-local.dev.skip.build",
@@ -327,19 +348,28 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-			imageTag := "ghcr.io/cosmos/simapp:v0.50"
+			originalTag := "ghcr.io/cosmos/simapp:v0.50"
+			newTag := "simapp-v53"
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				imageTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				originalTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				newTag = "gaia"
 			}
-			cmd := exec.Command("docker", "pull", imageTag)
+
+			cmd := exec.Command("docker", "pull", originalTag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				return messages.BuildDockerImageResponse{}, err
 			}
 
+			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
+			tagOutput, err := tagCmd.CombinedOutput()
+			if err != nil {
+				return messages.BuildDockerImageResponse{}, err
+			}
+
 			return messages.BuildDockerImageResponse{
-				FQDNTag: imageTag,
-				Logs:    output,
+				FQDNTag: newTag,
+				Logs:    append(output, tagOutput...),
 			}, nil
 		})
 

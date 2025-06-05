@@ -211,10 +211,10 @@ export const workflowApi = {
     };
   },
 
-  updateWorkflow: async (workflowId: string, request: TestnetWorkflowRequest): Promise<WorkflowResponse> => {
-    // gRPC doesn't support workflow updates yet
-    throw new Error("Workflow updates are not supported in the gRPC API");
-  },
+  // updateWorkflow: async (workflowId: string, request: TestnetWorkflowRequest): Promise<WorkflowResponse> => {
+  //   // gRPC doesn't support workflow updates yet
+  //   throw new Error("Workflow updates are not supported in the gRPC API");
+  // },
 
   getWorkflow: async (workflowId: string): Promise<WorkflowStatus> => {
     const response = await grpcWorkflowApi.getWorkflow(workflowId);

@@ -24,6 +24,10 @@ tailscale:
     - node-tag
 digitalocean:
   token: dummy-token
+load_balancer:
+  root_domain: test.example.com
+  ssl_key_path: /path/to/ssl.key
+  ssl_cert_path: /path/to/ssl.crt
 telemetry:
   prometheus:
     username: prom-user
@@ -40,11 +44,23 @@ builder:
     image_name: test/image
   auth_env_configs:
     TEST_ENV: test_value
-github:
-  app:
-    integration_id: 12345
-    private_key: dGVzdC1wcml2YXRlLWtleQ== # base64 encoded "test-private-key"
-    webhook_secret: webhook-secret
+chains:
+  test-chain:
+    name: test-chain
+    version: v1.0.0
+    dockerfile: test.dockerfile
+    gid: "1000"
+    uid: "1000"
+    binary_name: test-binary
+    home_dir: /home/test
+    gas_prices: 0.025stake
+grafana:
+  url: http://grafana:3000
+  dashboards:
+    - id: dashboard1
+      name: test-dashboard
+      human_name: Test Dashboard
+server_address: localhost:9006
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(validConfigYaml), 0644))
 
@@ -63,6 +79,40 @@ github:
 		assert.Equal(t, "do-token-from-env", config.DigitalOcean.Token)
 		assert.Equal(t, "tailscale-node-key", config.Tailscale.NodeAuthKey)
 		assert.Equal(t, "tailscale-oauth-secret", config.Tailscale.ServerOauthSecret)
+
+		assert.Equal(t, "test.example.com", config.LoadBalancer.RootDomain)
+		assert.Equal(t, "/path/to/ssl.key", config.LoadBalancer.SSLKeyPath)
+		assert.Equal(t, "/path/to/ssl.crt", config.LoadBalancer.SSLCertPath)
+
+		assert.Equal(t, "prom-user", config.Telemetry.Prometheus.Username)
+		assert.Equal(t, "prom-pass", config.Telemetry.Prometheus.Password)
+		assert.Equal(t, "http://prometheus:9091", config.Telemetry.Prometheus.URL)
+		assert.Equal(t, "loki-user", config.Telemetry.Loki.Username)
+		assert.Equal(t, "loki-pass", config.Telemetry.Loki.Password)
+		assert.Equal(t, "http://loki:3100", config.Telemetry.Loki.URL)
+
+		assert.Equal(t, "tcp://buildkit:1234", config.Builder.BuildKitAddress)
+		assert.Equal(t, "test.registry.com", config.Builder.Registry.URL)
+		assert.Equal(t, "test/image", config.Builder.Registry.ImageName)
+		assert.Equal(t, "test_value", config.Builder.AuthEnvConfigs["TEST_ENV"])
+
+		assert.Contains(t, config.Chains, "test-chain")
+		assert.Equal(t, "test-chain", config.Chains["test-chain"].Name)
+		assert.Equal(t, "v1.0.0", config.Chains["test-chain"].Version)
+		assert.Equal(t, "test.dockerfile", config.Chains["test-chain"].Dockerfile)
+		assert.Equal(t, "1000", config.Chains["test-chain"].GID)
+		assert.Equal(t, "1000", config.Chains["test-chain"].UID)
+		assert.Equal(t, "test-binary", config.Chains["test-chain"].BinaryName)
+		assert.Equal(t, "/home/test", config.Chains["test-chain"].HomeDir)
+		assert.Equal(t, "0.025stake", config.Chains["test-chain"].GasPrices)
+
+		assert.Equal(t, "http://grafana:3000", config.Grafana.URL)
+		assert.Len(t, config.Grafana.Dashboards, 1)
+		assert.Equal(t, "dashboard1", config.Grafana.Dashboards[0].ID)
+		assert.Equal(t, "test-dashboard", config.Grafana.Dashboards[0].Name)
+		assert.Equal(t, "Test Dashboard", config.Grafana.Dashboards[0].HumanName)
+
+		assert.Equal(t, "localhost:9006", config.ServerAddress)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -82,48 +132,29 @@ github:
 
 }
 
-func TestParseChainsConfig(t *testing.T) {
+func TestParseServerConfig(t *testing.T) {
 	tempDir := t.TempDir()
-	configPath := filepath.Join(tempDir, "app_config.yaml")
+	configPath := filepath.Join(tempDir, "server_config.yaml")
 
 	validConfigYaml := `
 temporal:
   host: localhost:7233
-  namespace: app-namespace
-grafana:
-  url: http://grafana:3000
-  dashboards:
-    - id: dashboard1
-      name: test-dashboard
-      human_name: Test Dashboard
-chains:
-  test-chain:
-    name: test-chain
-    version: v1.0.0
-    image: "simapp-v50"
-github:
-  app:
-    integration_id: 12345
-    private_key: dGVzdC1wcml2YXRlLWtleQ== # base64 encoded "test-private-key"
-    webhook_secret: webhook-secret
+  namespace: server-namespace
+database_path: ./test.db
+migrations_path: ./test-migrations
+grpc_address: localhost:9007
 `
 	require.NoError(t, os.WriteFile(configPath, []byte(validConfigYaml), 0644))
 
 	t.Run("valid config", func(t *testing.T) {
-		config, err := ParseWorkerConfig(configPath)
+		config, err := ParseServerConfig(configPath)
 		require.NoError(t, err)
 
 		assert.Equal(t, "localhost:7233", config.Temporal.Host)
-		assert.Equal(t, "app-namespace", config.Temporal.Namespace)
-		assert.Equal(t, "http://grafana:3000", config.Grafana.URL)
-		assert.Len(t, config.Grafana.Dashboards, 1)
-		assert.Equal(t, "dashboard1", config.Grafana.Dashboards[0].ID)
-		assert.Equal(t, "test-dashboard", config.Grafana.Dashboards[0].Name)
-		assert.Equal(t, "Test Dashboard", config.Grafana.Dashboards[0].HumanName)
-
-		assert.Contains(t, config.Chains, "test-chain")
-		assert.Equal(t, "test-chain", config.Chains["test-chain"].Name)
-		assert.Equal(t, "v0.53.0", config.Chains["test-chain"].Version)
+		assert.Equal(t, "server-namespace", config.Temporal.Namespace)
+		assert.Equal(t, "./test.db", config.DatabasePath)
+		assert.Equal(t, "./test-migrations", config.MigrationsPath)
+		assert.Equal(t, "localhost:9007", config.GrpcAddress)
 	})
 
 	t.Run("file not found", func(t *testing.T) {
@@ -133,7 +164,7 @@ github:
 	})
 
 	t.Run("invalid yaml", func(t *testing.T) {
-		invalidPath := filepath.Join(tempDir, "invalid_app.yaml")
+		invalidPath := filepath.Join(tempDir, "invalid_server.yaml")
 		require.NoError(t, os.WriteFile(invalidPath, []byte("invalid: yaml: content"), 0644))
 
 		_, err := ParseServerConfig(invalidPath)

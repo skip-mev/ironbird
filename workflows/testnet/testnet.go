@@ -91,16 +91,14 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	// If the image is set (e.g. when running a testnet for CometBFT testing)
-	chainImageKey := req.ChainConfig.Image
-	if chainImageKey == "" {
+	if req.ChainConfig.Image == "" {
 		switch req.Repo {
 		case "gaia":
-			chainImageKey = req.Repo
+			req.ChainConfig.Image = req.Repo
 		default:
 			// for SDK testing default to simapp
 			// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
-			chainImageKey = "simapp-v53"
+			req.ChainConfig.Image = "simapp-v53"
 		}
 	}
 
@@ -110,7 +108,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		SHA:  req.SHA,
 		ChainConfig: messages.ChainConfig{
 			Name:  req.ChainConfig.Name,
-			Image: chainImageKey,
+			Image: req.ChainConfig.Image,
 		},
 	}).Get(ctx, &buildResult)
 	if err != nil {
@@ -125,7 +123,8 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	return "", nil
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
+func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
+	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
 	var providerState, chainState []byte
 	providerSpecificOptions := determineProviderOptions(req.RunnerType)
 
