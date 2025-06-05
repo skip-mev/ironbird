@@ -15,7 +15,7 @@ import {
 } from "../gen/proto/ironbird_pb.js";
 
 const transport = createGrpcWebTransport({
-  baseUrl: import.meta.env.VITE_IROBIRD_GRPC_ADDRESS || "http://localhost:9006",
+  baseUrl: import.meta.env.IROBIRD_GRPC_ADDRESS || "http://localhost:9006",
   credentials: "omit",
   interceptors: [
     (next) => async (req) => {

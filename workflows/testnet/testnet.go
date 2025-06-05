@@ -154,6 +154,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			SHA:                     req.SHA,
 			Evm:                     req.Evm,
 			Image:                   buildResult.FQDNTag,
+			BaseImage:               req.ChainConfig.Image,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
 			RunnerType:              req.RunnerType,
 			NumOfValidators:         req.ChainConfig.NumOfValidators,

@@ -145,11 +145,6 @@ func generateTag(chain, version, owner, repo, sha string) string {
 
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 	logger, _ := zap.NewDevelopment()
-	//return messages.BuildDockerImageResponse{
-	//	FQDNTag: "ghcr.io/cosmos/gaia:feature-evm",
-	//	Logs:    nil,
-	//}, nil
-
 	if err := a.createRepositoryIfNotExists(ctx); err != nil {
 		return messages.BuildDockerImageResponse{}, err
 	}
