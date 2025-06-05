@@ -102,6 +102,8 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 	}
 
 	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, a.GrafanaConfig)
+	logger.Info("monitoring links", zap.String("chainID", chainID),
+		zap.Any("monitoringLinks", monitoringLinks))
 
 	updateReq := &pb.UpdateWorkflowDataRequest{
 		WorkflowId: workflowID,
@@ -109,7 +111,6 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 		Validators: validators,
 		Monitoring: monitoringLinks,
 	}
-	logger.Info("updating workflow data", zap.Any("update_req", updateReq))
 
 	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
 	if err != nil {
@@ -288,7 +289,9 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
-	chainImage := chains[req.BaseImage]
+	chainImage := chains[req.Repo]
+	fmt.Println("chain image + req", chainImage, req, chains)
+
 	denom := cosmosDenom
 	chainID := req.Name
 	gasPrice := chainImage.GasPrices
