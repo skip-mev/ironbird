@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	"github.com/skip-mev/ironbird/activities/walletcreator"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
@@ -354,28 +355,20 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-			originalTag := "ghcr.io/cosmos/simapp:v0.50"
-			newTag := "simapp-v53"
+			tag := "ghcr.io/cosmos/simapp:v0.50"
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				originalTag = "ghcr.io/cosmos/gaia:na-build-arm64"
-				newTag = "gaia"
+				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
 
-			cmd := exec.Command("docker", "pull", originalTag)
+			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				return messages.BuildDockerImageResponse{}, err
 			}
 
-			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
-			tagOutput, err := tagCmd.CombinedOutput()
-			if err != nil {
-				return messages.BuildDockerImageResponse{}, err
-			}
-
 			return messages.BuildDockerImageResponse{
-				FQDNTag: newTag,
-				Logs:    append(output, tagOutput...),
+				FQDNTag: tag,
+				Logs:    output,
 			}, nil
 		})
 
