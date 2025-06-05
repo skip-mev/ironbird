@@ -5,7 +5,7 @@
   "installCommand": "cd frontend && npm install --legacy-peer-deps",
   "framework": "vite",
   "env": {
-    "IRONBIRD_GRPC_ADDRESS": "https://ironbird.dev.skip-internal.money/ironbird-server:9006"
+    "IRONBIRD_GRPC_ADDRESS": "ironbird.dev.skip-internal.money:443"
   },
   "rewrites": [
     {
