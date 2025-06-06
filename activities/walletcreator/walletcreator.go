@@ -94,8 +94,9 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 		"--chain-id", chainConfig.ChainId,
 		"--keyring-backend", "test",
 		"--from", "faucet",
-		"--fees", fmt.Sprintf("80000%s", chainConfig.Denom),
+		"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
 		"--gas", "auto",
+		"--gas-adjustment", "2.0",
 		"--yes",
 		"--home", chainConfig.HomeDir,
 	)
