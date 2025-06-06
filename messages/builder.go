@@ -1,9 +1,14 @@
 package messages
 
 type BuildDockerImageRequest struct {
-	Tag            string
-	Files          map[string][]byte
-	BuildArguments map[string]string
+	Repo        string
+	SHA         string
+	ChainConfig ChainConfig
+}
+
+type ChainConfig struct {
+	Name  string
+	Image string
 }
 
 type BuildDockerImageResponse struct {

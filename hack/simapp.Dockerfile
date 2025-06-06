@@ -7,7 +7,7 @@ RUN echo "Ironbird building with SHA: $GIT_SHA"
 
 WORKDIR /src/
 
-ENV PACKAGES="curl make git libc-dev bash file gcc linux-headers eudev-dev"
+ENV PACKAGES="curl make git libc-dev bash file build-base linux-headers eudev-dev"
 RUN apk add --no-cache $PACKAGES
 
 ARG CHAIN_TAG
