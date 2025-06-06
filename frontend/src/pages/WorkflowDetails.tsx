@@ -36,7 +36,7 @@ const WorkflowDetails = () => {
   const { data: workflow, isLoading, error, refetch } = useQuery<WorkflowStatus>({
     queryKey: ['workflow', id],
     queryFn: () => workflowApi.getWorkflow(id!),
-    refetchInterval: 5000, // Polling every 5 seconds
+    refetchInterval: 10000, // Polling every 5 seconds
     enabled: !!id,
   });
 
