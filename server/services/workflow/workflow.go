@@ -106,7 +106,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		TaskQueue: messages.TaskQueue,
 	}
 
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
+	ctxWithTimeout, cancel := context.WithTimeout(context.TODO(), 90*time.Minute)
 	defer cancel()
 	workflowRun, err := s.temporalClient.ExecuteWorkflow(ctxWithTimeout, options, testnet.Workflow, workflowReq)
 	if err != nil {
