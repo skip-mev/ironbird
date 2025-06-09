@@ -24,15 +24,13 @@ type Service struct {
 	db             db.DB
 	logger         *zap.Logger
 	temporalClient temporalclient.Client
-	config         types.TemporalConfig
 }
 
-func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclient.Client, config types.TemporalConfig) *Service {
+func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclient.Client) *Service {
 	return &Service{
 		db:             database,
 		logger:         logger,
 		temporalClient: temporalClient,
-		config:         config,
 	}
 }
 

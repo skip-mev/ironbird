@@ -23,7 +23,6 @@ import (
 
 type GRPCServer struct {
 	temporalClient  temporalclient.Client
-	config          types.TemporalConfig
 	db              db.DB
 	grpcServer      *grpc.Server
 	logger          *zap.Logger
@@ -46,12 +45,11 @@ func NewGRPCServer(config types.TemporalConfig, database db.DB, logger *zap.Logg
 	}
 
 	grpcServer := grpc.NewServer()
-
-	workflowService := workflow.NewService(database, logger, temporalClient, config)
+	logger.Info("Creating new workflow service", zap.Any("temporal_config", config))
+	workflowService := workflow.NewService(database, logger, temporalClient)
 
 	server := &GRPCServer{
 		temporalClient:  temporalClient,
-		config:          config,
 		db:              database,
 		grpcServer:      grpcServer,
 		logger:          logger,
