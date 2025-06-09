@@ -103,7 +103,8 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	}
 
 	options := temporalclient.StartWorkflowOptions{
-		TaskQueue: messages.TaskQueue,
+		TaskQueue:           messages.TaskQueue,
+		WorkflowTaskTimeout: 30 * time.Second,
 	}
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 90*time.Minute)
