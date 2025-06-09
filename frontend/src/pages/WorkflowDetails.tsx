@@ -617,16 +617,16 @@ const WorkflowDetails = () => {
           <CardBody>
             <Stack spacing={4}>
               <ButtonGroup spacing={4}>
-                <Button
-                  colorScheme="blue"
-                  onClick={handleRunLoadTest}
-                  isLoading={runLoadTestMutation.isPending}
-                  loadingText="Starting Load Test..."
-                  disabled={workflow.Status !== 'running'}
-                  size="lg"
-                >
-                  Run Load Test
-                </Button>
+                {/*<Button*/}
+                {/*  colorScheme="blue"*/}
+                {/*  onClick={handleRunLoadTest}*/}
+                {/*  isLoading={runLoadTestMutation.isPending}*/}
+                {/*  loadingText="Starting Load Test..."*/}
+                {/*  disabled={workflow.Status !== 'running'}*/}
+                {/*  size="lg"*/}
+                {/*>*/}
+                {/*  Run Load Test*/}
+                {/*</Button>*/}
                 <Button
                   leftIcon={<CopyIcon />}
                   colorScheme="purple"

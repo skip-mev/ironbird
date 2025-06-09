@@ -247,12 +247,6 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		status := db.WorkflowStatusToString(workflow.Status)
 		startTime := workflow.CreatedAt.Format("2006-01-02 15:04:05")
 
-		s.logger.Debug("Adding workflow to response",
-			zap.String("workflowId", workflow.WorkflowID),
-			zap.String("status", status),
-			zap.String("startTime", startTime),
-		)
-
 		response.Workflows = append(response.Workflows, &pb.WorkflowSummary{
 			WorkflowId: workflow.WorkflowID,
 			Status:     status,
