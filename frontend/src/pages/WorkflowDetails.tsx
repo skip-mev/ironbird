@@ -670,13 +670,13 @@ const WorkflowDetails = () => {
               </ButtonGroup>
               
               {/* Action Explanations */}
-              <Box bg="gray.50" p={4} borderRadius="md" border="1px" borderColor="gray.200">
+              <Box bg={{ base: "gray.50", _dark: "gray.700" }} p={4} borderRadius="md" border="1px" borderColor="divider">
                 <Stack spacing={3}>
                   <Box>
                     <Text fontWeight="semibold" color="orange.600" mb={1}>
                       Cancel Workflow:
                     </Text>
-                    <Text fontSize="sm" color="gray.700">
+                    <Text fontSize="sm" color={{ base: "gray.700", _dark: "gray.300" }}>
                       Stops processing the workflow abruptly. For long-running testnets, no resources are deleted or stopped.
                     </Text>
                   </Box>
@@ -684,7 +684,7 @@ const WorkflowDetails = () => {
                     <Text fontWeight="semibold" color="red.600" mb={1}>
                       Shutdown Testnet:
                     </Text>
-                    <Text fontSize="sm" color="gray.700">
+                    <Text fontSize="sm" color={{ base: "gray.700", _dark: "gray.300" }}>
                       Sends a shutdown signal to the workflow which gracefully completes the workflow. For long-running testnets, no resources are deleted or stopped.
                     </Text>
                   </Box>
