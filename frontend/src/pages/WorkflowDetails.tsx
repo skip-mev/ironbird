@@ -518,7 +518,7 @@ const WorkflowDetails = () => {
                     border="1px"
                     borderColor="divider"
                   >
-                    <Text fontWeight="bold" fontSize="lg" mb={3} color="green.600">
+                    <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
                       {node.Name}
                     </Text>
                     <Stack spacing={2}>
