@@ -106,25 +106,12 @@ const WorkflowDetails = () => {
   const cancelWorkflowMutation = useMutation({
     mutationFn: () => {
       if (!workflow) return Promise.reject('No workflow data available');
-      
-      // Check if this is a long running testnet
-      const isLongRunning = workflow.config?.LongRunningTestnet;
-      
-      if (isLongRunning) {
-        // For long running testnets, send a shutdown signal
-        return workflowApi.sendShutdownSignal(id!);
-      } else {
-        // For regular workflows, just cancel
-        return workflowApi.cancelWorkflow(id!);
-      }
+      return workflowApi.cancelWorkflow(id!);
     },
     onSuccess: () => {
-      const isLongRunning = workflow?.config?.LongRunningTestnet;
       toast({
-        title: isLongRunning ? 'Shutdown signal sent' : 'Workflow canceled',
-        description: isLongRunning 
-          ? 'The shutdown signal has been sent to the workflow' 
-          : 'The workflow has been canceled',
+        title: 'Workflow canceled',
+        description: 'The workflow has been canceled',
         status: 'success',
         duration: 3000,
       });
@@ -134,6 +121,31 @@ const WorkflowDetails = () => {
     onError: (error) => {
       toast({
         title: 'Error canceling workflow',
+        description: error instanceof Error ? error.message : String(error),
+        status: 'error',
+        duration: 5000,
+      });
+    },
+  });
+
+  const shutdownTestnetMutation = useMutation({
+    mutationFn: () => {
+      if (!workflow) return Promise.reject('No workflow data available');
+      return workflowApi.sendShutdownSignal(id!);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Shutdown signal sent',
+        description: 'The shutdown signal has been sent to the workflow',
+        status: 'success',
+        duration: 3000,
+      });
+      // Invalidate the workflow query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error sending shutdown signal',
         description: error instanceof Error ? error.message : String(error),
         status: 'error',
         duration: 5000,
@@ -158,13 +170,20 @@ const WorkflowDetails = () => {
   const handleCancelWorkflow = () => {
     if (!workflow) return;
     
-    const isLongRunning = workflow.config?.LongRunningTestnet;
-    const confirmMessage = isLongRunning 
-      ? 'Are you sure you want to send a shutdown signal to this long-running testnet?'
-      : 'Are you sure you want to cancel this workflow?';
+    const confirmMessage = 'Are you sure you want to cancel this workflow? This will stop processing abruptly.';
       
     if (window.confirm(confirmMessage)) {
       cancelWorkflowMutation.mutate();
+    }
+  };
+
+  const handleShutdownTestnet = () => {
+    if (!workflow) return;
+    
+    const confirmMessage = 'Are you sure you want to send a shutdown signal to this testnet? This will gracefully complete the workflow.';
+      
+    if (window.confirm(confirmMessage)) {
+      shutdownTestnetMutation.mutate();
     }
   };
 
@@ -616,17 +635,8 @@ const WorkflowDetails = () => {
           </CardHeader>
           <CardBody>
             <Stack spacing={4}>
+              {/* Action Buttons */}
               <ButtonGroup spacing={4}>
-                {/*<Button*/}
-                {/*  colorScheme="blue"*/}
-                {/*  onClick={handleRunLoadTest}*/}
-                {/*  isLoading={runLoadTestMutation.isPending}*/}
-                {/*  loadingText="Starting Load Test..."*/}
-                {/*  disabled={workflow.Status !== 'running'}*/}
-                {/*  size="lg"*/}
-                {/*>*/}
-                {/*  Run Load Test*/}
-                {/*</Button>*/}
                 <Button
                   leftIcon={<CopyIcon />}
                   colorScheme="purple"
@@ -637,23 +647,53 @@ const WorkflowDetails = () => {
                 </Button>
                 <Button
                   leftIcon={<CloseIcon />}
-                  colorScheme="red"
+                  colorScheme="orange"
                   onClick={handleCancelWorkflow}
                   isLoading={cancelWorkflowMutation.isPending}
-                  loadingText={workflow?.config?.LongRunningTestnet 
-                    ? "Sending Shutdown Signal..." 
-                    : "Canceling Workflow..."}
+                  loadingText="Canceling Workflow..."
                   disabled={workflow.Status !== 'running'}
                   size="lg"
                 >
-                  {workflow?.config?.LongRunningTestnet 
-                    ? "Shutdown Testnet" 
-                    : "Cancel Workflow"}
+                  Cancel Workflow
+                </Button>
+                <Button
+                  leftIcon={<CloseIcon />}
+                  colorScheme="red"
+                  onClick={handleShutdownTestnet}
+                  isLoading={shutdownTestnetMutation.isPending}
+                  loadingText="Sending Shutdown Signal..."
+                  disabled={workflow.Status !== 'running'}
+                  size="lg"
+                >
+                  Shutdown Testnet
                 </Button>
               </ButtonGroup>
+              
+              {/* Action Explanations */}
+              <Box bg="gray.50" p={4} borderRadius="md" border="1px" borderColor="gray.200">
+                <Stack spacing={3}>
+                  <Box>
+                    <Text fontWeight="semibold" color="orange.600" mb={1}>
+                      Cancel Workflow:
+                    </Text>
+                    <Text fontSize="sm" color="gray.700">
+                      Stops processing the workflow abruptly. For long-running testnets, no resources are deleted or stopped.
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="semibold" color="red.600" mb={1}>
+                      Shutdown Testnet:
+                    </Text>
+                    <Text fontSize="sm" color="gray.700">
+                      Sends a shutdown signal to the workflow which gracefully completes the workflow. For long-running testnets, no resources are deleted or stopped.
+                    </Text>
+                  </Box>
+                </Stack>
+              </Box>
+              
               {workflow.Status !== 'running' && (
                 <Text fontSize="sm" color="gray.500">
-                  Load test can only be run on running workflows
+                  Actions can only be performed on running workflows
                 </Text>
               )}
             </Stack>
