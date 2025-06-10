@@ -8,6 +8,7 @@ import (
 	"time"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
@@ -188,7 +189,8 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	}
 
 	if walletsJSON != "" && walletsJSON != "{}" {
-		if err := json.Unmarshal([]byte(walletsJSON), &workflow.Wallets); err != nil {
+		workflow.Wallets = &pb.WalletInfo{}
+		if err := protojson.Unmarshal([]byte(walletsJSON), workflow.Wallets); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal wallets: %w", err)
 		}
 	}
@@ -240,7 +242,7 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 	}
 
 	if update.Wallets != nil {
-		walletsJSON, err := json.Marshal(*update.Wallets)
+		walletsJSON, err := protojson.Marshal(update.Wallets)
 		if err != nil {
 			return fmt.Errorf("failed to marshal wallets: %w", err)
 		}
@@ -352,7 +354,8 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		}
 
 		if walletsJSON != "" && walletsJSON != "{}" {
-			if err := json.Unmarshal([]byte(walletsJSON), &workflow.Wallets); err != nil {
+			workflow.Wallets = &pb.WalletInfo{}
+			if err := protojson.Unmarshal([]byte(walletsJSON), workflow.Wallets); err != nil {
 				fmt.Printf("Warning: failed to unmarshal wallets for workflow %s: %v\n", workflow.WorkflowID, err)
 			}
 		}

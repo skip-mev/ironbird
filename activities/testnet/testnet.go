@@ -353,7 +353,7 @@ func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI
 		Name:    nodeProvider.GetDefinition().Name,
 		Rpc:     fmt.Sprintf("http://%s", cometIp),
 		Lcd:     fmt.Sprintf("http://%s", lcdIp),
-		Grpc:    fmt.Sprintf("%s", grpcIp),
+		Grpc:    grpcIp,
 		Address: ip,
 	}, nil
 }
