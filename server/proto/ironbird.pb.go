@@ -819,6 +819,7 @@ type Node struct {
 	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	Rpc           string                 `protobuf:"bytes,3,opt,name=rpc,proto3" json:"rpc,omitempty"`
 	Lcd           string                 `protobuf:"bytes,4,opt,name=lcd,proto3" json:"lcd,omitempty"`
+	Grpc          string                 `protobuf:"bytes,5,opt,name=grpc,proto3" json:"grpc,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -877,6 +878,13 @@ func (x *Node) GetRpc() string {
 func (x *Node) GetLcd() string {
 	if x != nil {
 		return x.Lcd
+	}
+	return ""
+}
+
+func (x *Node) GetGrpc() string {
+	if x != nil {
+		return x.Grpc
 	}
 	return ""
 }
@@ -1342,12 +1350,13 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x0eload_test_spec\x18\x02 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\"3\n" +
 	"\x10WorkflowResponse\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
-	"workflowId\"X\n" +
+	"workflowId\"l\n" +
 	"\x04Node\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x10\n" +
 	"\x03rpc\x18\x03 \x01(\tR\x03rpc\x12\x10\n" +
-	"\x03lcd\x18\x04 \x01(\tR\x03lcd\"\xaa\x01\n" +
+	"\x03lcd\x18\x04 \x01(\tR\x03lcd\x12\x12\n" +
+	"\x04grpc\x18\x05 \x01(\tR\x04grpc\"\xaa\x01\n" +
 	"\n" +
 	"WalletInfo\x12%\n" +
 	"\x0efaucet_address\x18\x01 \x01(\tR\rfaucetAddress\x12'\n" +

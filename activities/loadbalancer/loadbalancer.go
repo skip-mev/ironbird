@@ -80,6 +80,7 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 				Address: a.RootDomain,
 				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
 				Lcd:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
+				Grpc:    fmt.Sprintf("%s-grpc.%s", nodeName, a.RootDomain),
 			})
 		}
 

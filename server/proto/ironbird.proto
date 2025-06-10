@@ -104,6 +104,7 @@ message Node {
     string address = 2;
     string rpc = 3;
     string lcd = 4;
+    string grpc = 5;
 }
 
 message WalletInfo {

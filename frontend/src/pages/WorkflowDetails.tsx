@@ -474,6 +474,8 @@ const WorkflowDetails = () => {
                                 target="_blank" 
                                 color="blue.500"
                                 fontSize="sm"
+                                fontFamily="mono"
+                                textDecoration="underline"
                                 display="flex"
                                 alignItems="center"
                                 gap={1}
@@ -486,19 +488,32 @@ const WorkflowDetails = () => {
                               <Text fontWeight="semibold" minW="60px" fontSize="sm">
                                 LCD:
                               </Text>
-                              <Link 
-                                href={node.LCD} 
-                                target="_blank" 
+                              <Text 
                                 color="blue.500"
                                 fontSize="sm"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
+                                fontFamily="mono"
+                                textDecoration="underline"
+                                cursor="default"
                               >
                                 {node.LCD}
-                                <Icon as={ExternalLinkIcon} boxSize={3} />
-                              </Link>
-                            </HStack>                
+                              </Text>
+                            </HStack>
+                            {node.GRPC && (
+                              <HStack>
+                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  gRPC:
+                                </Text>
+                                <Text 
+                                  fontFamily="mono"
+                                  fontSize="sm"
+                                  color="blue.500"
+                                  textDecoration="underline"
+                                  cursor="default"
+                                >
+                                  {node.GRPC}
+                                </Text>
+                              </HStack>
+                            )}
                           </Stack>
                         </Box>
                       ))}
@@ -546,6 +561,8 @@ const WorkflowDetails = () => {
                                 target="_blank" 
                                 color="blue.500"
                                 fontSize="sm"
+                                fontFamily="mono"
+                                textDecoration="underline"
                                 display="flex"
                                 alignItems="center"
                                 gap={1}
@@ -558,19 +575,32 @@ const WorkflowDetails = () => {
                               <Text fontWeight="semibold" minW="60px" fontSize="sm">
                                 LCD:
                               </Text>
-                              <Link 
-                                href={validator.LCD} 
-                                target="_blank" 
+                              <Text 
                                 color="blue.500"
                                 fontSize="sm"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
+                                fontFamily="mono"
+                                textDecoration="underline"
+                                cursor="default"
                               >
                                 {validator.LCD}
-                                <Icon as={ExternalLinkIcon} boxSize={3} />
-                              </Link>
+                              </Text>
                             </HStack>
+                            {validator.GRPC && (
+                              <HStack>
+                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  gRPC:
+                                </Text>
+                                <Text 
+                                  fontFamily="mono"
+                                  fontSize="sm"
+                                  color="blue.500"
+                                  textDecoration="underline"
+                                  cursor="default"
+                                >
+                                  {validator.GRPC}
+                                </Text>
+                              </HStack>
+                            )}
                           </Stack>
                         </Box>
                       ))}
@@ -620,6 +650,8 @@ const WorkflowDetails = () => {
                             target="_blank" 
                             color="blue.500"
                             fontSize="sm"
+                            fontFamily="mono"
+                            textDecoration="underline"
                             display="flex"
                             alignItems="center"
                             gap={1}
@@ -632,19 +664,32 @@ const WorkflowDetails = () => {
                           <Text fontWeight="semibold" minW="60px" fontSize="sm">
                             LCD:
                           </Text>
-                          <Link 
-                            href={node.LCD} 
-                            target="_blank" 
+                          <Text 
                             color="blue.500"
                             fontSize="sm"
-                            display="flex"
-                            alignItems="center"
-                            gap={1}
+                            fontFamily="mono"
+                            textDecoration="underline"
+                            cursor="default"
                           >
                             {node.LCD}
-                            <Icon as={ExternalLinkIcon} boxSize={3} />
-                          </Link>
+                          </Text>
                         </HStack>
+                        {node.GRPC && (
+                          <HStack>
+                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                              gRPC:
+                            </Text>
+                            <Text 
+                              fontFamily="mono"
+                              fontSize="sm"
+                              color="blue.500"
+                              textDecoration="underline"
+                              cursor="default"
+                            >
+                              {node.GRPC}
+                            </Text>
+                          </HStack>
+                        )}
                       </Stack>
                     </Box>
                   ))}

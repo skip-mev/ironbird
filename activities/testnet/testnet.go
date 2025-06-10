@@ -210,7 +210,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	testnetNodes := make([]*pb.Node, 0, len(chain.GetNodes()))
 
 	for _, validator := range chain.GetValidators() {
-		validatorInfo, err := processNodeInfo(ctx, validator)
+		validatorInfo, err := getNodeExternalAddresses(ctx, validator)
 		if err != nil {
 			return resp, err
 		}
@@ -218,7 +218,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	}
 
 	for _, node := range chain.GetNodes() {
-		nodeInfo, err := processNodeInfo(ctx, node)
+		nodeInfo, err := getNodeExternalAddresses(ctx, node)
 		if err != nil {
 			return resp, err
 		}
@@ -328,13 +328,18 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	return chainConfig, walletConfig
 }
 
-func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
-	cosmosIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
+func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
+	lcdIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
 	if err != nil {
 		return &pb.Node{}, err
 	}
 
 	cometIp, err := nodeProvider.GetExternalAddress(ctx, "26657")
+	if err != nil {
+		return &pb.Node{}, err
+	}
+
+	grpcIp, err := nodeProvider.GetExternalAddress(ctx, "9090")
 	if err != nil {
 		return &pb.Node{}, err
 	}
@@ -347,7 +352,8 @@ func processNodeInfo(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.No
 	return &pb.Node{
 		Name:    nodeProvider.GetDefinition().Name,
 		Rpc:     fmt.Sprintf("http://%s", cometIp),
-		Lcd:     fmt.Sprintf("http://%s", cosmosIp),
+		Lcd:     fmt.Sprintf("http://%s", lcdIp),
+		Grpc:    fmt.Sprintf("%s", grpcIp),
 		Address: ip,
 	}, nil
 }

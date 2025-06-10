@@ -672,6 +672,11 @@ export class Node extends Message<Node> {
    */
   lcd = "";
 
+  /**
+   * @generated from field: string grpc = 5;
+   */
+  grpc = "";
+
   constructor(data?: PartialMessage<Node>) {
     super();
     proto3.util.initPartial(data, this);
@@ -684,6 +689,7 @@ export class Node extends Message<Node> {
     { no: 2, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "rpc", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "lcd", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "grpc", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Node {

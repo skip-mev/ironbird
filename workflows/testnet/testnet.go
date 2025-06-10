@@ -172,7 +172,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []*pb.Node) ([]byte, error) {
+	nodes []*pb.Node, validators []*pb.Node) ([]byte, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
@@ -307,12 +307,12 @@ func determineProviderOptions(runnerType messages.RunnerType) map[string]string 
 }
 
 func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
-	chainState, providerState, nodes, _, err := launchTestnet(ctx, req, runName, buildResult)
+	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes)
+	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
 	if err != nil {
 		return err
 	}

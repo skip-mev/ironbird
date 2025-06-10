@@ -170,18 +170,21 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       Name: node.name,
       RPC: node.rpc,
       LCD: node.lcd,
+      GRPC: node.grpc,
       Metrics: ""
     })),
     Validators: (workflow.validators || []).map((validator: any) => ({
       Name: validator.name,
       RPC: validator.rpc,
       LCD: validator.lcd,
+      GRPC: validator.grpc,
       Metrics: ""
     })),
     LoadBalancers: (workflow.loadBalancers || []).map((lb: any) => ({
       Name: lb.name,
       RPC: lb.rpc,
       LCD: lb.lcd,
+      GRPC: lb.grpc,
       Metrics: ""
     })),
     Monitoring: workflow.monitoring || {},

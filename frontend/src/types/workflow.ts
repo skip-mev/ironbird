@@ -58,6 +58,7 @@ export interface Node {
   RPC: string;
   LCD: string;
   Metrics: string;
+  GRPC: string;
 }
 
 export interface WalletInfo {

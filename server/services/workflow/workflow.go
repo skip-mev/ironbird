@@ -470,6 +470,7 @@ func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
 			Address: protoNodes[i].Address,
 			Rpc:     protoNodes[i].Rpc,
 			Lcd:     protoNodes[i].Lcd,
+			Grpc:    protoNodes[i].Grpc,
 		})
 	}
 	return result

@@ -49,11 +49,12 @@ func TestSQLiteDB(t *testing.T) {
 	assert.Equal(t, 0, len(retrieved.LoadBalancers))
 
 	newStatus := enums.WORKFLOW_EXECUTION_STATUS_RUNNING
-	loadBalancers := []pb.Node{pb.Node{
+	loadBalancers := []pb.Node{{
 		Name:    "test-lb",
 		Address: "192.168.1.100",
 		Rpc:     "http://192.168.1.100:26657",
 		Lcd:     "http://192.168.1.100:1317",
+		Grpc:    "192.168.1.100:9090",
 	}}
 
 	update := WorkflowUpdate{
