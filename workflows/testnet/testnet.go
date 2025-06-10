@@ -115,7 +115,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		return "", err
 	}
 
-	if err := runTestnet(ctx, req, runName, buildResult, workflowID); err != nil {
+	if err := startWorkflow(ctx, req, runName, buildResult, workflowID); err != nil {
 		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
@@ -282,7 +282,7 @@ func determineProviderOptions(runnerType messages.RunnerType) map[string]string 
 	return nil
 }
 
-func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
+func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
 	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, E
 				}
 			}
 
-			return runTestnet(ctx, updateReq, runName, buildResult, workflowID)
+			return startWorkflow(ctx, updateReq, runName, buildResult, workflowID)
 		},
 	); err != nil {
 		return temporal.NewApplicationErrorWithOptions(
