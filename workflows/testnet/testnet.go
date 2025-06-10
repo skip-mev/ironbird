@@ -187,31 +187,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		zap.String("workflowID", workflowID))
 
 	var loadBalancerResp messages.LaunchLoadBalancerResponse
-	var domains []apps.LoadBalancerDomain
-
-	for _, node := range nodes {
-		domains = append(domains, apps.LoadBalancerDomain{
-			Domain:   fmt.Sprintf("%s-grpc", node.Name),
-			IP:       fmt.Sprintf("%s:9090", node.Address),
-			Protocol: "grpc",
-		})
-
-		domains = append(domains, apps.LoadBalancerDomain{
-			Domain:   fmt.Sprintf("%s-rpc", node.Name),
-			IP:       fmt.Sprintf("%s:26657", node.Address),
-			Protocol: "http",
-		})
-
-		domains = append(domains, apps.LoadBalancerDomain{
-			Domain:   fmt.Sprintf("%s-lcd", node.Name),
-			IP:       fmt.Sprintf("%s:1317", node.Address),
-			Protocol: "http",
-		})
-	}
-
-	logger.Info("Executing LaunchLoadBalancer activity",
-		zap.Int("domainCount", len(domains)),
-		zap.String("workflowID", workflowID))
+	domains := processDomainInfo(nodes, validators)
 
 	if err := workflow.ExecuteActivity(
 		ctx,
@@ -422,4 +398,33 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, E
 	}
 
 	return nil
+}
+
+func processDomainInfo(nodes []*pb.Node, validators []*pb.Node) []apps.LoadBalancerDomain {
+	domains := make([]apps.LoadBalancerDomain, 0, len(nodes)*3+len(validators)*3)
+	addDomainsForNodes := func(nodeList []*pb.Node) {
+		for _, node := range nodeList {
+			domains = append(domains, apps.LoadBalancerDomain{
+				Domain:   fmt.Sprintf("%s-grpc", node.Name),
+				IP:       fmt.Sprintf("%s:9090", node.Address),
+				Protocol: "grpc",
+			})
+
+			domains = append(domains, apps.LoadBalancerDomain{
+				Domain:   fmt.Sprintf("%s-rpc", node.Name),
+				IP:       fmt.Sprintf("%s:26657", node.Address),
+				Protocol: "http",
+			})
+
+			domains = append(domains, apps.LoadBalancerDomain{
+				Domain:   fmt.Sprintf("%s-lcd", node.Name),
+				IP:       fmt.Sprintf("%s:1317", node.Address),
+				Protocol: "http",
+			})
+		}
+	}
+
+	addDomainsForNodes(nodes)
+	addDomainsForNodes(validators)
+	return domains
 }
