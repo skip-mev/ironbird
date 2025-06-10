@@ -4,7 +4,6 @@ import {
   Button,
   Heading,
   Text,
-  Stack,
   Badge,
   useToast,
   Spinner,
@@ -44,7 +43,7 @@ const WorkflowList = () => {
       case 'completed':
         return 'success';
       case 'failed':
-        return 'error';
+        return 'red';
       case 'canceled':
       case 'terminated':
         return 'warning';
