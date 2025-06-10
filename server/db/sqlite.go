@@ -89,6 +89,11 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		return fmt.Errorf("failed to marshal loadbalancers: %w", err)
 	}
 
+	walletsJSON, err := workflow.WalletsJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal wallets: %w", err)
+	}
+
 	configJSON, err := workflow.ConfigJSON()
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -107,10 +112,10 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 	now := time.Now()
 	query := `
 		INSERT INTO workflows (
-			workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
+			workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
 			load_test_spec, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id`
 
 	err = s.db.QueryRow(
@@ -119,6 +124,7 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		string(nodesJSON),
 		string(validatorsJSON),
 		string(loadBalancersJSON),
+		string(walletsJSON),
 		string(monitoringLinksJSON),
 		workflow.Status,
 		string(configJSON),
@@ -139,13 +145,13 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
-		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
+		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
 		    load_test_spec, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
 	var workflow Workflow
-	var nodesJSON, validatorsJSON, loadBalancersJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
+	var nodesJSON, validatorsJSON, loadBalancersJSON, walletsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 	err := s.db.QueryRow(query, workflowID).Scan(
 		&workflow.ID,
@@ -153,6 +159,7 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		&nodesJSON,
 		&validatorsJSON,
 		&loadBalancersJSON,
+		&walletsJSON,
 		&monitoringLinksJSON,
 		&workflow.Status,
 		&configJSON,
@@ -178,6 +185,12 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 
 	if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal loadbalancers: %w", err)
+	}
+
+	if walletsJSON != "" && walletsJSON != "{}" {
+		if err := json.Unmarshal([]byte(walletsJSON), &workflow.Wallets); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal wallets: %w", err)
+		}
 	}
 
 	if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
@@ -224,6 +237,15 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 		}
 		setParts = append(setParts, "loadbalancers = ?")
 		args = append(args, string(loadBalancersJSON))
+	}
+
+	if update.Wallets != nil {
+		walletsJSON, err := json.Marshal(*update.Wallets)
+		if err != nil {
+			return fmt.Errorf("failed to marshal wallets: %w", err)
+		}
+		setParts = append(setParts, "wallets = ?")
+		args = append(args, string(walletsJSON))
 	}
 
 	if update.MonitoringLinks != nil {
@@ -280,7 +302,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	defer cancel()
 
 	query := `
-		SELECT id, workflow_id, nodes, validators, loadbalancers, monitoring_links, status, config, 
+		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
 		    load_test_spec, created_at, updated_at
 		FROM workflows
 		ORDER BY created_at DESC
@@ -295,7 +317,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	var workflows []Workflow
 	for rows.Next() {
 		var workflow Workflow
-		var nodesJSON, validatorsJSON, loadBalancersJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
+		var nodesJSON, validatorsJSON, loadBalancersJSON, walletsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
 
 		err := rows.Scan(
 			&workflow.ID,
@@ -303,6 +325,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			&nodesJSON,
 			&validatorsJSON,
 			&loadBalancersJSON,
+			&walletsJSON,
 			&monitoringLinksJSON,
 			&workflow.Status,
 			&configJSON,
@@ -326,6 +349,12 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
 			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
 			workflow.LoadBalancers = make([]*pb.Node, 0)
+		}
+
+		if walletsJSON != "" && walletsJSON != "{}" {
+			if err := json.Unmarshal([]byte(walletsJSON), &workflow.Wallets); err != nil {
+				fmt.Printf("Warning: failed to unmarshal wallets for workflow %s: %v\n", workflow.WorkflowID, err)
+			}
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {

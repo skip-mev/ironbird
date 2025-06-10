@@ -106,6 +106,13 @@ message Node {
     string lcd = 4;
 }
 
+message WalletInfo {
+    string faucet_address = 1;
+    string faucet_mnemonic = 2;
+    repeated string user_addresses = 3;
+    repeated string user_mnemonics = 4;
+}
+
 message Workflow {
     string workflow_id = 1;
     string status = 2;
@@ -115,6 +122,7 @@ message Workflow {
     map<string, string> monitoring = 6;
     CreateWorkflowRequest config = 7;
     LoadTestSpec load_test_spec = 17;
+    WalletInfo wallets = 18;
 }
 
 message WorkflowSummary {
@@ -131,6 +139,7 @@ message UpdateWorkflowDataRequest {
     map<string, string> monitoring = 3;
     repeated Node nodes = 4;
     repeated Node validators = 5;
+    WalletInfo wallets = 6;
 }
 
 message WorkflowListResponse {

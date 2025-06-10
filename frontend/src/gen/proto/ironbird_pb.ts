@@ -704,6 +704,61 @@ export class Node extends Message<Node> {
 }
 
 /**
+ * @generated from message skip.ironbird.WalletInfo
+ */
+export class WalletInfo extends Message<WalletInfo> {
+  /**
+   * @generated from field: string faucet_address = 1;
+   */
+  faucetAddress = "";
+
+  /**
+   * @generated from field: string faucet_mnemonic = 2;
+   */
+  faucetMnemonic = "";
+
+  /**
+   * @generated from field: repeated string user_addresses = 3;
+   */
+  userAddresses: string[] = [];
+
+  /**
+   * @generated from field: repeated string user_mnemonics = 4;
+   */
+  userMnemonics: string[] = [];
+
+  constructor(data?: PartialMessage<WalletInfo>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.WalletInfo";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "faucet_address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "faucet_mnemonic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "user_addresses", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 4, name: "user_mnemonics", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WalletInfo {
+    return new WalletInfo().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WalletInfo {
+    return new WalletInfo().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WalletInfo {
+    return new WalletInfo().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WalletInfo | PlainMessage<WalletInfo> | undefined, b: WalletInfo | PlainMessage<WalletInfo> | undefined): boolean {
+    return proto3.util.equals(WalletInfo, a, b);
+  }
+}
+
+/**
  * @generated from message skip.ironbird.Workflow
  */
 export class Workflow extends Message<Workflow> {
@@ -747,6 +802,11 @@ export class Workflow extends Message<Workflow> {
    */
   loadTestSpec?: LoadTestSpec;
 
+  /**
+   * @generated from field: skip.ironbird.WalletInfo wallets = 18;
+   */
+  wallets?: WalletInfo;
+
   constructor(data?: PartialMessage<Workflow>) {
     super();
     proto3.util.initPartial(data, this);
@@ -763,6 +823,7 @@ export class Workflow extends Message<Workflow> {
     { no: 6, name: "monitoring", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
     { no: 7, name: "config", kind: "message", T: CreateWorkflowRequest },
     { no: 17, name: "load_test_spec", kind: "message", T: LoadTestSpec },
+    { no: 18, name: "wallets", kind: "message", T: WalletInfo },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Workflow {
@@ -872,6 +933,11 @@ export class UpdateWorkflowDataRequest extends Message<UpdateWorkflowDataRequest
    */
   validators: Node[] = [];
 
+  /**
+   * @generated from field: skip.ironbird.WalletInfo wallets = 6;
+   */
+  wallets?: WalletInfo;
+
   constructor(data?: PartialMessage<UpdateWorkflowDataRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -885,6 +951,7 @@ export class UpdateWorkflowDataRequest extends Message<UpdateWorkflowDataRequest
     { no: 3, name: "monitoring", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
     { no: 4, name: "nodes", kind: "message", T: Node, repeated: true },
     { no: 5, name: "validators", kind: "message", T: Node, repeated: true },
+    { no: 6, name: "wallets", kind: "message", T: WalletInfo },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateWorkflowDataRequest {

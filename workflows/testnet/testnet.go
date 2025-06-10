@@ -230,7 +230,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 	return loadBalancerResp.ProviderState, nil
 }
 
-func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte) ([]string, error) {
+func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, workflowID string) ([]string, error) {
 	if req.NumWallets <= 0 {
 		workflow.GetLogger(ctx).Info("no wallets to create, using default value of 2500")
 		req.NumWallets = 2500
@@ -243,6 +243,7 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 		ctx,
 		walletCreatorActivities.CreateWallets,
 		messages.CreateWalletsRequest{
+			WorkflowID:    workflowID,
 			NumWallets:    req.NumWallets,
 			Evm:           req.Evm,
 			RunnerType:    string(req.RunnerType),
@@ -316,7 +317,7 @@ func runTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runNa
 		return err
 	}
 
-	mnemonics, err := createWallets(ctx, req, chainState, providerState)
+	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
 	}

@@ -22,12 +22,14 @@ import {
   Icon,
   ButtonGroup,
   Collapse,
-  Flex
+  Flex,
+  IconButton,
+  VStack
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
-import type { LoadTestSpec, WorkflowStatus } from '../types/workflow';
-import { ExternalLinkIcon, CopyIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import type { LoadTestSpec, WorkflowStatus, WalletInfo } from '../types/workflow';
+import { ExternalLinkIcon, CopyIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 
 const WorkflowDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,11 @@ const WorkflowDetails = () => {
   const [isNodesExpanded, setIsNodesExpanded] = useState(true);
   const [isValidatorsExpanded, setIsValidatorsExpanded] = useState(true);
   const [isLoadBalancersExpanded, setIsLoadBalancersExpanded] = useState(true);
+  const [isWalletsExpanded, setIsWalletsExpanded] = useState(true);
+  
+  // State for wallet pagination
+  const [currentWalletPage, setCurrentWalletPage] = useState(0);
+  const walletsPerPage = 20;
 
   const { data: workflow, isLoading, error, refetch } = useQuery<WorkflowStatus>({
     queryKey: ['workflow', id],
@@ -283,6 +290,36 @@ const WorkflowDetails = () => {
       default:
         return 'gray';
     }
+  };
+
+  // Export wallets to CSV function
+  const exportWalletsToCSV = (wallets: WalletInfo) => {
+    const csvContent = [
+      ['Type', 'Address', 'Mnemonic'],
+      ['Faucet', wallets.faucetAddress, wallets.faucetMnemonic],
+      ...wallets.userAddresses.map((address, index) => [
+        'User',
+        address,
+        wallets.userMnemonics[index] || ''
+      ])
+    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `workflow-${id}-wallets.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: 'CSV exported successfully',
+      description: `Exported ${wallets.userAddresses.length + 1} wallets`,
+      status: 'success',
+      duration: 3000,
+    });
   };
 
   if (isLoading) {
@@ -618,49 +655,222 @@ const WorkflowDetails = () => {
         )}
 
         {/* Monitoring Card */}
-        {(workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0) || 
-         (workflow.config?.RunnerType === 'Docker') ? (
+        {workflow.Monitoring && Object.keys(workflow.Monitoring).length > 0 && workflow.config?.RunnerType !== 'Docker' && (
           <Card>
             <CardHeader>
               <Heading size="md">Monitoring Dashboards</Heading>
             </CardHeader>
             <CardBody>
-              {(workflow.config?.RunnerType === 'Docker') ? (
-                <Alert status="info">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>Monitoring Not Available</AlertTitle>
-                    <AlertDescription>
-                      Monitoring dashboards are only available for testnets running on Digital Ocean. 
-                      Docker testnets do not send metrics to Grafana.
-                    </AlertDescription>
-                  </Box>
-                </Alert>
-              ) : (
-                <Stack spacing={3}>
-                  {Object.entries(workflow.Monitoring).map(([name, url]) => (
-                    <HStack key={name} spacing={3}>
-                      <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
-                        {name}:
-                      </Text>
-                      <Link 
-                        href={url} 
-                        target="_blank" 
-                        color="blue.500"
-                        display="flex"
-                        alignItems="center"
-                        gap={2}
-                      >
-                        {url}
-                        <Icon as={ExternalLinkIcon} boxSize={4} />
-                      </Link>
-                    </HStack>
-                  ))}
-                </Stack>
-              )}
+              <Stack spacing={3}>
+                {Object.entries(workflow.Monitoring).map(([name, url]) => (
+                  <HStack key={name} spacing={3}>
+                    <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
+                      {name}:
+                    </Text>
+                    <Link 
+                      href={url} 
+                      target="_blank" 
+                      color="blue.500"
+                      display="flex"
+                      alignItems="center"
+                      gap={2}
+                    >
+                      {url}
+                      <Icon as={ExternalLinkIcon} boxSize={4} />
+                    </Link>
+                  </HStack>
+                ))}
+              </Stack>
             </CardBody>
           </Card>
-        ) : null}
+        )}
+
+        {/* Wallets Card */}
+        {workflow.wallets && (workflow.wallets.faucetAddress || workflow.wallets.userAddresses?.length > 0) && (
+          <Card>
+            <CardHeader 
+              cursor="pointer"
+              onClick={() => setIsWalletsExpanded(!isWalletsExpanded)}
+              _hover={{ bg: { base: "gray.50", _dark: "gray.700" } }}
+            >
+              <Flex justify="space-between" align="center">
+                <Heading size="md">Wallets</Heading>
+                <Icon as={isWalletsExpanded ? ChevronUpIcon : ChevronDownIcon} boxSize={5} />
+              </Flex>
+            </CardHeader>
+            <Collapse in={isWalletsExpanded}>
+              <CardBody>
+                <Stack spacing={4}>
+                  {/* Faucet Wallet */}
+                  {workflow.wallets.faucetAddress && (
+                    <Box>
+                      <Text fontWeight="bold" color="purple.600" fontSize="lg" mb={2}>
+                        Faucet Wallet
+                      </Text>
+                      <Box bg="surface" p={3} borderRadius="md" border="1px" borderColor="divider">
+                        <HStack>
+                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                            Address:
+                          </Text>
+                          <Text fontFamily="mono" fontSize="sm" wordBreak="break-all" flex="1">
+                            {workflow.wallets.faucetAddress}
+                          </Text>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (workflow.wallets?.faucetAddress) {
+                                navigator.clipboard.writeText(workflow.wallets.faucetAddress);
+                                toast({
+                                  title: 'Copied to clipboard',
+                                  status: 'success',
+                                  duration: 2000,
+                                });
+                              }
+                            }}
+                          >
+                            <CopyIcon />
+                          </Button>
+                        </HStack>
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* User Wallets */}
+                  {workflow.wallets.userAddresses && workflow.wallets.userAddresses.length > 0 && (() => {
+                    const totalWallets = workflow.wallets.userAddresses.length;
+                    const totalPages = Math.ceil(totalWallets / walletsPerPage);
+                    const startIndex = currentWalletPage * walletsPerPage;
+                    const endIndex = Math.min(startIndex + walletsPerPage, totalWallets);
+                    const currentPageWallets = workflow.wallets.userAddresses.slice(startIndex, endIndex);
+
+                    return (
+                      <Box>
+                        <HStack justify="space-between" align="center" mb={3}>
+                          <Text fontWeight="bold" color="blue.600" fontSize="lg">
+                            User Wallets ({totalWallets.toLocaleString()})
+                          </Text>
+                          <Button
+                            size="sm"
+                            colorScheme="green"
+                            onClick={() => workflow.wallets && exportWalletsToCSV(workflow.wallets)}
+                          >
+                            Export CSV
+                          </Button>
+                        </HStack>
+                        
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <HStack justify="space-between" align="center" mb={3}>
+                            <HStack>
+                              <IconButton
+                                aria-label="Previous page"
+                                icon={<ChevronLeftIcon />}
+                                size="sm"
+                                isDisabled={currentWalletPage === 0}
+                                onClick={() => setCurrentWalletPage(prev => Math.max(0, prev - 1))}
+                              />
+                              <Text fontSize="sm">
+                                Page {currentWalletPage + 1} of {totalPages}
+                              </Text>
+                              <IconButton
+                                aria-label="Next page"
+                                icon={<ChevronRightIcon />}
+                                size="sm"
+                                isDisabled={currentWalletPage === totalPages - 1}
+                                onClick={() => setCurrentWalletPage(prev => Math.min(totalPages - 1, prev + 1))}
+                              />
+                            </HStack>
+                            <Text fontSize="sm" color="gray.500">
+                              Showing {startIndex + 1}-{endIndex} of {totalWallets.toLocaleString()}
+                            </Text>
+                          </HStack>
+                        )}
+
+                        <Box 
+                          bg="surface" 
+                          p={3} 
+                          borderRadius="md" 
+                          border="1px" 
+                          borderColor="divider"
+                        >
+                          <VStack spacing={2} align="stretch">
+                            {currentPageWallets.map((address, index) => {
+                              const globalIndex = startIndex + index;
+                              return (
+                                <HStack key={globalIndex} spacing={2}>
+                                  <Text fontSize="xs" color="gray.500" minW="50px">
+                                    {(globalIndex + 1).toLocaleString()}.
+                                  </Text>
+                                  <Text fontFamily="mono" fontSize="sm" flex="1" wordBreak="break-all">
+                                    {address}
+                                  </Text>
+                                  <Button
+                                    size="xs"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(address);
+                                      toast({
+                                        title: 'Address copied',
+                                        status: 'success',
+                                        duration: 2000,
+                                      });
+                                    }}
+                                  >
+                                    <CopyIcon boxSize={3} />
+                                  </Button>
+                                </HStack>
+                              );
+                            })}
+                          </VStack>
+                        </Box>
+                        
+                        {/* Bottom Pagination Controls */}
+                        {totalPages > 1 && (
+                          <HStack justify="center" mt={3}>
+                            <IconButton
+                              aria-label="First page"
+                              icon={<ChevronLeftIcon />}
+                              size="sm"
+                              variant="outline"
+                              isDisabled={currentWalletPage === 0}
+                              onClick={() => setCurrentWalletPage(0)}
+                            />
+                            <IconButton
+                              aria-label="Previous page"
+                              icon={<ChevronLeftIcon />}
+                              size="sm"
+                              isDisabled={currentWalletPage === 0}
+                              onClick={() => setCurrentWalletPage(prev => Math.max(0, prev - 1))}
+                            />
+                            <Text fontSize="sm" px={4}>
+                              {currentWalletPage + 1} / {totalPages}
+                            </Text>
+                            <IconButton
+                              aria-label="Next page"
+                              icon={<ChevronRightIcon />}
+                              size="sm"
+                              isDisabled={currentWalletPage === totalPages - 1}
+                              onClick={() => setCurrentWalletPage(prev => Math.min(totalPages - 1, prev + 1))}
+                            />
+                            <IconButton
+                              aria-label="Last page"
+                              icon={<ChevronRightIcon />}
+                              size="sm"
+                              variant="outline"
+                              isDisabled={currentWalletPage === totalPages - 1}
+                              onClick={() => setCurrentWalletPage(totalPages - 1)}
+                            />
+                          </HStack>
+                        )}
+                      </Box>
+                    );
+                  })()}
+                </Stack>
+              </CardBody>
+            </Collapse>
+          </Card>
+        )}
 
         {/* Actions Card */}
         <Card>

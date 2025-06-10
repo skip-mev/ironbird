@@ -167,6 +167,10 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	response.Validators = workflow.Validators
 	response.LoadBalancers = workflow.LoadBalancers
 
+	if workflow.Wallets != nil {
+		response.Wallets = workflow.Wallets
+	}
+
 	if workflow.MonitoringLinks != nil {
 		response.Monitoring = workflow.MonitoringLinks
 	}
@@ -325,6 +329,10 @@ func (s *Service) UpdateWorkflowData(ctx context.Context, req *pb.UpdateWorkflow
 
 	if len(validators) > 0 {
 		update.Validators = &validators
+	}
+
+	if req.Wallets != nil {
+		update.Wallets = req.Wallets
 	}
 
 	if err := s.db.UpdateWorkflow(req.WorkflowId, update); err != nil {

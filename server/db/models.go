@@ -41,6 +41,7 @@ type Workflow struct {
 	Nodes           []*pb.Node                      `json:"nodes" db:"nodes"`
 	Validators      []*pb.Node                      `json:"validators" db:"validators"`
 	LoadBalancers   []*pb.Node                      `json:"loadbalancers" db:"loadbalancers"`
+	Wallets         *pb.WalletInfo                  `json:"wallets" db:"wallets"`
 	MonitoringLinks map[string]string               `json:"monitoring_links" db:"monitoring_links"`
 	Status          WorkflowStatus                  `json:"status" db:"status"`
 	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
@@ -53,6 +54,7 @@ type WorkflowUpdate struct {
 	Nodes           *[]pb.Node         `json:"nodes,omitempty"`
 	Validators      *[]pb.Node         `json:"validators,omitempty"`
 	LoadBalancers   *[]pb.Node         `json:"loadbalancers,omitempty"`
+	Wallets         *pb.WalletInfo     `json:"wallets,omitempty"`
 	MonitoringLinks *map[string]string `json:"monitoring_links,omitempty"`
 	Status          *WorkflowStatus    `json:"status,omitempty"`
 }
@@ -67,6 +69,13 @@ func (w *Workflow) ValidatorsJSON() ([]byte, error) {
 
 func (w *Workflow) LoadBalancersJSON() ([]byte, error) {
 	return json.Marshal(w.LoadBalancers)
+}
+
+func (w *Workflow) WalletsJSON() ([]byte, error) {
+	if w.Wallets == nil {
+		return []byte("{}"), nil
+	}
+	return json.Marshal(w.Wallets)
 }
 
 func (w *Workflow) ConfigJSON() ([]byte, error) {

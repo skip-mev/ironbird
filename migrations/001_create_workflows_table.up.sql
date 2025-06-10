@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS workflows (
     nodes TEXT DEFAULT '[]',
     validators TEXT DEFAULT '[]',
     loadbalancers TEXT DEFAULT '[]',
+    wallets TEXT DEFAULT '{}',
     monitoring_links TEXT DEFAULT '{}',
     status TEXT NOT NULL DEFAULT 'pending',
     config TEXT NOT NULL,

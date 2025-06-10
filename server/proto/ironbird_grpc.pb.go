@@ -32,15 +32,12 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IronbirdServiceClient interface {
-	// Workflow operations
 	CreateWorkflow(ctx context.Context, in *CreateWorkflowRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 	GetWorkflow(ctx context.Context, in *GetWorkflowRequest, opts ...grpc.CallOption) (*Workflow, error)
 	ListWorkflows(ctx context.Context, in *ListWorkflowsRequest, opts ...grpc.CallOption) (*WorkflowListResponse, error)
 	CancelWorkflow(ctx context.Context, in *CancelWorkflowRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 	SignalWorkflow(ctx context.Context, in *SignalWorkflowRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
-	// Load test operations
 	RunLoadTest(ctx context.Context, in *RunLoadTestRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
-	// Workflow update operations
 	UpdateWorkflowData(ctx context.Context, in *UpdateWorkflowDataRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 }
 
@@ -126,15 +123,12 @@ func (c *ironbirdServiceClient) UpdateWorkflowData(ctx context.Context, in *Upda
 // All implementations must embed UnimplementedIronbirdServiceServer
 // for forward compatibility.
 type IronbirdServiceServer interface {
-	// Workflow operations
 	CreateWorkflow(context.Context, *CreateWorkflowRequest) (*WorkflowResponse, error)
 	GetWorkflow(context.Context, *GetWorkflowRequest) (*Workflow, error)
 	ListWorkflows(context.Context, *ListWorkflowsRequest) (*WorkflowListResponse, error)
 	CancelWorkflow(context.Context, *CancelWorkflowRequest) (*WorkflowResponse, error)
 	SignalWorkflow(context.Context, *SignalWorkflowRequest) (*WorkflowResponse, error)
-	// Load test operations
 	RunLoadTest(context.Context, *RunLoadTestRequest) (*WorkflowResponse, error)
-	// Workflow update operations
 	UpdateWorkflowData(context.Context, *UpdateWorkflowDataRequest) (*WorkflowResponse, error)
 	mustEmbedUnimplementedIronbirdServiceServer()
 }

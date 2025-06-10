@@ -13,8 +13,6 @@ export const IronbirdService = {
   typeName: "skip.ironbird.IronbirdService",
   methods: {
     /**
-     * Workflow operations
-     *
      * @generated from rpc skip.ironbird.IronbirdService.CreateWorkflow
      */
     createWorkflow: {
@@ -60,8 +58,6 @@ export const IronbirdService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Load test operations
-     *
      * @generated from rpc skip.ironbird.IronbirdService.RunLoadTest
      */
     runLoadTest: {
@@ -71,8 +67,6 @@ export const IronbirdService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Workflow update operations
-     *
      * @generated from rpc skip.ironbird.IronbirdService.UpdateWorkflowData
      */
     updateWorkflowData: {

@@ -156,6 +156,7 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
+		GRPCClient:        grpcClient,
 	}
 
 	w := worker.New(c, messages.TaskQueue, worker.Options{})

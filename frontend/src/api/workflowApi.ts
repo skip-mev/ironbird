@@ -185,6 +185,12 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       Metrics: ""
     })),
     Monitoring: workflow.monitoring || {},
+    wallets: workflow.wallets ? {
+      faucetAddress: workflow.wallets.faucetAddress || '',
+      faucetMnemonic: workflow.wallets.faucetMnemonic || '',
+      userAddresses: workflow.wallets.userAddresses || [],
+      userMnemonics: workflow.wallets.userMnemonics || []
+    } : undefined,
     config: config,
     loadTestSpec: workflow.loadTestSpec
   };

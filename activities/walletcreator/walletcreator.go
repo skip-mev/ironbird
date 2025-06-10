@@ -15,6 +15,7 @@ import (
 
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/ironbird/util"
 )
 
@@ -22,6 +23,7 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
+	GRPCClient        pb.IronbirdServiceClient
 }
 
 func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWalletsRequest) (messages.CreateWalletsResponse, error) {
@@ -108,6 +110,27 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	}
 	logger.Info("fund result", zap.String("stdout", stdout))
 	time.Sleep(5 * time.Second)
+
+	if a.GRPCClient != nil {
+		walletInfo := &pb.WalletInfo{
+			FaucetAddress:  faucetWallet.FormattedAddress(),
+			FaucetMnemonic: faucetWallet.Mnemonic(),
+			UserAddresses:  addresses,
+			UserMnemonics:  mnemonics,
+		}
+
+		updateReq := &pb.UpdateWorkflowDataRequest{
+			WorkflowId: req.WorkflowID,
+			Wallets:    walletInfo,
+		}
+
+		_, err = a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
+		if err != nil {
+			logger.Error("Failed to update workflow wallets", zap.Error(err))
+		} else {
+			logger.Info("Successfully updated workflow wallets", zap.String("workflowID", req.WorkflowID))
+		}
+	}
 
 	return messages.CreateWalletsResponse{
 		Mnemonics: mnemonics,

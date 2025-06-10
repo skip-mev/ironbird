@@ -60,6 +60,13 @@ export interface Node {
   Metrics: string;
 }
 
+export interface WalletInfo {
+  faucetAddress: string;
+  faucetMnemonic: string;
+  userAddresses: string[];
+  userMnemonics: string[];
+}
+
 export interface WorkflowStatus {
   WorkflowID: string;
   Status: string;
@@ -67,6 +74,7 @@ export interface WorkflowStatus {
   Validators: Node[];
   LoadBalancers: Node[];
   Monitoring: Record<string, string>;
+  wallets?: WalletInfo;
   config?: TestnetWorkflowRequest;
   loadTestSpec?: any;
 }
