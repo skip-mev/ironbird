@@ -47,7 +47,7 @@ const WorkflowDetails = () => {
   const [currentWalletPage, setCurrentWalletPage] = useState(0);
   const walletsPerPage = 20;
 
-  const { data: workflow, isLoading, error, refetch } = useQuery<WorkflowStatus>({
+  const { data: workflow, isLoading, error } = useQuery<WorkflowStatus>({
     queryKey: ['workflow', id],
     queryFn: () => workflowApi.getWorkflow(id!),
     refetchInterval: 10000, // Polling every 5 seconds
@@ -97,25 +97,25 @@ const WorkflowDetails = () => {
     }
   }, [workflow]);
 
-  const runLoadTestMutation = useMutation({
-    mutationFn: (spec: LoadTestSpec) => workflowApi.runLoadTest(id!, spec),
-    onSuccess: () => {
-      toast({
-        title: 'Adhoc load test wen',
-        status: 'info',
-        duration: 3000,
-      });
-      refetch();
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error starting load test',
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 'error',
-        duration: 5000,
-      });
-    },
-  });
+  // const runLoadTestMutation = useMutation({
+  //   mutationFn: (spec: LoadTestSpec) => workflowApi.runLoadTest(id!, spec),
+  //   onSuccess: () => {
+  //     toast({
+  //       title: 'Adhoc load test wen',
+  //       status: 'info',
+  //       duration: 3000,
+  //     });
+  //     refetch();
+  //   },
+  //   onError: (error) => {
+  //     toast({
+  //       title: 'Error starting load test',
+  //       description: error instanceof Error ? error.message : 'Unknown error occurred',
+  //       status: 'error',
+  //       duration: 5000,
+  //     });
+  //   },
+  // });
 
   const cancelWorkflowMutation = useMutation({
     mutationFn: () => {
@@ -167,19 +167,19 @@ const WorkflowDetails = () => {
     },
   });
 
-  const handleRunLoadTest = () => {
-    const loadTestSpec: LoadTestSpec = {
-      name: 'basic-load-test',
-      description: 'Basic load test configuration',
-      chain_id: 'test-chain',
-      NumOfBlocks: 10,
-      NumOfTxs: 5,
-      msgs: [],
-      unordered_txs: true,
-      tx_timeout: '30s',
-    };
-    runLoadTestMutation.mutate(loadTestSpec);
-  };
+  // const handleRunLoadTest = () => {
+  //   const loadTestSpec: LoadTestSpec = {
+  //     name: 'basic-load-test',
+  //     description: 'Basic load test configuration',
+  //     chain_id: 'test-chain',
+  //     NumOfBlocks: 10,
+  //     NumOfTxs: 5,
+  //     msgs: [],
+  //     unordered_txs: true,
+  //     tx_timeout: '30s',
+  //   };
+  //   runLoadTestMutation.mutate(loadTestSpec);
+  // };
 
   const handleCancelWorkflow = () => {
     if (!workflow) return;
@@ -710,7 +710,7 @@ const WorkflowDetails = () => {
                 {Object.entries(workflow.Monitoring).map(([name, url]) => (
                   <HStack key={name} spacing={3}>
                     <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
-                      {name}:
+                      {name}
                     </Text>
                     <Link 
                       href={url} 
