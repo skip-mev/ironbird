@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -20,18 +20,25 @@ import {
   CardBody,
   SimpleGrid,
   Icon,
-  ButtonGroup
+  ButtonGroup,
+  Collapse,
+  Flex
 } from '@chakra-ui/react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
 import type { LoadTestSpec, WorkflowStatus } from '../types/workflow';
-import { ExternalLinkIcon, CopyIcon, CloseIcon } from '@chakra-ui/icons';
+import { ExternalLinkIcon, CopyIcon, CloseIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 
 const WorkflowDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  // State for collapsible cards
+  const [isNodesExpanded, setIsNodesExpanded] = useState(true);
+  const [isValidatorsExpanded, setIsValidatorsExpanded] = useState(true);
+  const [isLoadBalancersExpanded, setIsLoadBalancersExpanded] = useState(true);
 
   const { data: workflow, isLoading, error, refetch } = useQuery<WorkflowStatus>({
     queryKey: ['workflow', id],
@@ -395,126 +402,144 @@ const WorkflowDetails = () => {
             {/* Nodes Card - only shown when nodes are ready */}
             {workflow.Nodes && workflow.Nodes.length > 0 && (
               <Card>
-                <CardHeader>
-                  <Heading size="md">Full Nodes {`(${workflow.Nodes.length})`}</Heading>
+                <CardHeader 
+                  cursor="pointer"
+                  onClick={() => setIsNodesExpanded(!isNodesExpanded)}
+                  _hover={{ bg: { base: "gray.50", _dark: "gray.700" } }}
+                >
+                  <Flex justify="space-between" align="center">
+                    <Heading size="md">Full Nodes {`(${workflow.Nodes.length})`}</Heading>
+                    <Icon as={isNodesExpanded ? ChevronUpIcon : ChevronDownIcon} boxSize={5} />
+                  </Flex>
                 </CardHeader>
-                <CardBody>
-                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                    {workflow.Nodes.map((node) => (
-                      <Box 
-                        key={node.Name} 
-                        bg="surface" 
-                        p={4} 
-                        borderRadius="md" 
-                        border="1px"
-                        borderColor="divider"
-                      >
-                        <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
-                          {node.Name}
-                        </Text>
-                        <Stack spacing={2}>
-                          <HStack>
-                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                              RPC:
-                            </Text>
-                            <Link 
-                              href={node.RPC} 
-                              target="_blank" 
-                              color="blue.500"
-                              fontSize="sm"
-                              display="flex"
-                              alignItems="center"
-                              gap={1}
-                            >
-                              {node.RPC}
-                              <Icon as={ExternalLinkIcon} boxSize={3} />
-                            </Link>
-                          </HStack>
-                          <HStack>
-                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                              LCD:
-                            </Text>
-                            <Link 
-                              href={node.LCD} 
-                              target="_blank" 
-                              color="blue.500"
-                              fontSize="sm"
-                              display="flex"
-                              alignItems="center"
-                              gap={1}
-                            >
-                              {node.LCD}
-                              <Icon as={ExternalLinkIcon} boxSize={3} />
-                            </Link>
-                          </HStack>                
-                        </Stack>
-                      </Box>
-                    ))}
-                  </SimpleGrid>
-                </CardBody>
+                <Collapse in={isNodesExpanded}>
+                  <CardBody>
+                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                      {workflow.Nodes.map((node) => (
+                        <Box 
+                          key={node.Name} 
+                          bg="surface" 
+                          p={4} 
+                          borderRadius="md" 
+                          border="1px"
+                          borderColor="divider"
+                        >
+                          <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                            {node.Name}
+                          </Text>
+                          <Stack spacing={2}>
+                            <HStack>
+                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                RPC:
+                              </Text>
+                              <Link 
+                                href={node.RPC} 
+                                target="_blank" 
+                                color="blue.500"
+                                fontSize="sm"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
+                                {node.RPC}
+                                <Icon as={ExternalLinkIcon} boxSize={3} />
+                              </Link>
+                            </HStack>
+                            <HStack>
+                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                LCD:
+                              </Text>
+                              <Link 
+                                href={node.LCD} 
+                                target="_blank" 
+                                color="blue.500"
+                                fontSize="sm"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
+                                {node.LCD}
+                                <Icon as={ExternalLinkIcon} boxSize={3} />
+                              </Link>
+                            </HStack>                
+                          </Stack>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </CardBody>
+                </Collapse>
               </Card>
             )}
 
             {/* Validators Card - only shown when validators are ready */}
             {workflow.Validators && workflow.Validators.length > 0 && (
               <Card>
-                <CardHeader>
-                  <Heading size="md">Validators {`(${workflow.Validators.length})`}</Heading>
+                <CardHeader 
+                  cursor="pointer"
+                  onClick={() => setIsValidatorsExpanded(!isValidatorsExpanded)}
+                  _hover={{ bg: { base: "gray.50", _dark: "gray.700" } }}
+                >
+                  <Flex justify="space-between" align="center">
+                    <Heading size="md">Validators {`(${workflow.Validators.length})`}</Heading>
+                    <Icon as={isValidatorsExpanded ? ChevronUpIcon : ChevronDownIcon} boxSize={5} />
+                  </Flex>
                 </CardHeader>
-                <CardBody>
-                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                    {workflow.Validators.map((validator) => (
-                      <Box 
-                        key={validator.Name} 
-                        bg="surface" 
-                        p={4} 
-                        borderRadius="md" 
-                        border="1px"
-                        borderColor="divider"
-                      >
-                        <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
-                          {validator.Name}
-                        </Text>
-                        <Stack spacing={2}>
-                          <HStack>
-                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                              RPC:
-                            </Text>
-                            <Link 
-                              href={validator.RPC} 
-                              target="_blank" 
-                              color="blue.500"
-                              fontSize="sm"
-                              display="flex"
-                              alignItems="center"
-                              gap={1}
-                            >
-                              {validator.RPC}
-                              <Icon as={ExternalLinkIcon} boxSize={3} />
-                            </Link>
-                          </HStack>
-                          <HStack>
-                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                              LCD:
-                            </Text>
-                            <Link 
-                              href={validator.LCD} 
-                              target="_blank" 
-                              color="blue.500"
-                              fontSize="sm"
-                              display="flex"
-                              alignItems="center"
-                              gap={1}
-                            >
-                              {validator.LCD}
-                              <Icon as={ExternalLinkIcon} boxSize={3} />
-                            </Link>
-                          </HStack>
-                        </Stack>
-                      </Box>
-                    ))}
-                  </SimpleGrid>
-                </CardBody>
+                <Collapse in={isValidatorsExpanded}>
+                  <CardBody>
+                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                      {workflow.Validators.map((validator) => (
+                        <Box 
+                          key={validator.Name} 
+                          bg="surface" 
+                          p={4} 
+                          borderRadius="md" 
+                          border="1px"
+                          borderColor="divider"
+                        >
+                          <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                            {validator.Name}
+                          </Text>
+                          <Stack spacing={2}>
+                            <HStack>
+                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                RPC:
+                              </Text>
+                              <Link 
+                                href={validator.RPC} 
+                                target="_blank" 
+                                color="blue.500"
+                                fontSize="sm"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
+                                {validator.RPC}
+                                <Icon as={ExternalLinkIcon} boxSize={3} />
+                              </Link>
+                            </HStack>
+                            <HStack>
+                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                LCD:
+                              </Text>
+                              <Link 
+                                href={validator.LCD} 
+                                target="_blank" 
+                                color="blue.500"
+                                fontSize="sm"
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
+                                {validator.LCD}
+                                <Icon as={ExternalLinkIcon} boxSize={3} />
+                              </Link>
+                            </HStack>
+                          </Stack>
+                        </Box>
+                      ))}
+                    </SimpleGrid>
+                  </CardBody>
+                </Collapse>
               </Card>
             )}
           </>
@@ -523,63 +548,72 @@ const WorkflowDetails = () => {
         {/* Load Balancers Card */}
         {workflow.LoadBalancers && workflow.LoadBalancers.length > 0 && (
           <Card>
-            <CardHeader>
-              <Heading size="md">Load Balancers {`(${workflow.LoadBalancers.length})`}</Heading>
+            <CardHeader 
+              cursor="pointer"
+              onClick={() => setIsLoadBalancersExpanded(!isLoadBalancersExpanded)}
+              _hover={{ bg: { base: "gray.50", _dark: "gray.700" } }}
+            >
+              <Flex justify="space-between" align="center">
+                <Heading size="md">Load Balancers {`(${workflow.LoadBalancers.length})`}</Heading>
+                <Icon as={isLoadBalancersExpanded ? ChevronUpIcon : ChevronDownIcon} boxSize={5} />
+              </Flex>
             </CardHeader>
-            <CardBody>
-              <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                {workflow.LoadBalancers.map((node) => (
-                  <Box 
-                    key={node.Name} 
-                    bg="surface" 
-                    p={4} 
-                    borderRadius="md" 
-                    border="1px"
-                    borderColor="divider"
-                  >
-                    <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
-                      {node.Name}
-                    </Text>
-                    <Stack spacing={2}>
-                      <HStack>
-                        <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                          RPC:
-                        </Text>
-                        <Link 
-                          href={node.RPC} 
-                          target="_blank" 
-                          color="blue.500"
-                          fontSize="sm"
-                          display="flex"
-                          alignItems="center"
-                          gap={1}
-                        >
-                          {node.RPC}
-                          <Icon as={ExternalLinkIcon} boxSize={3} />
-                        </Link>
-                      </HStack>
-                      <HStack>
-                        <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                          LCD:
-                        </Text>
-                        <Link 
-                          href={node.LCD} 
-                          target="_blank" 
-                          color="blue.500"
-                          fontSize="sm"
-                          display="flex"
-                          alignItems="center"
-                          gap={1}
-                        >
-                          {node.LCD}
-                          <Icon as={ExternalLinkIcon} boxSize={3} />
-                        </Link>
-                      </HStack>
-                    </Stack>
-                  </Box>
-                ))}
-              </SimpleGrid>
-            </CardBody>
+            <Collapse in={isLoadBalancersExpanded}>
+              <CardBody>
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                  {workflow.LoadBalancers.map((node) => (
+                    <Box 
+                      key={node.Name} 
+                      bg="surface" 
+                      p={4} 
+                      borderRadius="md" 
+                      border="1px"
+                      borderColor="divider"
+                    >
+                      <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                        {node.Name}
+                      </Text>
+                      <Stack spacing={2}>
+                        <HStack>
+                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                            RPC:
+                          </Text>
+                          <Link 
+                            href={node.RPC} 
+                            target="_blank" 
+                            color="blue.500"
+                            fontSize="sm"
+                            display="flex"
+                            alignItems="center"
+                            gap={1}
+                          >
+                            {node.RPC}
+                            <Icon as={ExternalLinkIcon} boxSize={3} />
+                          </Link>
+                        </HStack>
+                        <HStack>
+                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                            LCD:
+                          </Text>
+                          <Link 
+                            href={node.LCD} 
+                            target="_blank" 
+                            color="blue.500"
+                            fontSize="sm"
+                            display="flex"
+                            alignItems="center"
+                            gap={1}
+                          >
+                            {node.LCD}
+                            <Icon as={ExternalLinkIcon} boxSize={3} />
+                          </Link>
+                        </HStack>
+                      </Stack>
+                    </Box>
+                  ))}
+                </SimpleGrid>
+              </CardBody>
+            </Collapse>
           </Card>
         )}
 

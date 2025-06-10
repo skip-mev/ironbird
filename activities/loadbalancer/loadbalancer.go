@@ -3,7 +3,7 @@ package loadbalancer
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -64,10 +64,12 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 
 	if a.GRPCClient != nil {
 		nodeNames := make(map[string]bool)
+		nodeNameRegex := regexp.MustCompile(`^(.+?)(?:-(?:rpc|lcd|grpc))`)
+
 		for _, domain := range req.Domains {
-			parts := strings.Split(domain.Domain, "-")
-			if len(parts) >= 1 {
-				nodeNames[parts[0]] = true
+			matches := nodeNameRegex.FindStringSubmatch(domain.Domain)
+			if len(matches) >= 2 {
+				nodeNames[matches[1]] = true
 			}
 		}
 
