@@ -4,23 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/skip-mev/catalyst/pkg/types"
-	"github.com/skip-mev/ironbird/messages"
-
-	testnettypes "github.com/skip-mev/ironbird/types/testnet"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
-
 	"github.com/skip-mev/ironbird/activities/testnet"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/util"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
-	"github.com/skip-mev/petri/cosmos/v3/wallet"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -55,8 +49,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec types.LoadTestSpec) ([]byte, error) {
-
+	loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
 	chainConfig := chain.GetConfig()
 	loadTestSpec.GasDenom = chainConfig.Denom
 	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
@@ -84,68 +77,9 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	}
 
 	loadTestSpec.NodesAddresses = nodes
-
-	var mnemonics []string
-	var addresses []string
-	var walletsMutex sync.Mutex
-
-	faucetWallet := chain.GetFaucetWallet()
-
-	totalWallets := 2500
-	var wg sync.WaitGroup
-
-	for i := 0; i < totalWallets; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			w, err := wallet.NewGeneratedWallet(petriutil.RandomString(5), testnet.CosmosWalletConfig)
-			if err != nil {
-				logger.Error("failed to create wallet", zap.Error(err))
-				return
-			}
-
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
-		}()
-	}
-
-	wg.Wait()
-	logger.Info("successfully created all wallets", zap.Int("count", len(mnemonics)))
-
-	node := validators[len(validators)-1]
-	err := node.RecoverKey(ctx, "faucet", faucetWallet.Mnemonic())
-	if err != nil {
-		logger.Error("failed to recover faucet wallet key", zap.Error(err))
-		return nil, fmt.Errorf("failed to recover faucet wallet key: %w", err)
-	}
-	time.Sleep(1 * time.Second)
-
-	command := []string{
-		chainConfig.BinaryName,
-		"tx", "bank", "multi-send",
-		faucetWallet.FormattedAddress(),
-	}
-
-	command = append(command, addresses...)
-	command = append(command, "1000000000stake",
-		"--chain-id", chainConfig.ChainId,
-		"--keyring-backend", "test",
-		"--fees", "80000stake",
-		"--gas", "auto",
-		"--yes",
-		"--home", chainConfig.HomeDir,
-	)
-
-	_, stderr, exitCode, err := node.RunCommand(ctx, command)
-	if err != nil || exitCode != 0 {
-		logger.Warn("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
-	}
-	time.Sleep(5 * time.Second)
 	loadTestSpec.Mnemonics = mnemonics
 
-	err = loadTestSpec.Validate()
+	err := loadTestSpec.Validate()
 	if err != nil {
 		logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
 		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
@@ -158,35 +92,25 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	var p provider.ProviderI
-	var err error
-	if req.RunnerType == testnettypes.Docker {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState,
-		)
-	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, testnet.CosmosWalletConfig)
+	walletConfig := testnet.CosmosWalletConfig
+	if req.Evm {
+		walletConfig = testnet.EvmCosmosWalletConfig
+		logger.Info("updated load test to evm walletconfig")
+	}
+
+	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec, req.Mnemonics)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}
@@ -198,13 +122,9 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			UID:   "100",
 			GID:   "100",
 		},
-		ProviderSpecificConfig: map[string]string{
-			"region":   "ams3",
-			"image_id": "185517855",
-			"size":     "s-4vcpu-8gb",
-		},
-		Command: []string{"/tmp/catalyst/loadtest.yml"},
-		DataDir: "/tmp/catalyst",
+		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts,
+		Command:                []string{"/tmp/catalyst/loadtest.yml"},
+		DataDir:                "/tmp/catalyst",
 		Environment: map[string]string{
 			"DEV_LOGGING": "true",
 		},

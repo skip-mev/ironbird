@@ -3,25 +3,33 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
+	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
-	"os"
+	"go.uber.org/zap"
+
+	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
-	"log"
 
-	"github.com/palantir/go-githubapp/githubapp"
 	"github.com/skip-mev/ironbird/activities/builder"
-	"github.com/skip-mev/ironbird/activities/github"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/types"
 	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"google.golang.org/grpc"
+
+	pb "github.com/skip-mev/ironbird/server/proto"
 )
 
 var (
@@ -30,6 +38,7 @@ var (
 
 func main() {
 	ctx := context.Background()
+	logger, _ := zap.NewDevelopment()
 
 	flag.Parse()
 
@@ -39,19 +48,11 @@ func main() {
 		panic(err)
 	}
 
-	cc, err := githubapp.NewDefaultCachingClientCreator(cfg.Github)
-
-	if err != nil {
-		panic(err)
-	}
-
-	notifier := github.NotifierActivity{GithubClient: cc}
-
 	c, err := client.Dial(client.Options{
 		HostPort:  cfg.Temporal.Host,
 		Namespace: cfg.Temporal.Namespace,
 		MetricsHandler: sdktally.NewMetricsHandler(util.NewPrometheusScope(prometheus.Configuration{
-			ListenAddress: "0.0.0.0:9090",
+			ListenAddress: "0.0.0.0:9092",
 			TimerType:     "histogram",
 		})),
 	})
@@ -68,7 +69,30 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder, AwsConfig: &awsConfig}
+	builderActivity := builder.Activity{BuilderConfig: cfg.Builder,
+		AwsConfig: &awsConfig, Chains: cfg.Chains}
+
+	var grpcClient pb.IronbirdServiceClient
+	if cfg.ServerAddress != "" {
+		logger.Info("Attempting to connect to gRPC server", zap.String("address", cfg.ServerAddress))
+
+		conn, err := grpc.NewClient(cfg.ServerAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			logger.Error("Failed to connect to server", zap.String("address", cfg.ServerAddress), zap.Error(err))
+			logger.Warn("Continuing without gRPC client - workflow data updates will be skipped")
+		} else {
+			grpcClient = pb.NewIronbirdServiceClient(conn)
+			logger.Info("Successfully connected to gRPC server", zap.String("address", cfg.ServerAddress))
+
+			defer func() {
+				if closeErr := conn.Close(); closeErr != nil {
+					logger.Warn("Error closing gRPC connection", zap.Error(closeErr))
+				}
+			}()
+		}
+	} else {
+		logger.Warn("no grpc client configured - workflow data updates will be skipped")
+	}
 
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
 		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
@@ -93,6 +117,9 @@ func main() {
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
 		DOToken:           cfg.DigitalOcean.Token,
+		Chains:            cfg.Chains,
+		GrafanaConfig:     cfg.Grafana,
+		GRPCClient:        grpcClient,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -122,9 +149,17 @@ func main() {
 		DOToken:           cfg.DigitalOcean.Token,
 		TailscaleSettings: tailscaleSettings,
 		TelemetrySettings: telemetrySettings,
+		GRPCClient:        grpcClient,
 	}
 
-	w := worker.New(c, testnetworkflow.TaskQueue, worker.Options{})
+	walletCreatorActivity := walletcreator.Activity{
+		DOToken:           cfg.DigitalOcean.Token,
+		TailscaleSettings: tailscaleSettings,
+		TelemetrySettings: telemetrySettings,
+		GRPCClient:        grpcClient,
+	}
+
+	w := worker.New(c, messages.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
 
@@ -133,11 +168,8 @@ func main() {
 	w.RegisterActivity(testnetActivity.TeardownProvider)
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-
-	w.RegisterActivity(notifier.UpdateGitHubCheck)
-	w.RegisterActivity(notifier.CreateGitHubCheck)
-
 	w.RegisterActivity(builderActivity.BuildDockerImage)
+	w.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	err = w.Run(worker.InterruptCh())
 

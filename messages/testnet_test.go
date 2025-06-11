@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/types/testnet"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,74 +17,26 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "valid request",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: false,
 		},
 		{
-			name: "missing installation ID",
-			request: TestnetWorkflowRequest{
-				InstallationID: 0,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "installationID is required",
-		},
-		{
-			name: "missing owner",
-			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "owner is required",
-		},
-		{
 			name: "missing repo",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "",
-				SHA:            "abcdef123456",
+				Repo: "",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "repo is required",
@@ -93,18 +44,13 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing SHA",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "",
+				Repo: "ironbird",
+				SHA:  "",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "SHA is required",
@@ -112,73 +58,25 @@ func TestTestnetWorkflowRequest_Validate(t *testing.T) {
 		{
 			name: "missing chain name",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "",
+					Image: "simapp-v50",
 				},
-				RunnerType: testnet.Docker,
+				RunnerType: Docker,
 			},
 			wantErr: true,
 			errMsg:  "chain name is required",
 		},
 		{
-			name: "missing binary name",
-			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "",
-						HomeDir:    "/home/test",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "binary name is required",
-		},
-		{
-			name: "missing home dir",
-			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
-				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "",
-					},
-				},
-				RunnerType: testnet.Docker,
-			},
-			wantErr: true,
-			errMsg:  "home directory is required",
-		},
-		{
 			name: "invalid runner type",
 			request: TestnetWorkflowRequest{
-				InstallationID: 123,
-				Owner:          "skip-mev",
-				Repo:           "ironbird",
-				SHA:            "abcdef123456",
+				Repo: "ironbird",
+				SHA:  "abcdef123456",
 				ChainConfig: types.ChainsConfig{
-					Name: "test-chain",
-					Image: types.ImageConfig{
-						BinaryName: "test-binary",
-						HomeDir:    "/home/test",
-					},
+					Name:  "test-chain",
+					Image: "simapp-v50",
 				},
 				RunnerType: "invalid-runner",
 			},

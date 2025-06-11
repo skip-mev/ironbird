@@ -1,5 +1,5 @@
 WORKER_BIN=./build/worker
-APP_BIN=./build/app
+SERVER_BIN=./build/server
 GO_FILES=$(shell find . -name '*.go' -type f -not -path "./vendor/*")
 GO_DEPS=go.mod go.sum
 
@@ -31,18 +31,40 @@ deps:
 	go env
 	go mod download
 
-${APP_BIN}: ${GO_FILES} ${GO_DEPS}
-	@echo "Building application binary..."
-	@mkdir -p ./build
-	go build -o ./build/ github.com/skip-mev/ironbird/cmd/app
 
 ${WORKER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@echo "Building worker binary..."
 	@mkdir -p ./build
 	go build -o ./build/ github.com/skip-mev/ironbird/cmd/worker
 
+${SERVER_BIN}: ${GO_FILES} ${GO_DEPS}
+	@echo "Building server binary..."
+	@mkdir -p ./build
+	cd server && go build -o ../build/server ./cmd
+
 .PHONY: build
-build: ${APP_BIN} ${WORKER_BIN}
+build: ${WORKER_BIN} ${SERVER_BIN}
+
+###############################################################################
+###                                  Proto                                  ###
+###############################################################################
+
+.PHONY: proto-gen
+proto-gen:
+	@echo "Generating gRPC code from proto files..."
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		server/proto/ironbird.proto
+	@echo "Generating frontend TypeScript code from proto files..."
+	cd frontend && npm run generate-proto
+
+.PHONY: proto-tools
+proto-tools:
+	@echo "Installing protoc-gen-go and protoc-gen-go-grpc..."
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@echo "Installing frontend proto tools..."
+	cd frontend && npm install --save-dev @bufbuild/protoc-gen-connect-es @bufbuild/protoc-gen-es
 
 ###############################################################################
 ###                                  Testing                                ###
@@ -85,3 +107,52 @@ govulncheck: tidy
 	@go run golang.org/x/vuln/cmd/govulncheck -test ./...
 
 .PHONY: lint lint-fix lint-markdown govulncheck ⏎
+
+.PHONY: start-frontend
+start-frontend:
+	cd frontend && npm install --legacy-peer-deps && npm run dev
+
+.PHONY: start-backend
+start-backend:
+	go run ./server/cmd/main.go
+
+.PHONY: dev
+dev:
+	make -j2 start-frontend start-backend
+
+###############################################################################
+###                                Docker                                   ###
+###############################################################################
+
+.PHONY: docker-build docker-up docker-down docker-logs docker-dev
+
+# Build Docker images
+docker-build:
+	@echo "--> Building Docker images..."
+	docker-compose build
+
+# Start services in production mode
+docker-up:
+	@echo "--> Starting services with Docker Compose..."
+	docker-compose up -d
+
+# Stop and remove services
+docker-down:
+	@echo "--> Stopping services..."
+	docker-compose down
+
+# View logs from all services
+docker-logs:
+	@echo "--> Showing logs..."
+	docker-compose logs -f
+
+# Start services in development mode (with logs)
+docker-dev:
+	@echo "--> Starting services in development mode..."
+	docker-compose up --build
+
+# Clean up Docker resources
+docker-clean:
+	@echo "--> Cleaning up Docker resources..."
+	docker-compose down --volumes --remove-orphans
+	docker system prune -f

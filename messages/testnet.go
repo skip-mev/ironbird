@@ -4,14 +4,28 @@ import (
 	"fmt"
 	"time"
 
+	pb "github.com/skip-mev/ironbird/server/proto"
+
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
-	"github.com/skip-mev/ironbird/types/testnet"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
+const (
+	DigitalOcean RunnerType = "DigitalOcean"
+	Docker       RunnerType = "Docker"
+	TaskQueue               = "TESTNET_TASK_QUEUE"
+)
+
+var (
+	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
+		"image_id": "189793209"}
+)
+
+type RunnerType string
+
 type CreateProviderRequest struct {
-	RunnerType testnet.RunnerType
+	RunnerType RunnerType
 	Name       string
 }
 
@@ -20,7 +34,7 @@ type CreateProviderResponse struct {
 }
 
 type TeardownProviderRequest struct {
-	RunnerType    testnet.RunnerType
+	RunnerType    RunnerType
 	ProviderState []byte
 }
 
@@ -28,14 +42,14 @@ type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
 	Name                    string
-	Image                   string
-	UID                     string
-	GID                     string
-	BinaryName              string
-	HomeDir                 string
+	Evm                     bool
+	Repo                    string
+	SHA                     string
+	Image                   string // tag of image e.g.  public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:gaia-evmv23.3.0-gaia-b84ff4c1702d3cc7756209a6de81ab95b3e6c6e5
+	BaseImage               string // base image used e.g. simapp-v53, gaia (defined in worker.yaml chains map)
 	ProviderSpecificOptions map[string]string
 	GenesisModifications    []petrichain.GenesisKV
-	RunnerType              testnet.RunnerType
+	RunnerType              RunnerType
 
 	NumOfValidators uint64
 	NumOfNodes      uint64
@@ -47,31 +61,23 @@ type LaunchTestnetResponse struct {
 	ProviderState []byte
 	ChainState    []byte
 	ChainID       string
-	Nodes         []testnet.Node
+	Nodes         []*pb.Node
+	Validators    []*pb.Node
 }
 
 type TestnetWorkflowRequest struct {
-	InstallationID     int64
-	Owner              string
 	Repo               string
 	SHA                string
+	Evm                bool
 	ChainConfig        types.ChainsConfig
-	RunnerType         testnet.RunnerType
+	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec
-	GrafanaConfig      types.GrafanaConfig
 	LongRunningTestnet bool
 	TestnetDuration    time.Duration
+	NumWallets         int
 }
 
 func (r TestnetWorkflowRequest) Validate() error {
-	if r.InstallationID == 0 {
-		return fmt.Errorf("installationID is required")
-	}
-
-	if r.Owner == "" {
-		return fmt.Errorf("owner is required")
-	}
-
 	if r.Repo == "" {
 		return fmt.Errorf("repo is required")
 	}
@@ -84,16 +90,8 @@ func (r TestnetWorkflowRequest) Validate() error {
 		return fmt.Errorf("chain name is required")
 	}
 
-	if r.ChainConfig.Image.BinaryName == "" {
-		return fmt.Errorf("binary name is required")
-	}
-
-	if r.ChainConfig.Image.HomeDir == "" {
-		return fmt.Errorf("home directory is required")
-	}
-
-	if r.RunnerType != testnet.DigitalOcean && r.RunnerType != testnet.Docker {
-		return fmt.Errorf("runner type must be one of: %s, %s", testnet.DigitalOcean, testnet.Docker)
+	if r.RunnerType != DigitalOcean && r.RunnerType != Docker {
+		return fmt.Errorf("runner type must be one of: %s, %s", DigitalOcean, Docker)
 	}
 
 	if r.LongRunningTestnet && r.TestnetDuration > 0 {

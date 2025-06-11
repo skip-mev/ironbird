@@ -18,8 +18,8 @@ jobs:
       matrix:
         builds:
           [
-            { image: 'app', file: 'app.Dockerfile' },
             { image: 'worker', file: 'worker.Dockerfile' },
+            { image: 'server', file: 'server.Dockerfile' },
           ]
     runs-on: ubuntu-latest
     permissions:

@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package skip.ironbird;
+
+option go_package = "github.com/skip-mev/ironbird/server/gen/ironbird";
+
+service IronbirdService {
+    rpc CreateWorkflow(CreateWorkflowRequest) returns (WorkflowResponse) {}
+    rpc GetWorkflow(GetWorkflowRequest) returns (Workflow) {}
+    rpc ListWorkflows(ListWorkflowsRequest) returns (WorkflowListResponse) {}
+    rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowResponse) {}
+    rpc SignalWorkflow(SignalWorkflowRequest) returns (WorkflowResponse) {}
+    
+    rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
+    
+    rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
+}
+
+// Request and response messages
+
+message CreateWorkflowRequest {
+    string repo = 1;
+    string sha = 2;
+    bool evm = 3;
+    ChainConfig chain_config = 4;
+    string runner_type = 5;
+    LoadTestSpec load_test_spec = 6;
+    bool long_running_testnet = 7;
+    int64 testnet_duration = 8;
+    int32 num_wallets = 9;
+}
+
+message GenesisKV {
+    string key = 1;
+    string value = 2;
+}
+
+message ChainConfig {
+    string name = 1;
+    uint64 num_of_nodes = 2;
+    uint64 num_of_validators = 3;
+    repeated GenesisKV genesis_modifications = 4;
+    string image = 5;
+}
+
+message NodeAddress {
+    string grpc = 1;
+    string rpc = 2;
+}
+
+message LoadTestMsg {
+    float weight = 1;
+    string type = 2;
+    int32 num_msgs = 3;
+    string contained_type = 4;
+    int32 num_of_recipients = 5;
+}
+
+message LoadTestSpec {
+    string name = 1;
+    string description = 2;
+    bool evm = 3;
+    string chain_id = 4;
+    int32 num_of_txs = 5;
+    int32 num_of_blocks = 6;
+    repeated NodeAddress nodes_addresses = 7;
+    repeated string mnemonics = 8;
+    string gas_denom = 9;
+    string bech32_prefix = 10;
+    repeated LoadTestMsg msgs = 11;
+    bool unordered_txs = 12;
+    int64 tx_timeout = 13;
+}
+
+message GetWorkflowRequest {
+    string workflow_id = 1;
+}
+
+message ListWorkflowsRequest {
+    int32 limit = 1;
+    int32 offset = 2;
+}
+
+message CancelWorkflowRequest {
+    string workflow_id = 1;
+}
+
+message SignalWorkflowRequest {
+    string workflow_id = 1;
+    string signal_name = 2;
+}
+
+message RunLoadTestRequest {
+    string workflow_id = 1;
+    LoadTestSpec load_test_spec = 2;
+}
+
+message WorkflowResponse {
+    string workflow_id = 1;
+}
+
+message Node {
+    string name = 1;
+    string address = 2;
+    string rpc = 3;
+    string lcd = 4;
+    string grpc = 5;
+}
+
+message WalletInfo {
+    string faucet_address = 1;
+    string faucet_mnemonic = 2;
+    repeated string user_addresses = 3;
+    repeated string user_mnemonics = 4;
+}
+
+message Workflow {
+    string workflow_id = 1;
+    string status = 2;
+    repeated Node nodes = 3;
+    repeated Node validators = 4;
+    repeated Node load_balancers = 5;
+    map<string, string> monitoring = 6;
+    CreateWorkflowRequest config = 7;
+    LoadTestSpec load_test_spec = 17;
+    WalletInfo wallets = 18;
+}
+
+message WorkflowSummary {
+    string workflow_id = 1;
+    string status = 2;
+    string start_time = 3;
+    string repo = 4;
+    string sha = 5;
+}
+
+message UpdateWorkflowDataRequest {
+    string workflow_id = 1;
+    repeated Node load_balancers = 2;
+    map<string, string> monitoring = 3;
+    repeated Node nodes = 4;
+    repeated Node validators = 5;
+    WalletInfo wallets = 6;
+}
+
+message WorkflowListResponse {
+    repeated WorkflowSummary workflows = 1;
+    int32 count = 2;
+}

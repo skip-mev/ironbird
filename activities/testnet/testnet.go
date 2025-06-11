@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 
+	pb "github.com/skip-mev/ironbird/server/proto"
+
+	evmhd "github.com/cosmos/evm/crypto/hd"
+	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/util"
+
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/skip-mev/ironbird/types/testnet"
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 	"github.com/skip-mev/petri/core/v3/provider/docker"
 
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/types"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
 	"go.temporal.io/sdk/activity"
@@ -26,21 +31,31 @@ type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
+	Chains            types.Chains
+	GrafanaConfig     types.GrafanaConfig
+	GRPCClient        pb.IronbirdServiceClient
 }
 
 var (
-	CosmosWalletConfig = types.WalletConfig{
+	CosmosWalletConfig = petritypes.WalletConfig{
 		SigningAlgorithm: "secp256k1",
 		Bech32Prefix:     "cosmos",
 		HDPath:           hd.CreateHDPath(118, 0, 0),
 		DerivationFn:     hd.Secp256k1.Derive(),
 		GenerationFn:     hd.Secp256k1.Generate(),
 	}
+	EvmCosmosWalletConfig = petritypes.WalletConfig{
+		SigningAlgorithm: "eth_secp256k1",
+		Bech32Prefix:     "cosmos",
+		HDPath:           hd.CreateHDPath(60, 0, 0),
+		DerivationFn:     evmhd.EthSecp256k1.Derive(),
+		GenerationFn:     evmhd.EthSecp256k1.Generate(),
+	}
 )
 
 const (
 	cosmosDenom    = "stake"
-	gaiaEvmDenom   = "atest"
+	evmDenom       = "uatom"
 	cosmosDecimals = 6
 )
 
@@ -50,21 +65,11 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 	var p provider.ProviderI
 	var err error
 
-	if req.RunnerType == testnet.Docker {
-		p, err = docker.CreateProvider(
-			ctx,
-			logger,
-			req.Name,
-		)
+	if req.RunnerType == messages.Docker {
+		p, err = docker.CreateProvider(ctx, logger, req.Name)
 	} else {
-		p, err = digitalocean.NewProvider(
-			ctx,
-			req.Name,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
+		p, err = digitalocean.NewProvider(ctx, req.Name, a.DOToken, a.TailscaleSettings,
+			digitalocean.WithLogger(logger), digitalocean.WithTelemetry(a.TelemetrySettings))
 	}
 
 	if err != nil {
@@ -79,25 +84,8 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	var p provider.ProviderI
-	var err error
-
-	if req.RunnerType == testnet.Docker {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState,
-		)
-	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.TeardownProviderResponse{}, err
@@ -107,81 +95,66 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
+func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
+	if a.GRPCClient == nil {
+		logger.Warn("GRPCClient is nil, skipping workflow data update")
+		return
+	}
+
+	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, a.GrafanaConfig)
+	logger.Info("monitoring links", zap.String("chainID", chainID),
+		zap.Any("monitoringLinks", monitoringLinks))
+
+	updateReq := &pb.UpdateWorkflowDataRequest{
+		WorkflowId: workflowID,
+		Nodes:      nodes,
+		Validators: validators,
+		Monitoring: monitoringLinks,
+	}
+
+	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
+	if err != nil {
+		logger.Error("Failed to update workflow data", zap.Error(err))
+	} else {
+		logger.Info("Successfully updated workflow data")
+	}
+}
+
 func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnetRequest) (resp messages.LaunchTestnetResponse, err error) {
 	logger, _ := zap.NewDevelopment()
 
-	var p provider.ProviderI
+	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
+	startTime := time.Now()
 
-	if req.RunnerType == testnet.Docker {
-		p, err = docker.RestoreProvider(
-			ctx,
-			logger,
-			req.ProviderState)
-	} else {
-		p, err = digitalocean.RestoreProvider(
-			ctx,
-			req.ProviderState,
-			a.DOToken,
-			a.TailscaleSettings,
-			digitalocean.WithLogger(logger),
-			digitalocean.WithTelemetry(a.TelemetrySettings),
-		)
-	}
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return
 	}
 
-	nodeOptions := types.NodeOptions{}
+	nodeOptions := petritypes.NodeOptions{}
 
-	if req.RunnerType == testnet.DigitalOcean {
-		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+	if req.RunnerType == messages.DigitalOcean {
+		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 			return definition
 		}
 	}
 
-	// TODO(nadim-az): refactor denom setting in ui/server
-	denom := cosmosDenom
-	for _, modification := range req.GenesisModifications {
-		if modification.Key == "app_state.evm.params.evm_denom" {
-			denom = gaiaEvmDenom
-			break
-		}
-	}
-
+	chainConfig, walletConfig := constructChainConfig(req, a.Chains)
+	logger.Info("creating chain", zap.Any("chain_config", chainConfig))
 	chain, chainErr := petrichain.CreateChain(
-		ctx,
-		logger,
-		p,
-		types.ChainConfig{
-			Name:          req.Name,
-			Denom:         denom,
-			Decimals:      cosmosDecimals,
-			NumValidators: int(req.NumOfValidators),
-			NumNodes:      int(req.NumOfNodes),
-			BinaryName:    req.BinaryName,
-			Image: provider.ImageDefinition{
-				Image: req.Image,
-				UID:   req.UID,
-				GID:   req.GID,
-			},
-			GasPrices:            "0.0005stake",
-			Bech32Prefix:         "cosmos",
-			HomeDir:              req.HomeDir,
-			CoinType:             "118",
-			ChainId:              req.Name,
-			UseGenesisSubCommand: true,
-		},
-		types.ChainOptions{
+		ctx, logger, p, chainConfig,
+		petritypes.ChainOptions{
 			NodeCreator: node.CreateNode,
-			NodeOptions: types.NodeOptions{
-				NodeDefinitionModifier: func(definition provider.TaskDefinition, config types.NodeConfig) provider.TaskDefinition {
+			NodeOptions: petritypes.NodeOptions{
+				NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 					return definition
 				},
 			},
-			WalletConfig: CosmosWalletConfig,
+			WalletConfig: walletConfig,
 		},
 	)
 
@@ -196,14 +169,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	resp.ChainID = req.Name
+	resp.ChainID = chainConfig.ChainId
 
-	initErr := chain.Init(ctx, types.ChainOptions{
+	initErr := chain.Init(ctx, petritypes.ChainOptions{
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
-		WalletConfig:  CosmosWalletConfig,
+		WalletConfig:  walletConfig,
 	})
-
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
 		if serializeErr != nil {
@@ -213,6 +185,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		resp.ProviderState = providerState
 
 		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	}
+
+	err = chain.WaitForStartup(ctx)
+	if err != nil {
+		return resp, temporal.NewApplicationErrorWithOptions("failed to wait for chain startup", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
 	providerState, err := p.SerializeProvider(ctx)
@@ -229,34 +206,31 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.ChainState = chainState
 
-	var testnetNodes []testnet.Node
+	testnetValidators := make([]*pb.Node, 0, len(chain.GetValidators()))
+	testnetNodes := make([]*pb.Node, 0, len(chain.GetNodes()))
 
 	for _, validator := range chain.GetValidators() {
-		cosmosIp, err := validator.GetExternalAddress(ctx, "1317")
+		validatorInfo, err := getNodeExternalAddresses(ctx, validator)
 		if err != nil {
 			return resp, err
 		}
+		testnetValidators = append(testnetValidators, validatorInfo)
+	}
 
-		cometIp, err := validator.GetExternalAddress(ctx, "26657")
+	for _, node := range chain.GetNodes() {
+		nodeInfo, err := getNodeExternalAddresses(ctx, node)
 		if err != nil {
 			return resp, err
 		}
-
-		ip, err := validator.GetIP(ctx)
-		if err != nil {
-			return resp, err
-		}
-
-		testnetNodes = append(testnetNodes, testnet.Node{
-			Name:    validator.GetDefinition().Name,
-			Rpc:     fmt.Sprintf("http://%s", cometIp),
-			Lcd:     fmt.Sprintf("http://%s", cosmosIp),
-			Address: ip,
-			Metrics: ip,
-		})
+		testnetNodes = append(testnetNodes, nodeInfo)
 	}
 
 	resp.Nodes = testnetNodes
+	resp.Validators = testnetValidators
+
+	if a.GRPCClient != nil {
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, logger)
+	}
 
 	go func() {
 		emitHeartbeats(ctx, chain, logger)
@@ -311,4 +285,86 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 			activity.RecordHeartbeat(ctx, "Chain status: healthy")
 		}
 	}
+}
+
+func constructChainConfig(req messages.LaunchTestnetRequest,
+	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
+	chainImage := chains[req.BaseImage]
+
+	denom := cosmosDenom
+	chainID := req.Name
+	gasPrice := chainImage.GasPrices
+	walletConfig := CosmosWalletConfig
+	coinType := "118"
+
+	var additionalPorts, additionalStartFlags []string
+
+	if req.Evm {
+		denom = evmDenom
+		chainID = "cosmos_22222-1"
+		gasPrice = "0.0005uatom"
+		walletConfig = EvmCosmosWalletConfig
+		coinType = "60"
+		additionalPorts = []string{"8545", "8546"}
+		additionalStartFlags = []string{
+			"--json-rpc.api", "eth,net,web3,txpool,debug",
+			"--json-rpc.address", "0.0.0.0:8545",
+			"--json-rpc.ws-address", "0.0.0.0:8546",
+			"--json-rpc.enable",
+		}
+	}
+
+	chainConfig := petritypes.ChainConfig{
+		Name:          req.Name,
+		Denom:         denom,
+		Decimals:      cosmosDecimals,
+		NumValidators: int(req.NumOfValidators),
+		NumNodes:      int(req.NumOfNodes),
+		BinaryName:    chainImage.BinaryName,
+		Image: provider.ImageDefinition{
+			Image: req.Image,
+			UID:   chainImage.UID,
+			GID:   chainImage.GID,
+		},
+		GasPrices:            gasPrice,
+		Bech32Prefix:         "cosmos",
+		HomeDir:              chainImage.HomeDir,
+		CoinType:             coinType,
+		ChainId:              chainID,
+		UseGenesisSubCommand: true,
+		AdditionalStartFlags: additionalStartFlags,
+		AdditionalPorts:      additionalPorts,
+	}
+
+	return chainConfig, walletConfig
+}
+
+func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
+	lcdIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
+	if err != nil {
+		return &pb.Node{}, err
+	}
+
+	cometIp, err := nodeProvider.GetExternalAddress(ctx, "26657")
+	if err != nil {
+		return &pb.Node{}, err
+	}
+
+	grpcIp, err := nodeProvider.GetExternalAddress(ctx, "9090")
+	if err != nil {
+		return &pb.Node{}, err
+	}
+
+	ip, err := nodeProvider.GetIP(ctx)
+	if err != nil {
+		return &pb.Node{}, err
+	}
+
+	return &pb.Node{
+		Name:    nodeProvider.GetDefinition().Name,
+		Rpc:     fmt.Sprintf("http://%s", cometIp),
+		Lcd:     fmt.Sprintf("http://%s", lcdIp),
+		Grpc:    grpcIp,
+		Address: ip,
+	}, nil
 }
