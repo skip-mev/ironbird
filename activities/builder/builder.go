@@ -186,6 +186,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	frontendAttrs := map[string]string{
 		"filename": "Dockerfile",
 		"target":   "",
+		"platform": "linux/amd64",
 	}
 
 	buildArguments := make(map[string]string)

@@ -187,7 +187,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		zap.String("workflowID", workflowID))
 
 	var loadBalancerResp messages.LaunchLoadBalancerResponse
-	domains := processDomainInfo(nodes, validators)
+	domains := processDomainInfo(req.ChainConfig.Name, nodes, validators, req.Evm)
 
 	if err := workflow.ExecuteActivity(
 		ctx,
@@ -317,7 +317,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	return nil
 }
 
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, Evm bool, workflowID string) error {
+func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, isEvmChain bool, workflowID string) error {
 	if err := workflow.SetUpdateHandler(
 		ctx,
 		updateHandler,
@@ -337,7 +337,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, E
 			}
 
 			walletConfig := testnet.CosmosWalletConfig
-			if Evm {
+			if isEvmChain {
 				walletConfig = testnet.EvmCosmosWalletConfig
 			}
 			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
@@ -400,31 +400,38 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, E
 	return nil
 }
 
-func processDomainInfo(nodes []*pb.Node, validators []*pb.Node) []apps.LoadBalancerDomain {
-	domains := make([]apps.LoadBalancerDomain, 0, len(nodes)*3+len(validators)*3)
-	addDomainsForNodes := func(nodeList []*pb.Node) {
-		for _, node := range nodeList {
-			domains = append(domains, apps.LoadBalancerDomain{
-				Domain:   fmt.Sprintf("%s-grpc", node.Name),
-				IP:       fmt.Sprintf("%s:9090", node.Address),
-				Protocol: "grpc",
-			})
+func processDomainInfo(chainName string, nodes []*pb.Node, validators []*pb.Node, isEvmChain bool) []apps.LoadBalancerDomain {
+	var domains []apps.LoadBalancerDomain
 
-			domains = append(domains, apps.LoadBalancerDomain{
-				Domain:   fmt.Sprintf("%s-rpc", node.Name),
-				IP:       fmt.Sprintf("%s:26657", node.Address),
-				Protocol: "http",
-			})
-
-			domains = append(domains, apps.LoadBalancerDomain{
-				Domain:   fmt.Sprintf("%s-lcd", node.Name),
-				IP:       fmt.Sprintf("%s:1317", node.Address),
-				Protocol: "http",
-			})
-		}
+	domainTypes := map[string]string{
+		"grpc": "9090",
+		"rpc":  "26657",
+		"lcd":  "1317",
 	}
 
-	addDomainsForNodes(nodes)
-	addDomainsForNodes(validators)
+	if isEvmChain {
+		domainTypes["evmrpc"] = "8545"
+		domainTypes["evmws"] = "8546"
+	}
+
+	for domainType, port := range domainTypes {
+		domain := apps.LoadBalancerDomain{Domain: fmt.Sprintf("%s-%s", chainName, domainType)}
+
+		var ips []string
+		for _, node := range append(nodes, validators...) {
+			ips = append(ips, fmt.Sprintf("%s:%s", node.Address, port))
+		}
+
+		if domainType == "grpc" {
+			domain.Protocol = "grpc"
+		} else {
+			domain.Protocol = "http"
+		}
+
+		domain.IPs = ips
+
+		domains = append(domains, domain)
+	}
+
 	return domains
 }
