@@ -141,7 +141,7 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 
 	var config WorkerConfig
 	if err := yaml.Unmarshal(file, &config); err != nil {
-		return WorkerConfig{}, fmt.Errorf("failed to unmarshal config: %w", err)
+		return WorkerConfig{}, fmt.Errorf("failed to  unmarshal config: %w", err)
 	}
 
 	config.DigitalOcean.Token = os.Getenv("DIGITALOCEAN_TOKEN")

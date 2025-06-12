@@ -2,7 +2,7 @@ temporal:
   host: 127.0.0.1:7233
   namespace: default
 
-database_path: "./ironbird.db"
+database_path: "/db/ironbird.db"
 
 migrations_path: "./migrations"
 
