@@ -27,7 +27,7 @@ import type { TestnetWorkflowRequest, GenesisModification, LoadTestSpec } from '
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 
-const GAIA_GENESIS_MODIFICATIONS: GenesisModification[] = [
+const EVM_GENESIS_MODIFICATIONS: GenesisModification[] = [
   {
     key: "app_state.staking.params.bond_denom",
     value: "uatom",
@@ -501,19 +501,19 @@ const CreateWorkflow = () => {
     });
   };
 
-  const setGaiaGenesisModifications = () => {
+  const setEVMGenesisModifications = () => {
     setFormData({
       ...formData,
       ChainConfig: {
         ...formData.ChainConfig!,
-        GenesisModifications: [...GAIA_GENESIS_MODIFICATIONS],
+        GenesisModifications: [...EVM_GENESIS_MODIFICATIONS],
       },
       evm: true,
     });
 
     toast({
-      title: 'Gaia Genesis Modifications Set',
-      description: 'Applied Gaia EVM genesis modifications',
+      title: 'EVM Genesis Modifications Set',
+      description: 'Applied EVM genesis modifications',
       status: 'success',
       duration: 3000,
     });
@@ -687,9 +687,9 @@ const CreateWorkflow = () => {
                   colorScheme="purple"
                   variant="outline"
                   size="sm"
-                  onClick={setGaiaGenesisModifications}
+                  onClick={setEVMGenesisModifications}
                 >
-                  Set Gaia Genesis Modifications
+                  Set EVM Genesis Modifications
                 </Button>
               </HStack>
               
