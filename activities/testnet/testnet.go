@@ -291,17 +291,9 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
 
-	denom := cosmosDenom
-	chainID := req.Name
-	gasPrice := chainImage.GasPrices
-	walletConfig := CosmosWalletConfig
-	coinType := "118"
-
-	var additionalPorts, additionalStartFlags []string
-
-	chainConfig := petritypes.ChainConfig{
+	config := petritypes.ChainConfig{
 		Name:          req.Name,
-		Denom:         denom,
+		Denom:         cosmosDenom,
 		Decimals:      cosmosDecimals,
 		NumValidators: int(req.NumOfValidators),
 		NumNodes:      int(req.NumOfNodes),
@@ -311,36 +303,35 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			UID:   chainImage.UID,
 			GID:   chainImage.GID,
 		},
-		GasPrices:            gasPrice,
+		GasPrices:            chainImage.GasPrices,
 		Bech32Prefix:         "cosmos",
 		HomeDir:              chainImage.HomeDir,
-		CoinType:             coinType,
-		ChainId:              chainID,
+		CoinType:             "118",
+		ChainId:              req.Name,
 		UseGenesisSubCommand: true,
-		AdditionalStartFlags: additionalStartFlags,
-		AdditionalPorts:      additionalPorts,
 	}
+	walletConfig := CosmosWalletConfig
 
 	if req.Evm {
-		denom = evmDenom
-		chainID = "cosmos_22222-1"
-		gasPrice = "0.0005uatom"
-		walletConfig = EvmCosmosWalletConfig
-		coinType = "60"
-		additionalPorts = []string{"8545", "8546"}
-		additionalStartFlags = []string{
+		config.Denom = evmDenom
+		config.ChainId = "cosmos_22222-1"
+		config.GasPrices = "0.0005uatom"
+		config.CoinType = "60"
+		config.AdditionalStartFlags = []string{
 			"--json-rpc.api", "eth,net,web3,txpool,debug",
 			"--json-rpc.address", "0.0.0.0:8545",
 			"--json-rpc.ws-address", "0.0.0.0:8546",
 			"--json-rpc.enable",
 		}
-		chainConfig.IsEVMChain = true
-		chainConfig.EVMConfig = petritypes.EVMConfig{
+		config.AdditionalPorts = []string{"8545", "8546"}
+		config.IsEVMChain = true
+		config.EVMConfig = petritypes.EVMConfig{
 			ChainId: "cosmos_22222-1",
 		}
+		walletConfig = EvmCosmosWalletConfig
 	}
 
-	return chainConfig, walletConfig
+	return config, walletConfig
 }
 
 func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
