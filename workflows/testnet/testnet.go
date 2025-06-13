@@ -87,7 +87,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
-	runName := fmt.Sprintf("ib-%s-%s", req.ChainConfig.Name, util.RandomString(6))
+	runName := fmt.Sprintf("ib-%s", util.RandomString(6))
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
