@@ -299,21 +299,6 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 
 	var additionalPorts, additionalStartFlags []string
 
-	if req.Evm {
-		denom = evmDenom
-		chainID = "cosmos_22222-1"
-		gasPrice = "0.0005uatom"
-		walletConfig = EvmCosmosWalletConfig
-		coinType = "60"
-		additionalPorts = []string{"8545", "8546"}
-		additionalStartFlags = []string{
-			"--json-rpc.api", "eth,net,web3,txpool,debug",
-			"--json-rpc.address", "0.0.0.0:8545",
-			"--json-rpc.ws-address", "0.0.0.0:8546",
-			"--json-rpc.enable",
-		}
-	}
-
 	chainConfig := petritypes.ChainConfig{
 		Name:          req.Name,
 		Denom:         denom,
@@ -334,6 +319,25 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		UseGenesisSubCommand: true,
 		AdditionalStartFlags: additionalStartFlags,
 		AdditionalPorts:      additionalPorts,
+	}
+
+	if req.Evm {
+		denom = evmDenom
+		chainID = "cosmos_22222-1"
+		gasPrice = "0.0005uatom"
+		walletConfig = EvmCosmosWalletConfig
+		coinType = "60"
+		additionalPorts = []string{"8545", "8546"}
+		additionalStartFlags = []string{
+			"--json-rpc.api", "eth,net,web3,txpool,debug",
+			"--json-rpc.address", "0.0.0.0:8545",
+			"--json-rpc.ws-address", "0.0.0.0:8546",
+			"--json-rpc.enable",
+		}
+		chainConfig.IsEVMChain = true
+		chainConfig.EVMConfig = petritypes.EVMConfig{
+			ChainId: "cosmos_22222-1",
+		}
 	}
 
 	return chainConfig, walletConfig
