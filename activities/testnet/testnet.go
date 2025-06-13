@@ -314,7 +314,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 
 	if req.Evm {
 		config.Denom = evmDenom
-		config.ChainId = "cosmos_22222-1"
+		config.ChainId = "devnet-1"
 		config.GasPrices = "0.0005uatom"
 		config.CoinType = "60"
 		config.AdditionalStartFlags = []string{
@@ -326,7 +326,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		config.AdditionalPorts = []string{"8545", "8546"}
 		config.IsEVMChain = true
 		config.EVMConfig = petritypes.EVMConfig{
-			ChainId: "cosmos_22222-1",
+			ChainId: "devnet-1",
 		}
 		walletConfig = EvmCosmosWalletConfig
 	}
