@@ -20,11 +20,12 @@ import {
   TableContainer,
   HStack,
   IconButton,
-  Tooltip,
+  Tooltip, Checkbox,
 } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
 import { ViewIcon, RepeatIcon } from '@chakra-ui/icons';
+import {useState} from "react";
 
 const WorkflowList = () => {
   const navigate = useNavigate();
@@ -35,6 +36,8 @@ const WorkflowList = () => {
     queryFn: workflowApi.listWorkflows,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
+
+  const [showNonRunning, setShowNonRunning] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -141,6 +144,8 @@ const WorkflowList = () => {
           <Text mb={4} color="textSecondary">
             Found {data.Count} workflow{data.Count !== 1 ? 's' : ''}
           </Text>
+
+          <Checkbox isChecked={showNonRunning} onChange={(e) => setShowNonRunning(e.target.checked)} mb={4}>Show non-running workflows</Checkbox>
           
           <TableContainer 
             bg="surface" 
@@ -160,7 +165,7 @@ const WorkflowList = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {data.Workflows.map((workflow) => (
+                {data.Workflows.filter((workflow) => (workflow.Status == "running" || showNonRunning)).map((workflow) => (
                   <Tr key={workflow.WorkflowID}>
                     <Td>
                       <Text 
