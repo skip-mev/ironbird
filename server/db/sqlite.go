@@ -36,6 +36,7 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+	fmt.Println(dbPath)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)

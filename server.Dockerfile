@@ -1,12 +1,16 @@
-FROM golang:1.24-bookworm AS build
+FROM golang:1.24-alpine3.22 AS build
 WORKDIR /app/
 
-COPY . .
+COPY go.mod go.sum .
 
 RUN go mod download
 RUN go mod tidy
 
-RUN go build -o ./build/server ./server/cmd
+COPY . .
+
+ENV CGO_ENABLED=1
+RUN apk add --no-cache gcc musl-dev
+RUN go build -ldflags '-s -w -extldflags "--static"' -o ./build/server ./server/cmd/
 
 RUN mkdir lib
 RUN cp "$(ldd ./build/signer_server | awk '/libgcc_s.so.1/ {print $3}')" lib/libgcc_s.so.1 || :
