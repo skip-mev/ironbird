@@ -788,6 +788,7 @@ const WorkflowDetails = () => {
                     const startIndex = currentWalletPage * walletsPerPage;
                     const endIndex = Math.min(startIndex + walletsPerPage, totalWallets);
                     const currentPageWallets = workflow.wallets.userAddresses.slice(startIndex, endIndex);
+                    const currentPageMnemonics = workflow.wallets.userMnemonics.slice(startIndex, endIndex);
 
                     return (
                       <Box>
@@ -851,12 +852,29 @@ const WorkflowDetails = () => {
                                     {address}
                                   </Text>
                                   <Button
+                                      size="xs"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(address);
+                                        toast({
+                                          title: 'Address copied',
+                                          status: 'success',
+                                          duration: 2000,
+                                        });
+                                      }}
+                                  >
+                                    <CopyIcon boxSize={3} />
+                                  </Button>
+                                  <Text fontFamily="mono" fontSize="sm" flex="0.5">
+                                    {currentPageMnemonics[index]}
+                                  </Text>
+                                  <Button
                                     size="xs"
                                     variant="ghost"
                                     onClick={() => {
-                                      navigator.clipboard.writeText(address);
+                                      navigator.clipboard.writeText(currentPageMnemonics[index]);
                                       toast({
-                                        title: 'Address copied',
+                                        title: 'Mnemonic copied',
                                         status: 'success',
                                         duration: 2000,
                                       });
