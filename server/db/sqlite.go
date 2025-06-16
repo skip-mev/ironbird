@@ -45,10 +45,13 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
 
-	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
+	if _, err := db.Exec("PRAGMA journal_mode = DELETE"); err != nil {
 		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
 	}
 
+	if _, err := db.Exec("PRAGMA synchronous=FULL"); err != nil {
+		return nil, fmt.Errorf("failed to enable synchronous mode: %w", err)
+	}
 	return &SQLiteDB{db: db}, nil
 }
 
