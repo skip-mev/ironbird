@@ -56,6 +56,12 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 }
 
 func (s *SQLiteDB) RunMigrations(migrationsPath string) error {
+	db, err := s.db.BeginTx(context.Background(), &sql.TxOptions{})
+
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+
 	driver, err := sqlite3.WithInstance(s.db, &sqlite3.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create sqlite3 driver: %w", err)
@@ -72,6 +78,10 @@ func (s *SQLiteDB) RunMigrations(migrationsPath string) error {
 
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	if err = db.Commit(); err != nil {
+		return fmt.Errorf("failed to commit database: %w", err)
 	}
 
 	return nil
