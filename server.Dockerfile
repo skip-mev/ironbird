@@ -8,6 +8,7 @@ RUN go mod tidy
 
 RUN go build -o ./build/server ./server/cmd
 
+RUN mkdir lib
 RUN cp "$(ldd ./build/signer_server | awk '/libgcc_s.so.1/ {print $3}')" lib/libgcc_s.so.1 || :
 RUN cp /lib/x86_64-linux-gnu/libgcc_s.so.1 lib/libgcc_s.so.1 || :
 
