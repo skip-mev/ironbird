@@ -360,7 +360,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
 				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
-
 			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
