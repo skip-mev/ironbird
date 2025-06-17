@@ -328,6 +328,9 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		config.AdditionalPorts = []string{"8545", "8546"}
 		config.IsEVMChain = true
 		walletConfig = EvmCosmosWalletConfig
+		config.EVMConfig = petritypes.EVMConfig{
+			ChainId: chainID,
+		}
 	}
 
 	return config, walletConfig
