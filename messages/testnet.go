@@ -42,7 +42,7 @@ type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
 	Name                    string
-	Evm                     bool
+	IsEvmChain              bool
 	Repo                    string
 	SHA                     string
 	Image                   string // tag of image e.g.  public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:gaia-evmv23.3.0-gaia-b84ff4c1702d3cc7756209a6de81ab95b3e6c6e5
@@ -68,7 +68,7 @@ type LaunchTestnetResponse struct {
 type TestnetWorkflowRequest struct {
 	Repo               string
 	SHA                string
-	Evm                bool
+	IsEvmChain         bool
 	ChainConfig        types.ChainsConfig
 	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec

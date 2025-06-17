@@ -38,13 +38,13 @@ export interface LoadTestSpec {
   msgs: Message[];
   unordered_txs: boolean;
   tx_timeout: string;
-  evm?: boolean;
+  isEvmChain?: boolean;
 }
 
 export interface TestnetWorkflowRequest {
   Repo: string;
   SHA: string;
-  evm: boolean;
+  IsEvmChain: boolean;
   ChainConfig: ChainConfig;
   RunnerType: string;
   LoadTestSpec?: LoadTestSpec;

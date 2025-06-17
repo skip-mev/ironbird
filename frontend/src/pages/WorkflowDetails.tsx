@@ -218,8 +218,8 @@ const WorkflowDetails = () => {
       if (workflow.config.SHA) params.append('sha', workflow.config.SHA);
       if (workflow.config.RunnerType) params.append('runnerType', workflow.config.RunnerType);
       
-      // EVM flag - always include it regardless of value
-      params.append('evm', workflow.config.evm === true ? 'true' : 'false');
+      // IsEvmChain flag - always include it regardless of value
+      params.append('isEvmChain', workflow.config.IsEvmChain === true ? 'true' : 'false');
       
       // Long running testnet and duration
       if (workflow.config.LongRunningTestnet !== undefined) {

@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/moby/buildkit v0.18.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/skip-mev/catalyst v0.0.0-20250603235647-921570bedc40
+	github.com/skip-mev/catalyst v0.0.0-20250617172958-5684c2bc01b1
 	github.com/skip-mev/petri/core/v3 v3.1.3
 	github.com/skip-mev/petri/cosmos/v3 v3.1.0
 	github.com/stretchr/testify v1.10.0

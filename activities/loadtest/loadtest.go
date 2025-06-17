@@ -100,7 +100,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	}
 
 	walletConfig := testnet.CosmosWalletConfig
-	if req.Evm {
+	if req.IsEvmChain {
 		walletConfig = testnet.EvmCosmosWalletConfig
 		logger.Info("updated load test to evm walletconfig")
 	}

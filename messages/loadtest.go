@@ -9,7 +9,7 @@ type RunLoadTestRequest struct {
 	ProviderState []byte
 	LoadTestSpec  catalysttypes.LoadTestSpec
 	RunnerType    RunnerType
-	Evm           bool
+	IsEvmChain    bool
 	Mnemonics     []string
 }
 

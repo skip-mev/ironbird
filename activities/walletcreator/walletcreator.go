@@ -38,7 +38,7 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	}
 
 	walletConfig := testnet.CosmosWalletConfig
-	if req.Evm {
+	if req.IsEvmChain {
 		walletConfig = testnet.EvmCosmosWalletConfig
 	}
 

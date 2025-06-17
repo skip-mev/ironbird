@@ -82,11 +82,11 @@ var (
 	gaiaReq = messages.TestnetWorkflowRequest{
 		Repo:            "gaia",
 		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
-		Evm:             true,
+		IsEvmChain:      true,
 		RunnerType:      messages.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
-			Name: "cosmos_22222-1",
+			Name: "4231",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
