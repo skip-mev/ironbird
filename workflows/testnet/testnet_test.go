@@ -264,7 +264,8 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 			originalTag := "ghcr.io/cosmos/simapp:v0.50"
 			newTag := "simapp-v53"
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				originalTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				// TODO: replace with main once feature branch is merged to main
+				originalTag = "ghcr.io/cosmos/gaia:feature-evm"
 				newTag = "gaia"
 			}
 
