@@ -21,9 +21,9 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   sha = "";
 
   /**
-   * @generated from field: bool evm = 3;
+   * @generated from field: bool isEvmChain = 3;
    */
-  evm = false;
+  isEvmChain = false;
 
   /**
    * @generated from field: skip.ironbird.ChainConfig chain_config = 4;
@@ -65,7 +65,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "repo", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "evm", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "isEvmChain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "chain_config", kind: "message", T: ChainConfig },
     { no: 5, name: "runner_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "load_test_spec", kind: "message", T: LoadTestSpec },
@@ -314,9 +314,9 @@ export class LoadTestSpec extends Message<LoadTestSpec> {
   description = "";
 
   /**
-   * @generated from field: bool evm = 3;
+   * @generated from field: bool isEvmChain = 3;
    */
-  evm = false;
+  isEvmChain = false;
 
   /**
    * @generated from field: string chain_id = 4;
@@ -378,7 +378,7 @@ export class LoadTestSpec extends Message<LoadTestSpec> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "evm", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "isEvmChain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "chain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "num_of_txs", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 6, name: "num_of_blocks", kind: "scalar", T: 5 /* ScalarType.INT32 */ },

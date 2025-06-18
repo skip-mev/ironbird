@@ -1,7 +1,7 @@
 {
   "Repo": "ironbird-cosmos-sdk",
   "SHA": "3de8d67d5feb33fad8d3e54236bec1428af3fe6b",
-  "EVM": false,
+  "IsEvmChain": false,
   "ChainConfig": {
     "Name": "cosmos",
     "NumOfNodes": 1,

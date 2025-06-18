@@ -25,7 +25,7 @@ type CreateWorkflowRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Repo               string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
 	Sha                string                 `protobuf:"bytes,2,opt,name=sha,proto3" json:"sha,omitempty"`
-	Evm                bool                   `protobuf:"varint,3,opt,name=evm,proto3" json:"evm,omitempty"`
+	IsEvmChain         bool                   `protobuf:"varint,3,opt,name=isEvmChain,proto3" json:"isEvmChain,omitempty"`
 	ChainConfig        *ChainConfig           `protobuf:"bytes,4,opt,name=chain_config,json=chainConfig,proto3" json:"chain_config,omitempty"`
 	RunnerType         string                 `protobuf:"bytes,5,opt,name=runner_type,json=runnerType,proto3" json:"runner_type,omitempty"`
 	LoadTestSpec       *LoadTestSpec          `protobuf:"bytes,6,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
@@ -80,9 +80,9 @@ func (x *CreateWorkflowRequest) GetSha() string {
 	return ""
 }
 
-func (x *CreateWorkflowRequest) GetEvm() bool {
+func (x *CreateWorkflowRequest) GetIsEvmChain() bool {
 	if x != nil {
-		return x.Evm
+		return x.IsEvmChain
 	}
 	return false
 }
@@ -389,7 +389,7 @@ type LoadTestSpec struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Evm            bool                   `protobuf:"varint,3,opt,name=evm,proto3" json:"evm,omitempty"`
+	IsEvmChain     bool                   `protobuf:"varint,3,opt,name=isEvmChain,proto3" json:"isEvmChain,omitempty"`
 	ChainId        string                 `protobuf:"bytes,4,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
 	NumOfTxs       int32                  `protobuf:"varint,5,opt,name=num_of_txs,json=numOfTxs,proto3" json:"num_of_txs,omitempty"`
 	NumOfBlocks    int32                  `protobuf:"varint,6,opt,name=num_of_blocks,json=numOfBlocks,proto3" json:"num_of_blocks,omitempty"`
@@ -448,9 +448,9 @@ func (x *LoadTestSpec) GetDescription() string {
 	return ""
 }
 
-func (x *LoadTestSpec) GetEvm() bool {
+func (x *LoadTestSpec) GetIsEvmChain() bool {
 	if x != nil {
-		return x.Evm
+		return x.IsEvmChain
 	}
 	return false
 }
@@ -1281,11 +1281,13 @@ var File_server_proto_ironbird_proto protoreflect.FileDescriptor
 
 const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
-	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xf0\x02\n" +
+	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xfe\x02\n" +
 	"\x15CreateWorkflowRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
-	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x10\n" +
-	"\x03evm\x18\x03 \x01(\bR\x03evm\x12=\n" +
+	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x1e\n" +
+	"\n" +
+	"isEvmChain\x18\x03 \x01(\bR\n" +
+	"isEvmChain\x12=\n" +
 	"\fchain_config\x18\x04 \x01(\v2\x1a.skip.ironbird.ChainConfigR\vchainConfig\x12\x1f\n" +
 	"\vrunner_type\x18\x05 \x01(\tR\n" +
 	"runnerType\x12A\n" +
@@ -1312,11 +1314,13 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x19\n" +
 	"\bnum_msgs\x18\x03 \x01(\x05R\anumMsgs\x12%\n" +
 	"\x0econtained_type\x18\x04 \x01(\tR\rcontainedType\x12*\n" +
-	"\x11num_of_recipients\x18\x05 \x01(\x05R\x0fnumOfRecipients\"\xcc\x03\n" +
+	"\x11num_of_recipients\x18\x05 \x01(\x05R\x0fnumOfRecipients\"\xda\x03\n" +
 	"\fLoadTestSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x10\n" +
-	"\x03evm\x18\x03 \x01(\bR\x03evm\x12\x19\n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"isEvmChain\x18\x03 \x01(\bR\n" +
+	"isEvmChain\x12\x19\n" +
 	"\bchain_id\x18\x04 \x01(\tR\achainId\x12\x1c\n" +
 	"\n" +
 	"num_of_txs\x18\x05 \x01(\x05R\bnumOfTxs\x12\"\n" +

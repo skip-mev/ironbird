@@ -3,7 +3,7 @@ package messages
 type CreateWalletsRequest struct {
 	WorkflowID    string
 	NumWallets    int
-	Evm           bool
+	IsEvmChain    bool
 	ChainState    []byte
 	ProviderState []byte
 	RunnerType    string

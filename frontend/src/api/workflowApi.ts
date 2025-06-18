@@ -14,7 +14,7 @@ const convertToGrpcLoadTestSpec = (spec: LoadTestSpec): GrpcLoadTestSpec => {
   const grpcSpec = new GrpcLoadTestSpec({
     name: spec.name,
     description: spec.description,
-    evm: spec.evm || false,
+    isEvmChain: spec.isEvmChain || false,
     chainId: spec.chain_id,
     numOfBlocks: spec.NumOfBlocks,
     numOfTxs: spec.NumOfTxs || 0,
@@ -68,7 +68,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
   const grpcRequest = new CreateWorkflowRequest({
     repo: request.Repo,
     sha: request.SHA,
-    evm: request.evm,
+    isEvmChain: request.IsEvmChain,
     chainConfig: chainConfig,
     runnerType: request.RunnerType,
     longRunningTestnet: request.LongRunningTestnet,
@@ -91,7 +91,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
 
   if (request.LoadTestSpec) {
     const grpcLoadTestSpec = convertToGrpcLoadTestSpec(request.LoadTestSpec);
-    grpcLoadTestSpec.evm = request.evm;
+    grpcLoadTestSpec.isEvmChain = request.IsEvmChain;
     grpcRequest.loadTestSpec = grpcLoadTestSpec;
   }
 
@@ -115,7 +115,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
     config = {
       Repo: workflow.config.repo,
       SHA: workflow.config.sha,
-      evm: workflow.config.evm,
+      IsEvmChain: workflow.config.IsEvmChain,
       RunnerType: workflow.config.runnerType,
       LongRunningTestnet: workflow.config.longRunningTestnet,
       TestnetDuration: workflow.config.testnetDuration,
@@ -158,7 +158,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
         })),
         unordered_txs: workflow.loadTestSpec.unorderedTxs,
         tx_timeout: workflow.loadTestSpec.txTimeout?.toString() || '',
-        evm: workflow.loadTestSpec.evm
+        isEvmChain: workflow.loadTestSpec.isEvmChain
       } : undefined
     };
   }
@@ -235,8 +235,8 @@ export const workflowApi = {
     const specCopy = { ...spec };
     
     // If evm is not set in the spec, default to false
-    if (specCopy.evm === undefined) {
-      specCopy.evm = false;
+    if (specCopy.isEvmChain === undefined) {
+      specCopy.isEvmChain = false;
     }
     
     const grpcSpec = convertToGrpcLoadTestSpec(specCopy);

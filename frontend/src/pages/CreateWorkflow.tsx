@@ -27,7 +27,7 @@ import type { TestnetWorkflowRequest, GenesisModification, LoadTestSpec } from '
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 
-const EVM_GENESIS_MODIFICATIONS: GenesisModification[] = [
+const Evm_GENESIS_MODIFICATIONS: GenesisModification[] = [
   {
     key: "app_state.staking.params.bond_denom",
     value: "uatom",
@@ -124,7 +124,7 @@ const CreateWorkflow = () => {
       NumOfValidators: 3,
     },
     RunnerType: 'Docker',
-    evm: false,
+    IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 2, // 2 hours
@@ -143,7 +143,7 @@ const CreateWorkflow = () => {
       NumOfValidators: 0,
     },
     RunnerType: '',
-    evm: false,
+    IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
     TestnetDuration: 0,
@@ -171,7 +171,7 @@ const CreateWorkflow = () => {
           NumOfValidators: 0,
         },
         RunnerType: '',
-        evm: false,
+        IsEvmChain: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
         TestnetDuration: 0,
@@ -249,10 +249,10 @@ const CreateWorkflow = () => {
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
-      if (params.get('evm')) {
-        newFormData.evm = params.get('evm') === 'true';
+      if (params.get('isEvmChain')) {
+        newFormData.IsEvmChain = params.get('isEvmChain') === 'true';
         hasChanges = true;
-        console.log("Setting evm flag:", newFormData.evm);
+        console.log("Setting evm flag:", newFormData.IsEvmChain);
       }
       
       if (params.get('testnetDuration')) {
@@ -409,7 +409,7 @@ const CreateWorkflow = () => {
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
       },
-      evm: formData.evm || false,
+      IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
@@ -501,19 +501,19 @@ const CreateWorkflow = () => {
     });
   };
 
-  const setEVMGenesisModifications = () => {
+  const setEvmGenesisModifications = () => {
     setFormData({
       ...formData,
       ChainConfig: {
         ...formData.ChainConfig!,
-        GenesisModifications: [...EVM_GENESIS_MODIFICATIONS],
+        GenesisModifications: [...Evm_GENESIS_MODIFICATIONS],
       },
-      evm: true,
+      IsEvmChain: true,
     });
 
     toast({
-      title: 'EVM Genesis Modifications Set',
-      description: 'Applied EVM genesis modifications',
+      title: 'Evm Genesis Modifications Set',
+      description: 'Applied Evm genesis modifications',
       status: 'success',
       duration: 3000,
     });
@@ -687,9 +687,9 @@ const CreateWorkflow = () => {
                   colorScheme="purple"
                   variant="outline"
                   size="sm"
-                  onClick={setEVMGenesisModifications}
+                  onClick={setEvmGenesisModifications}
                 >
-                  Set EVM Genesis Modifications
+                  Set Evm Genesis Modifications
                 </Button>
               </HStack>
               

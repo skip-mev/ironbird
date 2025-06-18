@@ -54,9 +54,10 @@ var (
 )
 
 const (
-	cosmosDenom    = "stake"
-	evmDenom       = "uatom"
-	cosmosDecimals = 6
+	cosmosDenom       = "stake"
+	evmDenom          = "uatom"
+	cosmosDecimals    = 6
+	defaultEvmChainID = "4231"
 )
 
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
@@ -312,9 +313,10 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	}
 	walletConfig := CosmosWalletConfig
 
-	if req.Evm {
+	if req.IsEvmChain {
 		config.Denom = evmDenom
-		config.ChainId = "4321"
+		chainID := defaultEvmChainID
+		config.ChainId = chainID
 		config.GasPrices = "0.0005uatom"
 		config.CoinType = "60"
 		config.AdditionalStartFlags = []string{
@@ -325,10 +327,10 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		}
 		config.AdditionalPorts = []string{"8545", "8546"}
 		config.IsEVMChain = true
-		config.EVMConfig = petritypes.EVMConfig{
-			ChainId: "4321",
-		}
 		walletConfig = EvmCosmosWalletConfig
+		config.EVMConfig = petritypes.EVMConfig{
+			ChainId: chainID,
+		}
 	}
 
 	return config, walletConfig

@@ -1345,8 +1345,8 @@ github.com/sivchari/containedctx v1.0.3 h1:x+etemjbsh2fB5ewm5FeLNi5bUjK0V8n0RB+W
 github.com/sivchari/containedctx v1.0.3/go.mod h1:c1RDvCbnJLtH4lLcYD/GqwiBSSf4F5Qk0xld2rBqzJ4=
 github.com/sivchari/tenv v1.7.1 h1:PSpuD4bu6fSmtWMxSGWcvqUUgIn7k3yOJhOIzVWn8Ak=
 github.com/sivchari/tenv v1.7.1/go.mod h1:64yStXKSOxDfX47NlhVwND4dHwfZDdbp2Lyl018Icvg=
-github.com/skip-mev/catalyst v0.0.0-20250603235647-921570bedc40 h1:RZ8i8sNDhc1TANqlQH9EXcBJ7dupRlmvUF1q3CkIX1A=
-github.com/skip-mev/catalyst v0.0.0-20250603235647-921570bedc40/go.mod h1:zqJind3gSDapsJeQPaT2gQjS4znwuJIe+PwYsXf60+o=
+github.com/skip-mev/catalyst v0.0.0-20250617172958-5684c2bc01b1 h1:a4C9g/cKai33y6kPXx7ngeUGAs9inza1ln3owXl9VTI=
+github.com/skip-mev/catalyst v0.0.0-20250617172958-5684c2bc01b1/go.mod h1:zqJind3gSDapsJeQPaT2gQjS4znwuJIe+PwYsXf60+o=
 github.com/skip-mev/petri/core/v3 v3.1.3 h1:+qCuX023UYnGtDlC/+RkPx1n8hMtiSLnbQm7KeqjbHk=
 github.com/skip-mev/petri/core/v3 v3.1.3/go.mod h1:BivTT/Wxxo3l9ZXY4g3OiA9bgIKEbtyMBtv6AKgICcU=
 github.com/skip-mev/petri/cosmos/v3 v3.1.0 h1:iqVLboP2hdDzk2QeSBrX2CjMNFZtFF55CrwKyfdt1bg=

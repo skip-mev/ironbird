@@ -81,12 +81,12 @@ var (
 	}
 	gaiaReq = messages.TestnetWorkflowRequest{
 		Repo:            "gaia",
-		SHA:             "8230ca32da67b478e50656683cd5758de9dd2cc2",
-		Evm:             true,
+		SHA:             "27397363ab7f28338c59542b0c99dfe736c7032c",
+		IsEvmChain:      true,
 		RunnerType:      messages.Docker,
 		TestnetDuration: 1 * time.Minute,
 		ChainConfig: types.ChainsConfig{
-			Name: "cosmos_22222-1",
+			Name: "gaia-devnet",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
@@ -264,7 +264,8 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 			originalTag := "ghcr.io/cosmos/simapp:v0.50"
 			newTag := "simapp-v53"
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				originalTag = "ghcr.io/cosmos/gaia:na-build-arm64"
+				// TODO: replace with main once feature branch is merged to main
+				originalTag = "ghcr.io/cosmos/gaia:feature-evm"
 				newTag = "gaia"
 			}
 
@@ -359,7 +360,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 			if strings.Contains(req.SHA, gaiaReq.SHA) {
 				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
 			}
-
 			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {

@@ -40,7 +40,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	workflowReq := messages.TestnetWorkflowRequest{
 		Repo:               req.Repo,
 		SHA:                req.Sha,
-		Evm:                req.Evm,
+		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
 		TestnetDuration:    time.Duration(req.TestnetDuration),
@@ -217,7 +217,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	response.Config = &pb.CreateWorkflowRequest{
 		Repo:               workflow.Config.Repo,
 		Sha:                workflow.Config.SHA,
-		Evm:                workflow.Config.Evm,
+		IsEvmChain:         workflow.Config.IsEvmChain,
 		RunnerType:         string(workflow.Config.RunnerType),
 		LongRunningTestnet: workflow.Config.LongRunningTestnet,
 		TestnetDuration:    int64(workflow.Config.TestnetDuration.Seconds()),

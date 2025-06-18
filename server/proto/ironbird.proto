@@ -21,7 +21,7 @@ service IronbirdService {
 message CreateWorkflowRequest {
     string repo = 1;
     string sha = 2;
-    bool evm = 3;
+    bool isEvmChain = 3;
     ChainConfig chain_config = 4;
     string runner_type = 5;
     LoadTestSpec load_test_spec = 6;
@@ -59,7 +59,7 @@ message LoadTestMsg {
 message LoadTestSpec {
     string name = 1;
     string description = 2;
-    bool evm = 3;
+    bool isEvmChain = 3;
     string chain_id = 4;
     int32 num_of_txs = 5;
     int32 num_of_blocks = 6;

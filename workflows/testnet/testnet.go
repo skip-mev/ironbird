@@ -152,7 +152,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			Name:                    req.ChainConfig.Name,
 			Repo:                    req.Repo,
 			SHA:                     req.SHA,
-			Evm:                     req.Evm,
+			IsEvmChain:              req.IsEvmChain,
 			Image:                   buildResult.FQDNTag,
 			BaseImage:               req.ChainConfig.Image,
 			GenesisModifications:    req.ChainConfig.GenesisModifications,
@@ -187,7 +187,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		zap.String("workflowID", workflowID))
 
 	var loadBalancerResp messages.LaunchLoadBalancerResponse
-	domains := processDomainInfo(req.ChainConfig.Name, nodes, validators, req.Evm)
+	domains := processDomainInfo(req.ChainConfig.Name, nodes, validators, req.IsEvmChain)
 
 	if err := workflow.ExecuteActivity(
 		ctx,
@@ -221,7 +221,7 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 		messages.CreateWalletsRequest{
 			WorkflowID:    workflowID,
 			NumWallets:    req.NumWallets,
-			Evm:           req.Evm,
+			IsEvmChain:    req.IsEvmChain,
 			RunnerType:    string(req.RunnerType),
 			ChainState:    chainState,
 			ProviderState: providerState,
@@ -248,7 +248,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 		loadTestTimeout = loadTestTimeout + 1*time.Hour
 
 		var loadTestResp messages.RunLoadTestResponse
-		req.LoadTestSpec.Evm = req.Evm
+		req.LoadTestSpec.IsEvmChain = req.IsEvmChain
 		activityErr := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
@@ -257,7 +257,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				ProviderState: providerState,
 				LoadTestSpec:  *req.LoadTestSpec,
 				RunnerType:    req.RunnerType,
-				Evm:           req.Evm,
+				IsEvmChain:    req.IsEvmChain,
 				Mnemonics:     mnemonics,
 			},
 		).Get(ctx, &loadTestResp)
@@ -303,7 +303,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, req.Evm, workflowID)
+	err = setUpdateHandler(ctx, &providerState, &chainState, req.IsEvmChain, workflowID)
 	if err != nil {
 		return err
 	}
