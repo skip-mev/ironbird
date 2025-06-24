@@ -33,8 +33,24 @@ const Evm_GENESIS_MODIFICATIONS: GenesisModification[] = [
     value: "uatom",
   },
   {
-    key: "app_state.gov.deposit_params.min_deposit.0.denom",
+    key: "app_state.gov.params.expedited_voting_period",
+    value: "120s",
+  },
+  {
+    key: "app_state.gov.params.voting_period",
+    value: "300s",
+  },
+  {
+    key: "app_state.gov.params.expedited_min_deposit.0.amount",
+    value: "1",
+  },
+  {
+    key: "app_state.gov.params.expedited_min_deposit.0.denom",
     value: "uatom",
+  },
+  {
+    key: "app_state.gov.params.min_deposit.0.amount",
+    value: "1",
   },
   {
     key: "app_state.gov.params.min_deposit.0.denom",
