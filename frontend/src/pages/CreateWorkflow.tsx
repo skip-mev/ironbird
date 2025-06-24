@@ -34,11 +34,11 @@ const EVM_GENESIS_MODIFICATIONS: GenesisModification[] = [
   },
   {
     key: "app_state.gov.params.expedited_voting_period",
-    value: "10s",
+    value: "120s",
   },
   {
     key: "app_state.gov.params.voting_period",
-    value: "20s",
+    value: "300s",
   },
   {
     key: "app_state.gov.params.expedited_min_deposit.0.amount",
