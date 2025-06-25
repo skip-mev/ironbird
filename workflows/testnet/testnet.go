@@ -3,6 +3,10 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"github.com/skip-mev/ironbird/activities/explorer"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
+	"maps"
+	"slices"
 	"time"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
@@ -29,6 +33,7 @@ import (
 var testnetActivities *testnet.Activity
 var loadTestActivities *loadtest.Activity
 var builderActivities *builder.Activity
+var explorerActivities *explorer.Activity
 var loadBalancerActivities *loadbalancer.Activity
 var walletCreatorActivities *walletcreator.Activity
 
@@ -172,14 +177,14 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []*pb.Node, validators []*pb.Node) ([]byte, error) {
+	nodes []*pb.Node, validators []*pb.Node) ([]byte, map[string]apps.LoadBalancerDomain, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
 	if req.RunnerType != messages.DigitalOcean {
 		logger.Info("Skipping loadbalancer creation for non-DigitalOcean runner",
 			zap.String("runnerType", string(req.RunnerType)))
-		return providerState, nil
+		return providerState, nil, nil
 	}
 
 	logger.Info("Creating loadbalancer domains for nodes",
@@ -195,15 +200,15 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 		messages.LaunchLoadBalancerRequest{
 			ProviderState: providerState,
 			RunnerType:    req.RunnerType,
-			Domains:       domains,
+			Domains:       slices.Collect(maps.Values(domains)),
 			WorkflowID:    workflowID,
 		},
 	).Get(ctx, &loadBalancerResp); err != nil {
 		logger.Error("Failed to launch loadbalancer", zap.Error(err))
-		return providerState, err
+		return providerState, domains, err
 	}
 
-	return loadBalancerResp.ProviderState, nil
+	return loadBalancerResp.ProviderState, domains, nil
 }
 
 func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, workflowID string) ([]string, error) {
@@ -275,6 +280,22 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	return loadTestTimeout, nil
 }
 
+func launchExplorer(ctx workflow.Context, chainConfig petritypes.ChainConfig, domains map[string]apps.LoadBalancerDomain) (string, error) {
+	var autoScoutResponse messages.LaunchAutoScoutResponse
+
+	if err := workflow.ExecuteActivity(ctx, explorerActivities.LaunchAutoscout, messages.LaunchAutoScoutRequest{
+		ChainId:   chainConfig.EVMConfig.ChainId,
+		ChainName: chainConfig.Name,
+		EvmRpcUrl: fmt.Sprintf("https://%s.%s", domains["evmrpc"].Domain, loadBalancerActivities.RootDomain),
+		EvmWsUrl:  fmt.Sprintf("wss://%s.%s", domains["evmws"].Domain, loadBalancerActivities.RootDomain),
+		Token:     chainConfig.Denom,
+	}).Get(ctx, &autoScoutResponse); err != nil {
+		return "", nil
+	}
+
+	return autoScoutResponse.InstanceId, nil
+}
+
 func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
 	if runnerType == messages.DigitalOcean {
 		return messages.DigitalOceanDefaultOpts
@@ -288,9 +309,13 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		return err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
+	providerState, domains, err := launchLoadBalancer(ctx, req, providerState, nodes, validators)
 	if err != nil {
 		return err
+	}
+
+	if req.Evm && req.RunnerType == messages.DigitalOcean {
+		explorerId, err := launchExplorer(ctx, req, domains)
 	}
 
 	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)
@@ -400,8 +425,8 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 	return nil
 }
 
-func processDomainInfo(chainName string, nodes []*pb.Node, validators []*pb.Node, isEvmChain bool) []apps.LoadBalancerDomain {
-	var domains []apps.LoadBalancerDomain
+func processDomainInfo(chainName string, nodes []*pb.Node, validators []*pb.Node, isEvmChain bool) map[string]apps.LoadBalancerDomain {
+	domains := make(map[string]apps.LoadBalancerDomain)
 
 	domainTypes := map[string]string{
 		"grpc": "9090",
@@ -430,7 +455,7 @@ func processDomainInfo(chainName string, nodes []*pb.Node, validators []*pb.Node
 
 		domain.IPs = ips
 
-		domains = append(domains, domain)
+		domains[domainType] = domain
 	}
 
 	return domains
