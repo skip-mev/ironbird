@@ -13,6 +13,7 @@ import (
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"go.temporal.io/api/enums/v1"
 	temporalclient "go.temporal.io/sdk/client"
@@ -53,6 +54,33 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			Image:           req.ChainConfig.Image,
 			NumOfNodes:      req.ChainConfig.NumOfNodes,
 			NumOfValidators: req.ChainConfig.NumOfValidators,
+		}
+
+		if req.ChainConfig.AppConfig != "" {
+			var appConfig petritypes.Toml
+			if err := json.Unmarshal([]byte(req.ChainConfig.AppConfig), &appConfig); err != nil {
+				s.logger.Warn("Failed to parse app_config JSON", zap.Error(err))
+			} else {
+				chainConfig.AppConfig = appConfig
+			}
+		}
+
+		if req.ChainConfig.ConsensusConfig != "" {
+			var consensusConfig petritypes.Toml
+			if err := json.Unmarshal([]byte(req.ChainConfig.ConsensusConfig), &consensusConfig); err != nil {
+				s.logger.Warn("Failed to parse consensus_config JSON", zap.Error(err))
+			} else {
+				chainConfig.ConsensusConfig = consensusConfig
+			}
+		}
+
+		if req.ChainConfig.ClientConfig != "" {
+			var clientConfig petritypes.Toml
+			if err := json.Unmarshal([]byte(req.ChainConfig.ClientConfig), &clientConfig); err != nil {
+				s.logger.Warn("Failed to parse client_config JSON", zap.Error(err))
+			} else {
+				chainConfig.ClientConfig = clientConfig
+			}
 		}
 
 		if req.ChainConfig.GenesisModifications != nil {
@@ -189,6 +217,24 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		Image:           workflow.Config.ChainConfig.Image,
 	}
 
+	if workflow.Config.ChainConfig.AppConfig != nil {
+		if appConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.AppConfig); err == nil {
+			chainConfig.AppConfig = string(appConfigBytes)
+		}
+	}
+
+	if workflow.Config.ChainConfig.ConsensusConfig != nil {
+		if consensusConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.ConsensusConfig); err == nil {
+			chainConfig.ConsensusConfig = string(consensusConfigBytes)
+		}
+	}
+
+	if workflow.Config.ChainConfig.ClientConfig != nil {
+		if clientConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.ClientConfig); err == nil {
+			chainConfig.ClientConfig = string(clientConfigBytes)
+		}
+	}
+
 	if workflow.Config.ChainConfig.GenesisModifications != nil {
 		for _, gm := range workflow.Config.ChainConfig.GenesisModifications {
 			var valueStr string
@@ -244,7 +290,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 	)
 
 	response := &pb.WorkflowListResponse{
-		Count: int32(len(workflows)),
+		Count: int64(len(workflows)),
 	}
 
 	for _, workflow := range workflows {
@@ -260,7 +306,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		})
 	}
 
-	s.logger.Info("Returning ListWorkflows response", zap.Int32("totalCount", response.Count))
+	s.logger.Info("Returning ListWorkflows response", zap.Int64("totalCount", response.Count))
 
 	return response, nil
 }

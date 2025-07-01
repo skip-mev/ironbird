@@ -49,7 +49,10 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     numOfNodes: protoInt64.zero,
     numOfValidators: protoInt64.zero,
     image: request.ChainConfig.Image,
-    genesisModifications: []
+    genesisModifications: [],
+    appConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
+    consensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
+    clientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
   });
   
   // Add genesis modifications if available
@@ -141,7 +144,32 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
             key: gm.key,
             value: value
           };
-        })
+        }),
+        // Parse config JSON strings back to objects
+        AppConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.appConfig ? JSON.parse(workflow.config.chainConfig.appConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse app config JSON', e);
+            return undefined;
+          }
+        })(),
+        ConsensusConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.consensusConfig ? JSON.parse(workflow.config.chainConfig.consensusConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse consensus config JSON', e);
+            return undefined;
+          }
+        })(),
+        ClientConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.clientConfig ? JSON.parse(workflow.config.chainConfig.clientConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse client config JSON', e);
+            return undefined;
+          }
+        })()
       },
       LoadTestSpec: workflow.loadTestSpec ? {
         name: workflow.loadTestSpec.name,
@@ -216,7 +244,7 @@ export const workflowApi = {
         Repo: workflow.repo,
         SHA: workflow.sha
       })),
-      Count: response.count || 0
+      Count: Number(response.count) || 0
     };
   },
 
