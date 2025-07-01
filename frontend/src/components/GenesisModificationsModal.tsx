@@ -88,9 +88,9 @@ const generateSampleEvmModifications = (): GenesisModification[] => [
           }
         ],
         "base": "uatom",
-        "display": "test",
-        "name": "Test Token",
-        "symbol": "TEST",
+        "display": "atom",
+        "name": "ATOM",
+        "symbol": "ATOM",
         "uri": "",
         "uri_hash": ""
       }
