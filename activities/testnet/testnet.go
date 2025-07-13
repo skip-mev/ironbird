@@ -304,12 +304,14 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			UID:   chainImage.UID,
 			GID:   chainImage.GID,
 		},
-		GasPrices:            chainImage.GasPrices,
 		Bech32Prefix:         "cosmos",
 		HomeDir:              chainImage.HomeDir,
 		CoinType:             "118",
 		ChainId:              req.Name,
 		UseGenesisSubCommand: true,
+		AppConfig:            req.AppConfig,
+		ConsensusConfig:      req.ConsensusConfig,
+		ClientConfig:         req.ClientConfig,
 	}
 	walletConfig := CosmosWalletConfig
 
@@ -317,7 +319,6 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		config.Denom = evmDenom
 		chainID := defaultEvmChainID
 		config.ChainId = chainID
-		config.GasPrices = "0.0005uatom"
 		config.CoinType = "60"
 		config.AdditionalStartFlags = []string{
 			"--json-rpc.api", "eth,net,web3,txpool,debug",
@@ -326,11 +327,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			"--json-rpc.enable",
 		}
 		config.AdditionalPorts = []string{"8545", "8546"}
-		config.IsEVMChain = true
 		walletConfig = EvmCosmosWalletConfig
-		config.EVMConfig = petritypes.EVMConfig{
-			ChainId: chainID,
-		}
 	}
 
 	return config, walletConfig

@@ -163,6 +163,29 @@ export class ChainConfig extends Message<ChainConfig> {
    */
   image = "";
 
+  /**
+   * Node configuration overrides (JSON strings for flexible config structures)
+   *
+   * Custom configurations for app.toml (Cosmos SDK)
+   *
+   * @generated from field: string app_config = 6;
+   */
+  appConfig = "";
+
+  /**
+   * Custom configurations for config.toml (CometBFT)
+   *
+   * @generated from field: string consensus_config = 7;
+   */
+  consensusConfig = "";
+
+  /**
+   * Custom configurations for client.toml
+   *
+   * @generated from field: string client_config = 8;
+   */
+  clientConfig = "";
+
   constructor(data?: PartialMessage<ChainConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -176,6 +199,9 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 3, name: "num_of_validators", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
     { no: 4, name: "genesis_modifications", kind: "message", T: GenesisKV, repeated: true },
     { no: 5, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "app_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "consensus_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "client_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChainConfig {
@@ -987,9 +1013,9 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
   workflows: WorkflowSummary[] = [];
 
   /**
-   * @generated from field: int32 count = 2;
+   * @generated from field: int64 count = 2;
    */
-  count = 0;
+  count = protoInt64.zero;
 
   constructor(data?: PartialMessage<WorkflowListResponse>) {
     super();
@@ -1000,7 +1026,7 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
   static readonly typeName = "skip.ironbird.WorkflowListResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "workflows", kind: "message", T: WorkflowSummary, repeated: true },
-    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowListResponse {
