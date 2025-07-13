@@ -9,6 +9,9 @@ export interface ChainConfig {
   GenesisModifications: GenesisModification[];
   NumOfNodes: number;
   NumOfValidators: number;
+  AppConfig?: Record<string, any>;       
+  ConsensusConfig?: Record<string, any>; 
+  ClientConfig?: Record<string, any>;    
 }
 
 // Define message types as string literals
