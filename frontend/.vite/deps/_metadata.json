@@ -1,0 +1,83 @@
+{
+  "hash": "cefcc162",
+  "browserHash": "393ab144",
+  "optimized": {
+    "react": {
+      "src": "../../node_modules/react/index.js",
+      "file": "react.js",
+      "fileHash": "0db2bae4",
+      "needsInterop": true
+    },
+    "react-dom/client": {
+      "src": "../../node_modules/react-dom/client.js",
+      "file": "react-dom_client.js",
+      "fileHash": "8282408c",
+      "needsInterop": true
+    },
+    "@chakra-ui/react": {
+      "src": "../../node_modules/@chakra-ui/react/dist/esm/index.mjs",
+      "file": "@chakra-ui_react.js",
+      "fileHash": "d0dfda87",
+      "needsInterop": false
+    },
+    "react-router-dom": {
+      "src": "../../node_modules/react-router-dom/dist/index.js",
+      "file": "react-router-dom.js",
+      "fileHash": "c9583c59",
+      "needsInterop": false
+    },
+    "@tanstack/react-query": {
+      "src": "../../node_modules/@tanstack/react-query/build/modern/index.js",
+      "file": "@tanstack_react-query.js",
+      "fileHash": "4f9f7d90",
+      "needsInterop": false
+    },
+    "@chakra-ui/icons": {
+      "src": "../../node_modules/@chakra-ui/icons/dist/esm/index.mjs",
+      "file": "@chakra-ui_icons.js",
+      "fileHash": "95bbbf26",
+      "needsInterop": false
+    },
+    "@bufbuild/protobuf": {
+      "src": "../../node_modules/@bufbuild/protobuf/dist/esm/index.js",
+      "file": "@bufbuild_protobuf.js",
+      "fileHash": "61ee74ce",
+      "needsInterop": false
+    },
+    "@bufbuild/connect": {
+      "src": "../../node_modules/@bufbuild/connect/dist/esm/index.js",
+      "file": "@bufbuild_connect.js",
+      "fileHash": "e839786b",
+      "needsInterop": false
+    },
+    "@bufbuild/connect-web": {
+      "src": "../../node_modules/@bufbuild/connect-web/dist/esm/index.js",
+      "file": "@bufbuild_connect-web.js",
+      "fileHash": "b8038e5f",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-ZZKFHCTM": {
+      "file": "chunk-ZZKFHCTM.js"
+    },
+    "chunk-DHYSJHVG": {
+      "file": "chunk-DHYSJHVG.js"
+    },
+    "chunk-EGF62CEV": {
+      "file": "chunk-EGF62CEV.js"
+    },
+    "chunk-FPG72O4U": {
+      "file": "chunk-FPG72O4U.js"
+    },
+    "chunk-J5P5UBGQ": {
+      "file": "chunk-J5P5UBGQ.js"
+    },
+    "chunk-TNC6V2Y3": {
+      "file": "chunk-TNC6V2Y3.js"
+    },
+    "chunk-TITDT5VP": {
+      "file": "chunk-TITDT5VP.js"
+    }
+  }
+}
