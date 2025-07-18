@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"gopkg.in/yaml.v3"
 )
@@ -86,6 +87,9 @@ type ChainsConfig struct {
 	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
 	NumOfValidators      uint64                 `yaml:"num_of_validators"`
+	AppConfig            petritypes.Toml        `yaml:"app_config"`
+	ConsensusConfig      petritypes.Toml        `yaml:"consensus_config"`
+	ClientConfig         petritypes.Toml        `yaml:"client_config"`
 }
 
 type GrafanaConfig struct {

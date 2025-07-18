@@ -53,7 +53,6 @@ chains:
     uid: "1000"
     binary_name: test-binary
     home_dir: /home/test
-    gas_prices: 0.025stake
 grafana:
   url: http://grafana:3000
   dashboards:
@@ -104,7 +103,6 @@ server_address: localhost:9006
 		assert.Equal(t, "1000", config.Chains["test-chain"].UID)
 		assert.Equal(t, "test-binary", config.Chains["test-chain"].BinaryName)
 		assert.Equal(t, "/home/test", config.Chains["test-chain"].HomeDir)
-		assert.Equal(t, "0.025stake", config.Chains["test-chain"].GasPrices)
 
 		assert.Equal(t, "http://grafana:3000", config.Grafana.URL)
 		assert.Len(t, config.Grafana.Dashboards, 1)

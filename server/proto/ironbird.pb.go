@@ -188,6 +188,9 @@ type ChainConfig struct {
 	NumOfValidators      uint64                 `protobuf:"varint,3,opt,name=num_of_validators,json=numOfValidators,proto3" json:"num_of_validators,omitempty"`
 	GenesisModifications []*GenesisKV           `protobuf:"bytes,4,rep,name=genesis_modifications,json=genesisModifications,proto3" json:"genesis_modifications,omitempty"`
 	Image                string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	AppConfig            string                 `protobuf:"bytes,6,opt,name=app_config,json=appConfig,proto3" json:"app_config,omitempty"`                   // Custom configurations for app.toml (Cosmos SDK)
+	ConsensusConfig      string                 `protobuf:"bytes,7,opt,name=consensus_config,json=consensusConfig,proto3" json:"consensus_config,omitempty"` // Custom configurations for config.toml (CometBFT)
+	ClientConfig         string                 `protobuf:"bytes,8,opt,name=client_config,json=clientConfig,proto3" json:"client_config,omitempty"`          // Custom configurations for client.toml
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -253,6 +256,27 @@ func (x *ChainConfig) GetGenesisModifications() []*GenesisKV {
 func (x *ChainConfig) GetImage() string {
 	if x != nil {
 		return x.Image
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetAppConfig() string {
+	if x != nil {
+		return x.AppConfig
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetConsensusConfig() string {
+	if x != nil {
+		return x.ConsensusConfig
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetClientConfig() string {
+	if x != nil {
+		return x.ClientConfig
 	}
 	return ""
 }
@@ -1228,7 +1252,7 @@ func (x *UpdateWorkflowDataRequest) GetWallets() *WalletInfo {
 type WorkflowListResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Workflows     []*WorkflowSummary     `protobuf:"bytes,1,rep,name=workflows,proto3" json:"workflows,omitempty"`
-	Count         int32                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	Count         int64                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1270,7 +1294,7 @@ func (x *WorkflowListResponse) GetWorkflows() []*WorkflowSummary {
 	return nil
 }
 
-func (x *WorkflowListResponse) GetCount() int32 {
+func (x *WorkflowListResponse) GetCount() int64 {
 	if x != nil {
 		return x.Count
 	}
@@ -1298,14 +1322,18 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"numWallets\"3\n" +
 	"\tGenesisKV\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xd4\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xc3\x02\n" +
 	"\vChainConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\fnum_of_nodes\x18\x02 \x01(\x04R\n" +
 	"numOfNodes\x12*\n" +
 	"\x11num_of_validators\x18\x03 \x01(\x04R\x0fnumOfValidators\x12M\n" +
 	"\x15genesis_modifications\x18\x04 \x03(\v2\x18.skip.ironbird.GenesisKVR\x14genesisModifications\x12\x14\n" +
-	"\x05image\x18\x05 \x01(\tR\x05image\"3\n" +
+	"\x05image\x18\x05 \x01(\tR\x05image\x12\x1d\n" +
+	"\n" +
+	"app_config\x18\x06 \x01(\tR\tappConfig\x12)\n" +
+	"\x10consensus_config\x18\a \x01(\tR\x0fconsensusConfig\x12#\n" +
+	"\rclient_config\x18\b \x01(\tR\fclientConfig\"3\n" +
 	"\vNodeAddress\x12\x12\n" +
 	"\x04grpc\x18\x01 \x01(\tR\x04grpc\x12\x10\n" +
 	"\x03rpc\x18\x02 \x01(\tR\x03rpc\"\xa7\x01\n" +
@@ -1410,7 +1438,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"j\n" +
 	"\x14WorkflowListResponse\x12<\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1e.skip.ironbird.WorkflowSummaryR\tworkflows\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count2\x84\x05\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count2\x84\x05\n" +
 	"\x0fIronbirdService\x12Y\n" +
 	"\x0eCreateWorkflow\x12$.skip.ironbird.CreateWorkflowRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00\x12K\n" +
 	"\vGetWorkflow\x12!.skip.ironbird.GetWorkflowRequest\x1a\x17.skip.ironbird.Workflow\"\x00\x12[\n" +
