@@ -1,9 +1,9 @@
 temporal:
-  host: 127.0.0.1:7233
+  host: temporal:7233
   namespace: default
 
 builder:
-  build_kit_address: "tcp://localhost:1234"
+  build_kit_address: "tcp://buildkitd:1234"
   registry:
     url: "public.ecr.aws"
     image_name: "n7v2p5f8/skip-mev/ironbird-local"
@@ -26,8 +26,8 @@ telemetry:
 
 load_balancer:
   root_domain: ib-local.dev.skip.build
-  ssl_key_path: conf/ib-local-key.pem
-  ssl_cert_path: conf/ib-local-cert.pem
+  ssl_key_path: /conf/ib-local-key.pem
+  ssl_cert_path: /conf/ib-local-cert.pem
 
 chains:
   gaia:

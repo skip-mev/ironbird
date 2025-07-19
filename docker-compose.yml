@@ -1,0 +1,114 @@
+services:
+  postgresql:
+    container_name: temporal-postgresql
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+    image: postgres:13
+    ports:
+      - "5432:5432"
+
+  temporal:
+    container_name: temporal
+    depends_on:
+      - postgresql
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+    image: temporalio/auto-setup:1.22.0
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker.Dockerfile
+    container_name: ironbird-worker
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - DIGITALOCEAN_TOKEN=${DIGITALOCEAN_TOKEN}
+      - TS_NODE_AUTH_KEY=${TS_NODE_AUTH_KEY}
+      - TS_SERVER_OAUTH_SECRET=${TS_SERVER_OAUTH_SECRET}
+    volumes:
+      - ~/.aws:/root/.aws:ro
+      - ./conf:/conf:ro
+      - ./hack:/hack:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - temporal
+      - buildkitd
+      - server
+    entrypoint: ["/bin/sh"]
+    command: ["-c", "sleep 10 && worker -config /conf/worker.yaml"]
+
+  server:
+    build:
+      context: .
+      dockerfile: server.Dockerfile
+    container_name: ironbird-server
+    environment:
+      - DB_PATH=/data/ironbird.db
+    volumes:
+      - ./conf:/conf:ro
+      - server_data:/data
+    depends_on:
+      - temporal
+    ports:
+      - "9006:9006"
+      - "9007:9007"
+    entrypoint: ["/bin/sh"]
+    command: ["-c", "sleep 10 && server -config /conf/server.yaml"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ironbird-frontend
+    environment:
+      - VITE_IRONBIRD_GRPC_ADDRESS=http://localhost:9007
+    depends_on:
+      - server
+    ports:
+      - "3001:5173"
+
+  buildkitd:
+    image: moby/buildkit:latest
+    container_name: ironbird-buildkit
+    privileged: true
+    command: --addr tcp://0.0.0.0:1234
+    ports:
+      - "1234:1234"
+    volumes:
+      - buildkit_data:/var/lib/buildkit
+
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.22.0
+    stdin_open: true
+    tty: true
+
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:2.21.3
+    ports:
+      - "8080:8080"
+
+volumes:
+  server_data:
+  buildkit_data:

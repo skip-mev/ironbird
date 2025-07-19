@@ -1,6 +1,6 @@
 {
-  "Repo": "ironbird-cosmos-sdk",
-  "SHA": "3de8d67d5feb33fad8d3e54236bec1428af3fe6b",
+  "Repo": "cosmos-sdk",
+  "SHA": "c4a14fa7b6828432fdabdb8b4af68ade9403ce49",
   "IsEvmChain": false,
   "ChainConfig": {
     "Name": "cosmos",
@@ -14,7 +14,7 @@
       }
     ]
   },
-  "RunnerType": "DigitalOcean",
+  "RunnerType": "Docker",
   "LoadTestSpec": {
     "Name": "unordered_test_bird",
     "NumOfBlocks": 100,
@@ -24,8 +24,7 @@
         "Weight": 1,
         "Type": "MsgMultiSend",
         "NumOfRecipients": 20,
-        "UnorderedTxs": true,
-        "TxTimeout": "5m"
+        "UnorderedTxs": false 
       }
     ]
   },

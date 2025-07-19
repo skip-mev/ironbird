@@ -45,6 +45,18 @@ ${SERVER_BIN}: ${GO_FILES} ${GO_DEPS}
 .PHONY: build
 build: ${WORKER_BIN} ${SERVER_BIN}
 
+.PHONY: start-frontend
+start-frontend:
+	cd frontend && npm install --legacy-peer-deps && npm run dev
+
+.PHONY: start-backend
+start-backend:
+	go run ./server/cmd/main.go
+
+.PHONY: dev
+dev:
+	make -j2 start-frontend start-backend
+
 ###############################################################################
 ###                                  Proto                                  ###
 ###############################################################################
@@ -108,51 +120,57 @@ govulncheck: tidy
 
 .PHONY: lint lint-fix lint-markdown govulncheck ⏎
 
-.PHONY: start-frontend
-start-frontend:
-	cd frontend && npm install --legacy-peer-deps && npm run dev
-
-.PHONY: start-backend
-start-backend:
-	go run ./server/cmd/main.go
-
-.PHONY: dev
-dev:
-	make -j2 start-frontend start-backend
-
 ###############################################################################
 ###                                Docker                                   ###
 ###############################################################################
 
-.PHONY: docker-build docker-up docker-down docker-logs docker-dev
+.PHONY: docker-up docker-down
 
-# Build Docker images
-docker-build:
-	@echo "--> Building Docker images..."
-	docker-compose build
-
-# Start services in production mode
 docker-up:
 	@echo "--> Starting services with Docker Compose..."
 	docker-compose up -d
 
-# Stop and remove services
 docker-down:
-	@echo "--> Stopping services..."
+	@echo "--> Stopping services with Docker Compose..."
 	docker-compose down
 
-# View logs from all services
-docker-logs:
-	@echo "--> Showing logs..."
-	docker-compose logs -f
+###############################################################################
+###                           Local Development                             ###
+###############################################################################
 
-# Start services in development mode (with logs)
-docker-dev:
-	@echo "--> Starting services in development mode..."
-	docker-compose up --build
+.PHONY: install-deps generate-certs first-time-setup
 
-# Clean up Docker resources
-docker-clean:
-	@echo "--> Cleaning up Docker resources..."
-	docker-compose down --volumes --remove-orphans
-	docker system prune -f
+install-deps:
+	@echo "📦 Installing dependencies via Homebrew..."
+	@brew install docker docker-compose awscli aws-vault openssl make temporal || echo "⚠️  Some packages may already be installed"
+	@echo "✅ All dependencies installed!"
+	@echo ""
+	@echo "⚠️  Make sure to start Docker Desktop before running services"
+
+generate-certs:
+	@echo "🔐 Generating SSL certificates..."
+	@mkdir -p conf
+	@if [ -f "conf/ib-local-key.pem" ] && [ -f "conf/ib-local-cert.pem" ]; then \
+		echo "⚠️  Certificates already exist, skipping generation"; \
+	else \
+		openssl genrsa -out conf/ib-local-key.pem 2048 && \
+		openssl req -x509 -new -nodes -key conf/ib-local-key.pem -sha256 -days 1825 -out conf/ib-local-cert.pem \
+			-subj "/C=/ST=/L=/O=/OU=/CN=localhost" && \
+		echo "✅ SSL certificates generated successfully"; \
+	fi
+
+first-time-setup: install-deps generate-certs
+	@echo ""
+	@echo "🎉 First-time setup complete!"
+	@echo ""
+	@echo "📋 Next steps:"
+	@echo "   1. Start Docker Desktop"
+	@echo "   2. Authenticate with AWS:"
+	@echo "      aws sso login --profile <aws_profile>"
+	@echo "      aws-vault exec <aws_profile>"
+	@echo "   3. Configure environment:"
+	@echo "      cp env.example .env"
+	@echo "      # Edit .env with your DigitalOcean and Tailscale credentials"
+	@echo "   4. Start services:"
+	@echo "      docker-compose up"
+	@echo ""
