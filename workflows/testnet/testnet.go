@@ -33,9 +33,10 @@ var loadBalancerActivities *loadbalancer.Activity
 var walletCreatorActivities *walletcreator.Activity
 
 const (
-	defaultRuntime = time.Hour
-	updateHandler  = "chain_update"
-	shutdownSignal = "shutdown"
+	defaultRuntime  = time.Minute * 2
+	loadTestTimeout = time.Hour
+	updateHandler   = "chain_update"
+	shutdownSignal  = "shutdown"
 )
 
 var (
@@ -60,23 +61,38 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 	return nil
 }
 
-func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest, testnetRuntime time.Duration, providerState []byte) error {
+func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
+	selector workflow.Selector, providerState []byte) {
+	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
-		signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
-		workflow.GetLogger(ctx).Info("testnet is in long-running mode, waiting for shutdown signal")
-		signalChan.Receive(ctx, nil)
-
-		workflow.GetLogger(ctx).Info("received shutdown signal for long running testnet, no resources will be deleted")
-		return nil
+		workflow.GetLogger(ctx).Info("testnet is in long-running mode")
+		f, setter := workflow.NewFuture(ctx)
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			workflow.GetLogger(ctx).Info("waiting for shutdown signal")
+			signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
+			signalChan.Receive(ctx, nil)
+			workflow.GetLogger(ctx).Info("received shutdown signal for testnet")
+			setter.SetError(nil)
+		})
+		selector.AddFuture(f, func(f workflow.Future) {
+			workflow.GetLogger(ctx).Info("tearing down long-running testnet")
+			err := teardownProvider(ctx, req.RunnerType, providerState)
+			if err != nil {
+				workflow.GetLogger(ctx).Error("got error tearing down testnet", zap.Error(err))
+			}
+		})
+	} else if req.LoadTestSpec == nil {
+		// 3. No load test and not long-running will end after the timeout timer
+		networkTimeout := max(req.TestnetDuration, defaultRuntime)
+		f := workflow.NewTimer(ctx, networkTimeout)
+		selector.AddFuture(f, func(f workflow.Future) {
+			workflow.GetLogger(ctx).Info("tearing down timed testnet")
+			err := teardownProvider(ctx, req.RunnerType, providerState)
+			if err != nil {
+				workflow.GetLogger(ctx).Error("got error tearing down testnet", zap.Error(err))
+			}
+		})
 	}
-
-	workflow.GetLogger(ctx).Info("setting testnet timer", zap.Duration("duration", testnetRuntime))
-	if err := workflow.NewTimer(ctx, testnetRuntime).Get(ctx, nil); err != nil {
-		workflow.GetLogger(ctx).Error("timer error", zap.Error(err))
-		return err
-	}
-
-	return teardownProvider(ctx, req.RunnerType, providerState)
 }
 
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
@@ -237,19 +253,15 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 	return createWalletsResp.Mnemonics, nil
 }
 
-func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, mnemonics []string) (time.Duration, error) {
-	var loadTestTimeout time.Duration
+func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
+	mnemonics []string, selector workflow.Selector) error {
 	if req.LoadTestSpec == nil {
-		return 0, nil
+		return nil
 	}
-
 	workflow.Go(ctx, func(ctx workflow.Context) {
-		loadTestTimeout = time.Duration(req.LoadTestSpec.NumOfBlocks*2) * time.Second
-		loadTestTimeout = loadTestTimeout + 1*time.Hour
-
 		var loadTestResp messages.RunLoadTestResponse
 		req.LoadTestSpec.IsEvmChain = req.IsEvmChain
-		activityErr := workflow.ExecuteActivity(
+		f := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
 			messages.RunLoadTestRequest{
@@ -260,19 +272,24 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				IsEvmChain:    req.IsEvmChain,
 				Mnemonics:     mnemonics,
 			},
-		).Get(ctx, &loadTestResp)
+		)
 
-		if activityErr != nil {
-			workflow.GetLogger(ctx).Error("load test activity failed", zap.Error(activityErr))
-			return
-		}
+		selector.AddFuture(f, func(f workflow.Future) {
+			activityErr := f.Get(ctx, &loadTestResp)
+			if activityErr != nil {
+				workflow.GetLogger(ctx).Error("load test activity failed", zap.Error(activityErr))
+			} else if loadTestResp.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
+			}
+			err := teardownProvider(ctx, req.RunnerType, providerState)
+			if err != nil {
+				workflow.GetLogger(ctx).Error("teardown provider reported an error", zap.Error(err))
+			}
+		})
 
-		if loadTestResp.Result.Error != "" {
-			workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
-		}
 	})
 
-	return loadTestTimeout, nil
+	return nil
 }
 
 func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
@@ -298,7 +315,9 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
 	}
 
-	loadTestTimeout, err := runLoadTest(ctx, req, chainState, providerState, mnemonics)
+	shutdownSelector := workflow.NewSelector(ctx)
+	// 1. load test selector
+	err = runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
@@ -308,11 +327,10 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		return err
 	}
 
-	testnetRuntime := max(defaultRuntime, req.TestnetDuration, loadTestTimeout)
+	waitForTestnetCompletion(ctx, req, shutdownSelector, providerState)
 
-	if err := waitForTestnetCompletion(ctx, req, testnetRuntime, providerState); err != nil {
-		return err
-	}
+	// Wait for shutdown
+	shutdownSelector.Select(ctx)
 
 	return nil
 }
