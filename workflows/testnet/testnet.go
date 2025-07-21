@@ -72,12 +72,12 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			workflow.GetLogger(ctx).Info("received shutdown signal for testnet")
 			setter.SetError(nil)
 		})
-		selector.AddFuture(f, nil)
+		selector.AddFuture(f, func(_ workflow.Future) {})
 	} else if req.LoadTestSpec == nil {
 		// 3. No load test and not long-running will end after the timeout timer
 		networkTimeout := max(req.TestnetDuration, defaultRuntime)
 		f := workflow.NewTimer(ctx, networkTimeout)
-		selector.AddFuture(f, nil)
+		selector.AddFuture(f, func(_ workflow.Future) {})
 
 	}
 }
@@ -298,6 +298,11 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
 	}
 
+	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
+	defer func() {
+		teardownProvider(cleanupCtx, req.RunnerType, providerState)
+	}()
+
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
 	err = runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
@@ -314,11 +319,6 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	// Wait for shutdown
 	shutdownSelector.Select(ctx)
-
-	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
-	defer func() {
-		teardownProvider(cleanupCtx, req.RunnerType, providerState)
-	}()
 
 	return nil
 }
