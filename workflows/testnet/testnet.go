@@ -48,7 +48,7 @@ var (
 	}
 )
 
-func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) error {
+func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) {
 	workflow.GetLogger(ctx).Info("tearing down provider")
 	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
 		RunnerType:    runnerType,
@@ -56,9 +56,7 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 	}).Get(ctx, nil)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("failed to teardown provider", zap.Error(err))
-		return err
 	}
-	return nil
 }
 
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
@@ -74,24 +72,13 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			workflow.GetLogger(ctx).Info("received shutdown signal for testnet")
 			setter.SetError(nil)
 		})
-		selector.AddFuture(f, func(f workflow.Future) {
-			workflow.GetLogger(ctx).Info("tearing down long-running testnet")
-			err := teardownProvider(ctx, req.RunnerType, providerState)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("got error tearing down testnet", zap.Error(err))
-			}
-		})
+		selector.AddFuture(f, nil)
 	} else if req.LoadTestSpec == nil {
 		// 3. No load test and not long-running will end after the timeout timer
 		networkTimeout := max(req.TestnetDuration, defaultRuntime)
 		f := workflow.NewTimer(ctx, networkTimeout)
-		selector.AddFuture(f, func(f workflow.Future) {
-			workflow.GetLogger(ctx).Info("tearing down timed testnet")
-			err := teardownProvider(ctx, req.RunnerType, providerState)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("got error tearing down testnet", zap.Error(err))
-			}
-		})
+		selector.AddFuture(f, nil)
+
 	}
 }
 
@@ -281,10 +268,6 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 			} else if loadTestResp.Result.Error != "" {
 				workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
 			}
-			err := teardownProvider(ctx, req.RunnerType, providerState)
-			if err != nil {
-				workflow.GetLogger(ctx).Error("teardown provider reported an error", zap.Error(err))
-			}
 		})
 
 	})
@@ -331,6 +314,11 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	// Wait for shutdown
 	shutdownSelector.Select(ctx)
+
+	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
+	defer func() {
+		teardownProvider(cleanupCtx, req.RunnerType, providerState)
+	}()
 
 	return nil
 }
