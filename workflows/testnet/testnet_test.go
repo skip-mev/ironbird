@@ -463,7 +463,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
 }
@@ -503,7 +503,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 2)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 0)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
 }
