@@ -41,10 +41,9 @@ message ChainConfig {
     uint64 num_of_validators = 3;
     repeated GenesisKV genesis_modifications = 4;
     string image = 5;
-    // Node configuration overrides (JSON strings for flexible config structures)
-    string custom_app_config = 6;       // Custom configurations for app.toml (Cosmos SDK)
-    string custom_consensus_config = 7; // Custom configurations for config.toml (CometBFT)
-    string custom_client_config = 8;    // Custom configurations for client.toml
+    string custom_app_config = 6;       
+    string custom_consensus_config = 7; 
+    string custom_client_config = 8;    
 }
 
 message NodeAddress {

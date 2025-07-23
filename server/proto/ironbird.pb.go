@@ -182,16 +182,15 @@ func (x *GenesisKV) GetValue() string {
 }
 
 type ChainConfig struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Name                 string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	NumOfNodes           uint64                 `protobuf:"varint,2,opt,name=num_of_nodes,json=numOfNodes,proto3" json:"num_of_nodes,omitempty"`
-	NumOfValidators      uint64                 `protobuf:"varint,3,opt,name=num_of_validators,json=numOfValidators,proto3" json:"num_of_validators,omitempty"`
-	GenesisModifications []*GenesisKV           `protobuf:"bytes,4,rep,name=genesis_modifications,json=genesisModifications,proto3" json:"genesis_modifications,omitempty"`
-	Image                string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
-	// Node configuration overrides (JSON strings for flexible config structures)
-	CustomAppConfig       string `protobuf:"bytes,6,opt,name=custom_app_config,json=customAppConfig,proto3" json:"custom_app_config,omitempty"`                   // Custom configurations for app.toml (Cosmos SDK)
-	CustomConsensusConfig string `protobuf:"bytes,7,opt,name=custom_consensus_config,json=customConsensusConfig,proto3" json:"custom_consensus_config,omitempty"` // Custom configurations for config.toml (CometBFT)
-	CustomClientConfig    string `protobuf:"bytes,8,opt,name=custom_client_config,json=customClientConfig,proto3" json:"custom_client_config,omitempty"`          // Custom configurations for client.toml
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Name                  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	NumOfNodes            uint64                 `protobuf:"varint,2,opt,name=num_of_nodes,json=numOfNodes,proto3" json:"num_of_nodes,omitempty"`
+	NumOfValidators       uint64                 `protobuf:"varint,3,opt,name=num_of_validators,json=numOfValidators,proto3" json:"num_of_validators,omitempty"`
+	GenesisModifications  []*GenesisKV           `protobuf:"bytes,4,rep,name=genesis_modifications,json=genesisModifications,proto3" json:"genesis_modifications,omitempty"`
+	Image                 string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	CustomAppConfig       string                 `protobuf:"bytes,6,opt,name=custom_app_config,json=customAppConfig,proto3" json:"custom_app_config,omitempty"`
+	CustomConsensusConfig string                 `protobuf:"bytes,7,opt,name=custom_consensus_config,json=customConsensusConfig,proto3" json:"custom_consensus_config,omitempty"`
+	CustomClientConfig    string                 `protobuf:"bytes,8,opt,name=custom_client_config,json=customClientConfig,proto3" json:"custom_client_config,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }

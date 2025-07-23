@@ -164,24 +164,16 @@ export class ChainConfig extends Message<ChainConfig> {
   image = "";
 
   /**
-   * Node configuration overrides (JSON strings for flexible config structures)
-   *
-   * Custom configurations for app.toml (Cosmos SDK)
-   *
    * @generated from field: string custom_app_config = 6;
    */
   customAppConfig = "";
 
   /**
-   * Custom configurations for config.toml (CometBFT)
-   *
    * @generated from field: string custom_consensus_config = 7;
    */
   customConsensusConfig = "";
 
   /**
-   * Custom configurations for client.toml
-   *
    * @generated from field: string custom_client_config = 8;
    */
   customClientConfig = "";
