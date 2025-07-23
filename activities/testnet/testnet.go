@@ -330,8 +330,14 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		}
 		config.AdditionalPorts = []string{"8545", "8546"}
 		walletConfig = EvmCosmosWalletConfig
-		config.EVMConfig = petritypes.EVMConfig{
-			ChainId: chainID,
+		if config.CustomAppConfig == nil {
+			config.CustomAppConfig = make(map[string]interface{})
+		}
+		if config.CustomAppConfig["evm"] == nil {
+			config.CustomAppConfig["evm"] = make(map[string]interface{})
+		}
+		if evmConfig, ok := config.CustomAppConfig["evm"].(map[string]interface{}); ok {
+			evmConfig["evm-chain-id"] = chainID
 		}
 	}
 
