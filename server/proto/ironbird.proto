@@ -42,9 +42,9 @@ message ChainConfig {
     repeated GenesisKV genesis_modifications = 4;
     string image = 5;
     // Node configuration overrides (JSON strings for flexible config structures)
-    string app_config = 6;       // Custom configurations for app.toml (Cosmos SDK)
-    string consensus_config = 7; // Custom configurations for config.toml (CometBFT)
-    string client_config = 8;    // Custom configurations for client.toml
+    string custom_app_config = 6;       // Custom configurations for app.toml (Cosmos SDK)
+    string custom_consensus_config = 7; // Custom configurations for config.toml (CometBFT)
+    string custom_client_config = 8;    // Custom configurations for client.toml
 }
 
 message NodeAddress {
@@ -149,5 +149,5 @@ message UpdateWorkflowDataRequest {
 
 message WorkflowListResponse {
     repeated WorkflowSummary workflows = 1;
-    int64 count = 2;
+    int32 count = 2;
 }

@@ -244,7 +244,7 @@ export const workflowApi = {
         Repo: workflow.repo,
         SHA: workflow.sha
       })),
-      Count: Number(response.count) || 0
+      Count: response.count || 0
     };
   },
 

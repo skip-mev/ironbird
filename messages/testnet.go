@@ -8,7 +8,6 @@ import (
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
-	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
@@ -55,9 +54,9 @@ type LaunchTestnetRequest struct {
 	NumOfValidators uint64
 	NumOfNodes      uint64
 
-	AppConfig       petritypes.Toml
-	ConsensusConfig petritypes.Toml
-	ClientConfig    petritypes.Toml
+	CustomAppConfig       map[string]interface{}
+	CustomConsensusConfig map[string]interface{}
+	CustomClientConfig    map[string]interface{}
 
 	ProviderState []byte
 }

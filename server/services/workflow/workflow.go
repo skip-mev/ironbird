@@ -13,7 +13,6 @@ import (
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
-	petritypes "github.com/skip-mev/petri/core/v3/types"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"go.temporal.io/api/enums/v1"
 	temporalclient "go.temporal.io/sdk/client"
@@ -56,30 +55,30 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			NumOfValidators: req.ChainConfig.NumOfValidators,
 		}
 
-		if req.ChainConfig.AppConfig != "" {
-			var appConfig petritypes.Toml
-			if err := json.Unmarshal([]byte(req.ChainConfig.AppConfig), &appConfig); err != nil {
+		if req.ChainConfig.CustomAppConfig != "" {
+			var appConfig map[string]interface{}
+			if err := json.Unmarshal([]byte(req.ChainConfig.CustomAppConfig), &appConfig); err != nil {
 				s.logger.Warn("Failed to parse app_config JSON", zap.Error(err))
 			} else {
-				chainConfig.AppConfig = appConfig
+				chainConfig.CustomAppConfig = appConfig
 			}
 		}
 
-		if req.ChainConfig.ConsensusConfig != "" {
-			var consensusConfig petritypes.Toml
-			if err := json.Unmarshal([]byte(req.ChainConfig.ConsensusConfig), &consensusConfig); err != nil {
+		if req.ChainConfig.CustomConsensusConfig != "" {
+			var consensusConfig map[string]interface{}
+			if err := json.Unmarshal([]byte(req.ChainConfig.CustomConsensusConfig), &consensusConfig); err != nil {
 				s.logger.Warn("Failed to parse consensus_config JSON", zap.Error(err))
 			} else {
-				chainConfig.ConsensusConfig = consensusConfig
+				chainConfig.CustomConsensusConfig = consensusConfig
 			}
 		}
 
-		if req.ChainConfig.ClientConfig != "" {
-			var clientConfig petritypes.Toml
-			if err := json.Unmarshal([]byte(req.ChainConfig.ClientConfig), &clientConfig); err != nil {
+		if req.ChainConfig.CustomClientConfig != "" {
+			var clientConfig map[string]interface{}
+			if err := json.Unmarshal([]byte(req.ChainConfig.CustomClientConfig), &clientConfig); err != nil {
 				s.logger.Warn("Failed to parse client_config JSON", zap.Error(err))
 			} else {
-				chainConfig.ClientConfig = clientConfig
+				chainConfig.CustomClientConfig = clientConfig
 			}
 		}
 
@@ -217,21 +216,21 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		Image:           workflow.Config.ChainConfig.Image,
 	}
 
-	if workflow.Config.ChainConfig.AppConfig != nil {
-		if appConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.AppConfig); err == nil {
-			chainConfig.AppConfig = string(appConfigBytes)
+	if workflow.Config.ChainConfig.CustomAppConfig != nil {
+		if appConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.CustomAppConfig); err == nil {
+			chainConfig.CustomAppConfig = string(appConfigBytes)
 		}
 	}
 
-	if workflow.Config.ChainConfig.ConsensusConfig != nil {
-		if consensusConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.ConsensusConfig); err == nil {
-			chainConfig.ConsensusConfig = string(consensusConfigBytes)
+	if workflow.Config.ChainConfig.CustomConsensusConfig != nil {
+		if consensusConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.CustomConsensusConfig); err == nil {
+			chainConfig.CustomConsensusConfig = string(consensusConfigBytes)
 		}
 	}
 
-	if workflow.Config.ChainConfig.ClientConfig != nil {
-		if clientConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.ClientConfig); err == nil {
-			chainConfig.ClientConfig = string(clientConfigBytes)
+	if workflow.Config.ChainConfig.CustomClientConfig != nil {
+		if clientConfigBytes, err := json.Marshal(workflow.Config.ChainConfig.CustomClientConfig); err == nil {
+			chainConfig.CustomClientConfig = string(clientConfigBytes)
 		}
 	}
 
@@ -290,7 +289,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 	)
 
 	response := &pb.WorkflowListResponse{
-		Count: int64(len(workflows)),
+		Count: int32(len(workflows)),
 	}
 
 	for _, workflow := range workflows {
@@ -306,7 +305,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		})
 	}
 
-	s.logger.Info("Returning ListWorkflows response", zap.Int64("totalCount", response.Count))
+	s.logger.Info("Returning ListWorkflows response", zap.Int32("totalCount", response.Count))
 
 	return response, nil
 }

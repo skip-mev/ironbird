@@ -19,7 +19,6 @@ import {
   VStack,
   Flex,
   FormHelperText,
-  Textarea,
 } from '@chakra-ui/react';
 import { useMutation } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
@@ -28,95 +27,6 @@ import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 import ChainConfigsModal from '../components/ChainConfigsModal';
 import GenesisModificationsModal from '../components/GenesisModificationsModal';
-
-// Helper functions to generate default configs (based on backend GenerateDefault* functions)
-const generateDefaultAppConfig = (gasPrices: string, isEvm: boolean = false, evmChainId: string = "4231") => {
-  const config: any = {
-    "minimum-gas-prices": gasPrices,
-    "grpc": {
-      "address": "0.0.0.0:9090"
-    },
-    "api": {
-      "enable": true,
-      "swagger": true,
-      "address": "tcp://0.0.0.0:1317"
-    },
-    "telemetry": {
-      "enabled": true,
-      "prometheus-retention-time": 3600
-    }
-  };
-
-  if (isEvm) {
-    config["evm"] = {
-      "tracer": "",
-      "max-tx-gas-wanted": 0,
-      "cache-preimage": false,
-      "evm-chain-id": evmChainId
-    };
-
-    config["json-rpc"] = {
-      "enable": true,
-      "address": "127.0.0.1:8545",
-      "ws-address": "127.0.0.1:8546",
-      "api": "eth,net,web3",
-      "gas-cap": 25000000,
-      "allow-insecure-unlock": true,
-      "evm-timeout": "5s",
-      "txfee-cap": 1,
-      "filter-cap": 200,
-      "feehistory-cap": 100,
-      "logs-cap": 10000,
-      "block-range-cap": 10000,
-      "http-timeout": "30s",
-      "http-idle-timeout": "2m0s",
-      "allow-unprotected-txs": false,
-      "max-open-connections": 0,
-      "enable-indexer": false,
-      "metrics-address": "127.0.0.1:6065",
-      "fix-revert-gas-refund-height": 0
-    };
-  }
-
-  return config;
-};
-
-const generateDefaultConsensusConfig = () => ({
-  "log_level": "info",
-  "p2p": {
-    "allow_duplicate_ip": true,
-    "addr_book_strict": false
-  },
-  "consensus": {
-    "timeout_commit": "2s",
-    "timeout_propose": "2s"
-  },
-  "instrumentation": {
-    "prometheus": true
-  },
-  "rpc": {
-    "laddr": "tcp://0.0.0.0:26657",
-    "allowed_origins": ["*"]
-  }
-});
-
-const generateDefaultClientConfig = (chainId: string) => ({
-  "chain-id": chainId,
-  "keyring-backend": "test",
-  "output": "text",
-  "node": "http://localhost:26657",
-  "broadcast-mode": "sync"
-});
-
-// Helper function to get gas prices based on repository
-const getGasPricesForRepo = (repo: string): string => {
-  switch (repo) {
-    case 'gaia':
-      return '0.00025uatom';
-    default:
-      return '0.0005stake';
-  }
-};
 
 const CreateWorkflow = () => {
   const navigate = useNavigate();
@@ -615,7 +525,7 @@ const CreateWorkflow = () => {
                   variant="outline"
                   onClick={() => setIsChainConfigsModalOpen(true)}
                 >
-                  Set Chain Configs
+                  Set Custom Chain Config
                 </Button>
               </HStack>
 

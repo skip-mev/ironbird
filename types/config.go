@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"gopkg.in/yaml.v3"
 )
@@ -82,14 +81,14 @@ type RegistryConfig struct {
 }
 
 type ChainsConfig struct {
-	Name                 string                 `yaml:"name"`
-	Image                string                 `yaml:"image"`
-	GenesisModifications []petrichain.GenesisKV `yaml:"genesis_modifications"`
-	NumOfNodes           uint64                 `yaml:"num_of_nodes"`
-	NumOfValidators      uint64                 `yaml:"num_of_validators"`
-	AppConfig            petritypes.Toml        `yaml:"app_config"`
-	ConsensusConfig      petritypes.Toml        `yaml:"consensus_config"`
-	ClientConfig         petritypes.Toml        `yaml:"client_config"`
+	Name                  string                 `yaml:"name"`
+	Image                 string                 `yaml:"image"`
+	GenesisModifications  []petrichain.GenesisKV `yaml:"genesis_modifications"`
+	NumOfNodes            uint64                 `yaml:"num_of_nodes"`
+	NumOfValidators       uint64                 `yaml:"num_of_validators"`
+	CustomAppConfig       map[string]interface{} `yaml:"app_config"`
+	CustomConsensusConfig map[string]interface{} `yaml:"consensus_config"`
+	CustomClientConfig    map[string]interface{} `yaml:"client_config"`
 }
 
 type GrafanaConfig struct {
