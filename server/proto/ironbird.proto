@@ -43,7 +43,9 @@ message ChainConfig {
     string image = 5;
     string custom_app_config = 6;       
     string custom_consensus_config = 7; 
-    string custom_client_config = 8;    
+    string custom_client_config = 8;
+    bool set_seed_node = 9;
+    bool set_persistent_peers = 10;
 }
 
 message NodeAddress {
