@@ -19,110 +19,14 @@ import {
   VStack,
   Flex,
   FormHelperText,
-  Textarea,
 } from '@chakra-ui/react';
 import { useMutation } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
-import type { TestnetWorkflowRequest, GenesisModification, LoadTestSpec } from '../types/workflow';
+import type { TestnetWorkflowRequest, LoadTestSpec } from '../types/workflow';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
-
-const Evm_GENESIS_MODIFICATIONS: GenesisModification[] = [
-  {
-    key: "app_state.staking.params.bond_denom",
-    value: "uatom",
-  },
-  {
-    key: "app_state.gov.params.expedited_voting_period",
-    value: "120s",
-  },
-  {
-    key: "app_state.gov.params.voting_period",
-    value: "300s",
-  },
-  {
-    key: "app_state.gov.params.expedited_min_deposit.0.amount",
-    value: "1",
-  },
-  {
-    key: "app_state.gov.params.expedited_min_deposit.0.denom",
-    value: "uatom",
-  },
-  {
-    key: "app_state.gov.params.min_deposit.0.amount",
-    value: "1",
-  },
-  {
-    key: "app_state.gov.params.min_deposit.0.denom",
-    value: "uatom",
-  },
-  {
-    key: "app_state.evm.params.evm_denom",
-    value: "uatom",
-  },
-  {
-    key: "app_state.mint.params.mint_denom",
-    value: "uatom",
-  },
-  {
-    key: "app_state.bank.denom_metadata",
-    value: [
-      {
-        "description": "The native staking token for evmd.",
-        "denom_units": [
-          {
-            "denom": "uatom",
-            "exponent": 0,
-            "aliases": ["attotest"],
-          },
-          {
-            "denom": "test",
-            "exponent": 18,
-            "aliases": [],
-          },
-        ],
-        "base": "uatom",
-        "display": "test",
-        "name": "Test Token",
-        "symbol": "TEST",
-        "uri": "",
-        "uri_hash": "",
-      },
-    ],
-  },
-  {
-    key: "app_state.evm.params.active_static_precompiles",
-    value: [
-      "0x0000000000000000000000000000000000000100",
-      "0x0000000000000000000000000000000000000400",
-      "0x0000000000000000000000000000000000000800",
-      "0x0000000000000000000000000000000000000801",
-      "0x0000000000000000000000000000000000000802",
-      "0x0000000000000000000000000000000000000803",
-      "0x0000000000000000000000000000000000000804",
-      "0x0000000000000000000000000000000000000805",
-    ],
-  },
-  {
-    key: "app_state.erc20.params.native_precompiles",
-    value: ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"],
-  },
-  {
-    key: "app_state.erc20.token_pairs",
-    value: [
-      {
-        "contract_owner": 1,
-        "erc20_address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        "denom": "uatom",
-        "enabled": true,
-      },
-    ],
-  },
-  {
-    key: "consensus.params.block.max_gas",
-    value: "75000000",
-  },
-];
+import ChainConfigsModal from '../components/ChainConfigsModal';
+import GenesisModificationsModal from '../components/GenesisModificationsModal';
 
 const CreateWorkflow = () => {
   const navigate = useNavigate();
@@ -259,6 +163,40 @@ const CreateWorkflow = () => {
         }
       }
       
+      // Custom chain configurations
+      const appConfigParam = params.get('appConfig');
+      if (appConfigParam) {
+        try {
+          const appConfig = JSON.parse(appConfigParam);
+          newFormData.ChainConfig.AppConfig = appConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse app config', e);
+        }
+      }
+      
+      const consensusConfigParam = params.get('consensusConfig');
+      if (consensusConfigParam) {
+        try {
+          const consensusConfig = JSON.parse(consensusConfigParam);
+          newFormData.ChainConfig.ConsensusConfig = consensusConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse consensus config', e);
+        }
+      }
+      
+      const clientConfigParam = params.get('clientConfig');
+      if (clientConfigParam) {
+        try {
+          const clientConfig = JSON.parse(clientConfigParam);
+          newFormData.ChainConfig.ClientConfig = clientConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse client config', e);
+        }
+      }
+      
       if (params.get('longRunningTestnet')) {
         newFormData.LongRunningTestnet = params.get('longRunningTestnet') === 'true';
         hasChanges = true;
@@ -337,17 +275,14 @@ const CreateWorkflow = () => {
     }
   }, [location.search]); // Only run when URL parameters change
 
-  const [newKeyValue, setNewKeyValue] = useState<GenesisModification>({
-    key: '',
-    value: '',
-  });
-  
-  // Track if we're in JSON mode for the value input
-  const [valueInputMode, setValueInputMode] = useState<'simple' | 'json'>('simple');
-  const [valueJsonInput, setValueJsonInput] = useState<string>('');
-  
   const [isLoadTestModalOpen, setIsLoadTestModalOpen] = useState(false);
   const [hasLoadTest, setHasLoadTest] = useState(false);
+
+  // Chain configurations modal state
+  const [isChainConfigsModalOpen, setIsChainConfigsModalOpen] = useState(false);
+
+  // Genesis modifications modal state
+  const [isGenesisModsModalOpen, setIsGenesisModsModalOpen] = useState(false);
 
   const createWorkflowMutation = useMutation({
     mutationFn: workflowApi.createWorkflow,
@@ -424,6 +359,9 @@ const CreateWorkflow = () => {
         GenesisModifications: formData.ChainConfig.GenesisModifications || [],
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
+        AppConfig: formData.ChainConfig.AppConfig,
+        ConsensusConfig: formData.ChainConfig.ConsensusConfig,
+        ClientConfig: formData.ChainConfig.ClientConfig,
       },
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
@@ -434,105 +372,6 @@ const CreateWorkflow = () => {
     };
 
     createWorkflowMutation.mutate(submissionData);
-  };
-
-  const addGenesisModification = () => {
-    if (newKeyValue.key.trim() === '') {
-      toast({
-        title: 'Validation Error',
-        description: 'Key must be provided',
-        status: 'error',
-        duration: 3000,
-      });
-      return;
-    }
-
-    let value = newKeyValue.value;
-    
-    // If in JSON mode, try to parse the JSON
-    if (valueInputMode === 'json') {
-      if (valueJsonInput.trim() === '') {
-        toast({
-          title: 'Validation Error',
-          description: 'Value must be provided',
-          status: 'error',
-          duration: 3000,
-        });
-        return;
-      }
-      
-      try {
-        value = JSON.parse(valueJsonInput);
-      } catch (error) {
-        toast({
-          title: 'JSON Parse Error',
-          description: 'Please provide valid JSON for the value',
-          status: 'error',
-          duration: 3000,
-        });
-        return;
-      }
-    } else {
-      // Simple mode - check for string value
-      if (typeof value === 'string' && value.trim() === '') {
-        toast({
-          title: 'Validation Error',
-          description: 'Value must be provided',
-          status: 'error',
-          duration: 3000,
-        });
-        return;
-      }
-    }
-
-    const updatedModifications = [
-      ...(formData.ChainConfig?.GenesisModifications || []),
-      { key: newKeyValue.key, value },
-    ];
-
-    setFormData({
-      ...formData,
-      ChainConfig: {
-        ...formData.ChainConfig!,
-        GenesisModifications: updatedModifications,
-      },
-    });
-
-    // Reset form
-    setNewKeyValue({ key: '', value: '' });
-    setValueJsonInput('');
-    setValueInputMode('simple');
-  };
-
-  const removeGenesisModification = (index: number) => {
-    const updatedModifications = [...(formData.ChainConfig?.GenesisModifications || [])];
-    updatedModifications.splice(index, 1);
-
-    setFormData({
-      ...formData,
-      ChainConfig: {
-        ...formData.ChainConfig!,
-        GenesisModifications: updatedModifications,
-      },
-    });
-  };
-
-  const setEvmGenesisModifications = () => {
-    setFormData({
-      ...formData,
-      ChainConfig: {
-        ...formData.ChainConfig!,
-        GenesisModifications: [...Evm_GENESIS_MODIFICATIONS],
-      },
-      IsEvmChain: true,
-    });
-
-    toast({
-      title: 'Evm Genesis Modifications Set',
-      description: 'Applied Evm genesis modifications',
-      status: 'success',
-      duration: 3000,
-    });
   };
   
   const handleLoadTestSave = (loadTestSpec: LoadTestSpec) => {
@@ -549,6 +388,22 @@ const CreateWorkflow = () => {
       LoadTestSpec: undefined
     });
     setHasLoadTest(false);
+  };
+
+  const handleChainConfigsSave = (configs: {
+    appConfig?: any;
+    consensusConfig?: any;
+    clientConfig?: any;
+  }) => {
+    setFormData({
+      ...formData,
+      ChainConfig: {
+        ...formData.ChainConfig,
+        AppConfig: configs.appConfig,
+        ConsensusConfig: configs.consensusConfig,
+        ClientConfig: configs.clientConfig,
+      },
+    });
   };
 
   return (
@@ -696,111 +551,69 @@ const CreateWorkflow = () => {
           </FormControl>
           
           <FormControl>
+            <FormLabel>Chain Configurations</FormLabel>
+            <VStack spacing={3} align="start">
+              <HStack width="100%">
+                <Button
+                  colorScheme="blue"
+                  variant="outline"
+                  onClick={() => setIsChainConfigsModalOpen(true)}
+                >
+                  Set Custom Chain Config
+                </Button>
+              </HStack>
+
+              {/* Display applied configurations */}
+              {(formData.ChainConfig.AppConfig || formData.ChainConfig.ConsensusConfig || formData.ChainConfig.ClientConfig) && (
+                <Box width="100%" p={3} bg="green.50" borderRadius="md" border="1px solid" borderColor="green.200">
+                  <Text fontWeight="bold" color="green.800" mb={2}>Applied Configurations:</Text>
+                  {formData.ChainConfig.AppConfig && (
+                    <Text fontSize="sm" color="green.700">• App Config: Applied</Text>
+                  )}
+                  {formData.ChainConfig.ConsensusConfig && (
+                    <Text fontSize="sm" color="green.700">• Consensus Config: Applied</Text>
+                  )}
+                  {formData.ChainConfig.ClientConfig && (
+                    <Text fontSize="sm" color="green.700">• Client Config: Applied</Text>
+                  )}
+                </Box>
+              )}
+            </VStack>
+          </FormControl>
+
+          <FormControl>
             <FormLabel>Genesis Modifications</FormLabel>
             <VStack spacing={3} align="start">
               <HStack width="100%">
                 <Button
-                  colorScheme="purple"
+                  colorScheme="blue"
                   variant="outline"
-                  size="sm"
-                  onClick={setEvmGenesisModifications}
+                  onClick={() => setIsGenesisModsModalOpen(true)}
                 >
-                  Set Evm Genesis Modifications
+                  Set Genesis Modifications
                 </Button>
               </HStack>
               
-              {formData.ChainConfig?.GenesisModifications?.map((mod, index) => (
-                <HStack key={index} width="100%">
-                  <Text flex="1" fontWeight="medium">{mod.key}:</Text>
-                  <Text flex="2" fontSize="sm" fontFamily="mono" 
-                        bg="surface" p={2} borderRadius="md"
-                        color="text" maxH="100px" overflowY="auto">
-                    {typeof mod.value === 'string' 
-                      ? mod.value 
-                      : JSON.stringify(mod.value, null, 2)}
+              {/* Display applied modifications */}
+              {formData.ChainConfig?.GenesisModifications && formData.ChainConfig.GenesisModifications.length > 0 && (
+                <Box width="100%" p={3} bg="green.50" borderRadius="md" border="1px solid" borderColor="green.200">
+                  <Text fontWeight="bold" color="green.800" mb={2}>
+                    Applied Modifications ({formData.ChainConfig.GenesisModifications.length}):
                   </Text>
-                  <IconButton
-                    aria-label="Remove modification"
-                    size="sm"
-                    icon={<DeleteIcon />}
-                    onClick={() => removeGenesisModification(index)}
-                  />
-                </HStack>
-              ))}
-              
-              <VStack spacing={2} align="start" width="100%">
-                <HStack width="100%">
-                  <Switch
-                    isChecked={valueInputMode === 'json'}
-                    onChange={(e) => {
-                      setValueInputMode(e.target.checked ? 'json' : 'simple');
-                      if (e.target.checked) {
-                        // Convert simple value to JSON string if switching to JSON mode
-                        setValueJsonInput(
-                          typeof newKeyValue.value === 'string' && newKeyValue.value.trim() !== ''
-                            ? JSON.stringify(newKeyValue.value, null, 2)
-                            : ''
-                        );
-                      } else {
-                        // Convert JSON back to simple string if possible
-                        if (valueJsonInput.trim() !== '') {
-                          try {
-                            const parsed = JSON.parse(valueJsonInput);
-                            if (typeof parsed === 'string') {
-                              setNewKeyValue({ ...newKeyValue, value: parsed });
-                            } else {
-                              setNewKeyValue({ ...newKeyValue, value: '' });
-                            }
-                          } catch {
-                            setNewKeyValue({ ...newKeyValue, value: '' });
-                          }
-                        }
-                      }
-                    }}
-                  />
-                  <Text fontSize="sm">JSON Mode (for complex values like arrays/objects)</Text>
-                </HStack>
-                
-                <HStack width="100%">
-                  <Input
-                    placeholder="Key"
-                    value={newKeyValue.key}
-                    onChange={(e) => setNewKeyValue({ ...newKeyValue, key: e.target.value })}
-                    mr={2}
-                    bg="surface"
-                    color="text"
-                    borderColor="divider"
-                  />
-                  {valueInputMode === 'json' ? (
-                    <Textarea
-                    placeholder='Value (JSON) - e.g. ["item1", "item2"] or {"key": "value"}'
-                    value={valueJsonInput}
-                    onChange={(e) => setValueJsonInput(e.target.value)}
-                    mr={2}
-                    resize="vertical"
-                    minH="60px"
-                    bg="surface"
-                    color="text"
-                    borderColor="divider"
-                    />
-                  ) : (
-                    <Input
-                      placeholder="Value"
-                      value={newKeyValue.value}
-                      onChange={(e) => setNewKeyValue({ ...newKeyValue, value: e.target.value })}
-                      mr={2}
-                      bg="surface"
-                      color="text"
-                      borderColor="divider"
-                    />
-                  )}
-                  <IconButton
-                    aria-label="Add modification"
-                    icon={<AddIcon />}
-                    onClick={addGenesisModification}
-                  />
-                </HStack>
-              </VStack>
+                  <VStack align="start" spacing={1} maxH="150px" overflowY="auto">
+                    {formData.ChainConfig.GenesisModifications.slice(0, 5).map((mod, index) => (
+                      <Text key={index} fontSize="sm" color="green.700">
+                        • {mod.key}: {typeof mod.value === 'string' ? mod.value : 'Complex value'}
+                      </Text>
+                    ))}
+                    {formData.ChainConfig.GenesisModifications.length > 5 && (
+                      <Text fontSize="sm" color="green.600" fontStyle="italic">
+                        ... and {formData.ChainConfig.GenesisModifications.length - 5} more
+                      </Text>
+                    )}
+                  </VStack>
+                </Box>
+              )}
             </VStack>
           </FormControl>
           
@@ -944,6 +757,7 @@ const CreateWorkflow = () => {
           </Button>
         </Stack>
       </Box>
+      
       <LoadTestForm
         isOpen={isLoadTestModalOpen}
         onClose={() => setIsLoadTestModalOpen(false)}
@@ -958,6 +772,28 @@ const CreateWorkflow = () => {
           tx_timeout: '',
         }}
         onSave={handleLoadTestSave}
+      />
+      
+      <ChainConfigsModal
+        isOpen={isChainConfigsModalOpen}
+        onClose={() => setIsChainConfigsModalOpen(false)}
+        initialAppConfig={formData.ChainConfig.AppConfig}
+        initialConsensusConfig={formData.ChainConfig.ConsensusConfig}
+        initialClientConfig={formData.ChainConfig.ClientConfig}
+        onSave={handleChainConfigsSave}
+      />
+
+      <GenesisModificationsModal
+        isOpen={isGenesisModsModalOpen}
+        onClose={() => setIsGenesisModsModalOpen(false)}
+        initialModifications={formData.ChainConfig.GenesisModifications}
+        onSave={(newModifications) => setFormData({
+          ...formData,
+          ChainConfig: {
+            ...formData.ChainConfig,
+            GenesisModifications: newModifications,
+          },
+        })}
       />
     </>
   );

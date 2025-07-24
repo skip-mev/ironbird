@@ -162,6 +162,9 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			RunnerType:              req.RunnerType,
 			NumOfValidators:         req.ChainConfig.NumOfValidators,
 			NumOfNodes:              req.ChainConfig.NumOfNodes,
+			CustomAppConfig:         req.ChainConfig.CustomAppConfig,
+			CustomConsensusConfig:   req.ChainConfig.CustomConsensusConfig,
+			CustomClientConfig:      req.ChainConfig.CustomClientConfig,
 			ProviderSpecificOptions: providerSpecificOptions,
 			ProviderState:           providerState,
 		}).Get(ctx, &testnetResp); err != nil {

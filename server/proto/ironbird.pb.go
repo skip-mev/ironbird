@@ -182,14 +182,17 @@ func (x *GenesisKV) GetValue() string {
 }
 
 type ChainConfig struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Name                 string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	NumOfNodes           uint64                 `protobuf:"varint,2,opt,name=num_of_nodes,json=numOfNodes,proto3" json:"num_of_nodes,omitempty"`
-	NumOfValidators      uint64                 `protobuf:"varint,3,opt,name=num_of_validators,json=numOfValidators,proto3" json:"num_of_validators,omitempty"`
-	GenesisModifications []*GenesisKV           `protobuf:"bytes,4,rep,name=genesis_modifications,json=genesisModifications,proto3" json:"genesis_modifications,omitempty"`
-	Image                string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Name                  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	NumOfNodes            uint64                 `protobuf:"varint,2,opt,name=num_of_nodes,json=numOfNodes,proto3" json:"num_of_nodes,omitempty"`
+	NumOfValidators       uint64                 `protobuf:"varint,3,opt,name=num_of_validators,json=numOfValidators,proto3" json:"num_of_validators,omitempty"`
+	GenesisModifications  []*GenesisKV           `protobuf:"bytes,4,rep,name=genesis_modifications,json=genesisModifications,proto3" json:"genesis_modifications,omitempty"`
+	Image                 string                 `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
+	CustomAppConfig       string                 `protobuf:"bytes,6,opt,name=custom_app_config,json=customAppConfig,proto3" json:"custom_app_config,omitempty"`
+	CustomConsensusConfig string                 `protobuf:"bytes,7,opt,name=custom_consensus_config,json=customConsensusConfig,proto3" json:"custom_consensus_config,omitempty"`
+	CustomClientConfig    string                 `protobuf:"bytes,8,opt,name=custom_client_config,json=customClientConfig,proto3" json:"custom_client_config,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ChainConfig) Reset() {
@@ -253,6 +256,27 @@ func (x *ChainConfig) GetGenesisModifications() []*GenesisKV {
 func (x *ChainConfig) GetImage() string {
 	if x != nil {
 		return x.Image
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetCustomAppConfig() string {
+	if x != nil {
+		return x.CustomAppConfig
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetCustomConsensusConfig() string {
+	if x != nil {
+		return x.CustomConsensusConfig
+	}
+	return ""
+}
+
+func (x *ChainConfig) GetCustomClientConfig() string {
+	if x != nil {
+		return x.CustomClientConfig
 	}
 	return ""
 }
@@ -1298,14 +1322,17 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"numWallets\"3\n" +
 	"\tGenesisKV\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value\"\xd4\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value\"\xea\x02\n" +
 	"\vChainConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\fnum_of_nodes\x18\x02 \x01(\x04R\n" +
 	"numOfNodes\x12*\n" +
 	"\x11num_of_validators\x18\x03 \x01(\x04R\x0fnumOfValidators\x12M\n" +
 	"\x15genesis_modifications\x18\x04 \x03(\v2\x18.skip.ironbird.GenesisKVR\x14genesisModifications\x12\x14\n" +
-	"\x05image\x18\x05 \x01(\tR\x05image\"3\n" +
+	"\x05image\x18\x05 \x01(\tR\x05image\x12*\n" +
+	"\x11custom_app_config\x18\x06 \x01(\tR\x0fcustomAppConfig\x126\n" +
+	"\x17custom_consensus_config\x18\a \x01(\tR\x15customConsensusConfig\x120\n" +
+	"\x14custom_client_config\x18\b \x01(\tR\x12customClientConfig\"3\n" +
 	"\vNodeAddress\x12\x12\n" +
 	"\x04grpc\x18\x01 \x01(\tR\x04grpc\x12\x10\n" +
 	"\x03rpc\x18\x02 \x01(\tR\x03rpc\"\xa7\x01\n" +

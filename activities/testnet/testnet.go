@@ -304,20 +304,23 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			UID:   chainImage.UID,
 			GID:   chainImage.GID,
 		},
-		GasPrices:            chainImage.GasPrices,
-		Bech32Prefix:         "cosmos",
-		HomeDir:              chainImage.HomeDir,
-		CoinType:             "118",
-		ChainId:              req.Name,
-		UseGenesisSubCommand: true,
+		GasPrices:             chainImage.GasPrices,
+		Bech32Prefix:          "cosmos",
+		HomeDir:               chainImage.HomeDir,
+		CoinType:              "118",
+		ChainId:               req.Name,
+		UseGenesisSubCommand:  true,
+		CustomAppConfig:       req.CustomAppConfig,
+		CustomConsensusConfig: req.CustomConsensusConfig,
+		CustomClientConfig:    req.CustomClientConfig,
 	}
 	walletConfig := CosmosWalletConfig
 
 	if req.IsEvmChain {
 		config.Denom = evmDenom
 		chainID := defaultEvmChainID
+		config.IsEVMChain = true
 		config.ChainId = chainID
-		config.GasPrices = "0.0005uatom"
 		config.CoinType = "60"
 		config.AdditionalStartFlags = []string{
 			"--json-rpc.api", "eth,net,web3,txpool,debug",
@@ -326,10 +329,15 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			"--json-rpc.enable",
 		}
 		config.AdditionalPorts = []string{"8545", "8546"}
-		config.IsEVMChain = true
 		walletConfig = EvmCosmosWalletConfig
-		config.EVMConfig = petritypes.EVMConfig{
-			ChainId: chainID,
+		if config.CustomAppConfig == nil {
+			config.CustomAppConfig = make(map[string]interface{})
+		}
+		if config.CustomAppConfig["evm"] == nil {
+			config.CustomAppConfig["evm"] = make(map[string]interface{})
+		}
+		if evmConfig, ok := config.CustomAppConfig["evm"].(map[string]interface{}); ok {
+			evmConfig["evm-chain-id"] = chainID
 		}
 	}
 

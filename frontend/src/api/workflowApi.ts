@@ -49,7 +49,10 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     numOfNodes: protoInt64.zero,
     numOfValidators: protoInt64.zero,
     image: request.ChainConfig.Image,
-    genesisModifications: []
+    genesisModifications: [],
+    customAppConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
+    customConsensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
+    customClientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
   });
   
   // Add genesis modifications if available
@@ -141,7 +144,32 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
             key: gm.key,
             value: value
           };
-        })
+        }),
+        // Parse config JSON strings back to objects
+        AppConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.customAppConfig ? JSON.parse(workflow.config.chainConfig.customAppConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse app config JSON', e);
+            return undefined;
+          }
+        })(),
+        ConsensusConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.customConsensusConfig ? JSON.parse(workflow.config.chainConfig.customConsensusConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse consensus config JSON', e);
+            return undefined;
+          }
+        })(),
+        ClientConfig: (() => {
+          try {
+            return workflow.config.chainConfig?.customClientConfig ? JSON.parse(workflow.config.chainConfig.customClientConfig) : undefined;
+          } catch (e) {
+            console.warn('Failed to parse client config JSON', e);
+            return undefined;
+          }
+        })()
       },
       LoadTestSpec: workflow.loadTestSpec ? {
         name: workflow.loadTestSpec.name,

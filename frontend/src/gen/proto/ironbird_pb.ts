@@ -163,6 +163,21 @@ export class ChainConfig extends Message<ChainConfig> {
    */
   image = "";
 
+  /**
+   * @generated from field: string custom_app_config = 6;
+   */
+  customAppConfig = "";
+
+  /**
+   * @generated from field: string custom_consensus_config = 7;
+   */
+  customConsensusConfig = "";
+
+  /**
+   * @generated from field: string custom_client_config = 8;
+   */
+  customClientConfig = "";
+
   constructor(data?: PartialMessage<ChainConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -176,6 +191,9 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 3, name: "num_of_validators", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
     { no: 4, name: "genesis_modifications", kind: "message", T: GenesisKV, repeated: true },
     { no: 5, name: "image", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "custom_app_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "custom_consensus_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "custom_client_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChainConfig {

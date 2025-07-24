@@ -54,6 +54,10 @@ type LaunchTestnetRequest struct {
 	NumOfValidators uint64
 	NumOfNodes      uint64
 
+	CustomAppConfig       map[string]interface{}
+	CustomConsensusConfig map[string]interface{}
+	CustomClientConfig    map[string]interface{}
+
 	ProviderState []byte
 }
 

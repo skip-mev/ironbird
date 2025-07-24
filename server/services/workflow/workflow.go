@@ -49,10 +49,13 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 
 	if req.ChainConfig != nil {
 		chainConfig := types.ChainsConfig{
-			Name:            req.ChainConfig.Name,
-			Image:           req.ChainConfig.Image,
-			NumOfNodes:      req.ChainConfig.NumOfNodes,
-			NumOfValidators: req.ChainConfig.NumOfValidators,
+			Name:                  req.ChainConfig.Name,
+			Image:                 req.ChainConfig.Image,
+			NumOfNodes:            req.ChainConfig.NumOfNodes,
+			NumOfValidators:       req.ChainConfig.NumOfValidators,
+			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
+			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
+			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
 		}
 
 		if req.ChainConfig.GenesisModifications != nil {
@@ -183,10 +186,13 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	}
 
 	chainConfig := &pb.ChainConfig{
-		Name:            workflow.Config.ChainConfig.Name,
-		NumOfNodes:      workflow.Config.ChainConfig.NumOfNodes,
-		NumOfValidators: workflow.Config.ChainConfig.NumOfValidators,
-		Image:           workflow.Config.ChainConfig.Image,
+		Name:                  workflow.Config.ChainConfig.Name,
+		NumOfNodes:            workflow.Config.ChainConfig.NumOfNodes,
+		NumOfValidators:       workflow.Config.ChainConfig.NumOfValidators,
+		Image:                 workflow.Config.ChainConfig.Image,
+		CustomAppConfig:       marshalJSONConfig(workflow.Config.ChainConfig.CustomAppConfig),
+		CustomConsensusConfig: marshalJSONConfig(workflow.Config.ChainConfig.CustomConsensusConfig),
+		CustomClientConfig:    marshalJSONConfig(workflow.Config.ChainConfig.CustomClientConfig),
 	}
 
 	if workflow.Config.ChainConfig.GenesisModifications != nil {
@@ -547,4 +553,30 @@ func isWorkflowTerminal(status enums.WorkflowExecutionStatus) bool {
 		status == enums.WORKFLOW_EXECUTION_STATUS_FAILED ||
 		status == enums.WORKFLOW_EXECUTION_STATUS_CANCELED ||
 		status == enums.WORKFLOW_EXECUTION_STATUS_TERMINATED
+}
+
+func (s *Service) parseJSONConfig(jsonStr, configType string) map[string]interface{} {
+	if jsonStr == "" {
+		return nil
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &config); err != nil {
+		s.logger.Warn("Failed to parse "+configType+" JSON", zap.Error(err))
+		return nil
+	}
+
+	return config
+}
+
+func marshalJSONConfig(config map[string]interface{}) string {
+	if config == nil {
+		return ""
+	}
+
+	if configBytes, err := json.Marshal(config); err == nil {
+		return string(configBytes)
+	}
+
+	return ""
 }
