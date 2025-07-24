@@ -57,15 +57,11 @@ const WorkflowDetails = () => {
   // Log workflow data when it changes
   useEffect(() => {
     if (workflow) {
-      console.log("Workflow data received:", workflow);
-      
       // Add more detailed logging for debugging the gray screen issue
       if (workflow.loadTestSpec) {
-        console.log("LoadTestSpec found:", workflow.loadTestSpec);
         try {
           // Safely stringify the LoadTestSpec to check for circular references or other issues
           const loadTestSpecString = JSON.stringify(workflow.loadTestSpec);
-          console.log("LoadTestSpec stringified successfully:", loadTestSpecString);
           
           // Normalize the LoadTestSpec structure to match the expected interface
           // Use type assertion to avoid TypeScript errors
@@ -85,8 +81,6 @@ const WorkflowDetails = () => {
             unordered_txs: loadTestSpec.unordered_txs || false,
             tx_timeout: loadTestSpec.tx_timeout || "",
           };
-          
-          console.log("Normalized LoadTestSpec:", normalizedLoadTestSpec);
           
           // Replace the original LoadTestSpec with the normalized version
           workflow.loadTestSpec = normalizedLoadTestSpec;
@@ -204,14 +198,11 @@ const WorkflowDetails = () => {
   const handleCloneWorkflow = () => {
     if (!workflow) return;
     
-    console.log("Cloning workflow:", workflow);
-    
     // Create query parameters with workflow data
     const params = new URLSearchParams();
     
     // Use the config field if available
     if (workflow.config) {
-      console.log("Using config field for cloning:", workflow.config);
       
       // Basic workflow parameters
       if (workflow.config.Repo) params.append('repo', workflow.config.Repo);
@@ -246,6 +237,10 @@ const WorkflowDetails = () => {
           params.append('chainName', workflow.config.ChainConfig.Name);
         }
         
+        if (workflow.config.ChainConfig.Image) {
+          params.append('image', workflow.config.ChainConfig.Image);
+        }
+        
         if (workflow.config.ChainConfig.NumOfNodes) {
           params.append('numOfNodes', workflow.config.ChainConfig.NumOfNodes.toString());
         }
@@ -254,14 +249,32 @@ const WorkflowDetails = () => {
           params.append('numOfValidators', workflow.config.ChainConfig.NumOfValidators.toString());
         }
 
-        
         // Genesis modifications
         if (workflow.config.ChainConfig.GenesisModifications && 
             workflow.config.ChainConfig.GenesisModifications.length > 0) {
           params.append('genesisModifications', 
             JSON.stringify(workflow.config.ChainConfig.GenesisModifications));
         }
+        
+        // Custom chain configurations
+        if (workflow.config.ChainConfig.AppConfig) {
+          params.append('appConfig', JSON.stringify(workflow.config.ChainConfig.AppConfig));
+        }
+        
+        if (workflow.config.ChainConfig.ConsensusConfig) {
+          params.append('consensusConfig', JSON.stringify(workflow.config.ChainConfig.ConsensusConfig));
+        }
+        
+        if (workflow.config.ChainConfig.ClientConfig) {
+          params.append('clientConfig', JSON.stringify(workflow.config.ChainConfig.ClientConfig));
+        }
       }
+    }
+    
+    // LoadTestSpec - check both config.LoadTestSpec and workflow.loadTestSpec
+    const loadTestSpec = workflow.config?.LoadTestSpec || workflow.loadTestSpec;
+    if (loadTestSpec) {
+      params.append('loadTestSpec', JSON.stringify(loadTestSpec));
     }
         
     // Navigate to root path (which is the create workflow page) with parameters

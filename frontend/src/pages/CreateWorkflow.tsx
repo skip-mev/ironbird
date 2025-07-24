@@ -163,6 +163,40 @@ const CreateWorkflow = () => {
         }
       }
       
+      // Custom chain configurations
+      const appConfigParam = params.get('appConfig');
+      if (appConfigParam) {
+        try {
+          const appConfig = JSON.parse(appConfigParam);
+          newFormData.ChainConfig.AppConfig = appConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse app config', e);
+        }
+      }
+      
+      const consensusConfigParam = params.get('consensusConfig');
+      if (consensusConfigParam) {
+        try {
+          const consensusConfig = JSON.parse(consensusConfigParam);
+          newFormData.ChainConfig.ConsensusConfig = consensusConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse consensus config', e);
+        }
+      }
+      
+      const clientConfigParam = params.get('clientConfig');
+      if (clientConfigParam) {
+        try {
+          const clientConfig = JSON.parse(clientConfigParam);
+          newFormData.ChainConfig.ClientConfig = clientConfig;
+          hasChanges = true;
+        } catch (e) {
+          console.error('Failed to parse client config', e);
+        }
+      }
+      
       if (params.get('longRunningTestnet')) {
         newFormData.LongRunningTestnet = params.get('longRunningTestnet') === 'true';
         hasChanges = true;

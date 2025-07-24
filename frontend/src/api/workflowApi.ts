@@ -50,9 +50,9 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     numOfValidators: protoInt64.zero,
     image: request.ChainConfig.Image,
     genesisModifications: [],
-    appConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
-    consensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
-    clientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
+    customAppConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
+    customConsensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
+    customClientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
   });
   
   // Add genesis modifications if available
@@ -148,7 +148,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
         // Parse config JSON strings back to objects
         AppConfig: (() => {
           try {
-            return workflow.config.chainConfig?.appConfig ? JSON.parse(workflow.config.chainConfig.appConfig) : undefined;
+            return workflow.config.chainConfig?.customAppConfig ? JSON.parse(workflow.config.chainConfig.customAppConfig) : undefined;
           } catch (e) {
             console.warn('Failed to parse app config JSON', e);
             return undefined;
@@ -156,7 +156,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
         })(),
         ConsensusConfig: (() => {
           try {
-            return workflow.config.chainConfig?.consensusConfig ? JSON.parse(workflow.config.chainConfig.consensusConfig) : undefined;
+            return workflow.config.chainConfig?.customConsensusConfig ? JSON.parse(workflow.config.chainConfig.customConsensusConfig) : undefined;
           } catch (e) {
             console.warn('Failed to parse consensus config JSON', e);
             return undefined;
@@ -164,7 +164,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
         })(),
         ClientConfig: (() => {
           try {
-            return workflow.config.chainConfig?.clientConfig ? JSON.parse(workflow.config.chainConfig.clientConfig) : undefined;
+            return workflow.config.chainConfig?.customClientConfig ? JSON.parse(workflow.config.chainConfig.customClientConfig) : undefined;
           } catch (e) {
             console.warn('Failed to parse client config JSON', e);
             return undefined;
