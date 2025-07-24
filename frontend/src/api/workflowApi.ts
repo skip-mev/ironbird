@@ -50,6 +50,8 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     numOfValidators: protoInt64.zero,
     image: request.ChainConfig.Image,
     genesisModifications: [],
+    setSeedNode: request.ChainConfig.SetSeedNode || false,
+    setPersistentPeers: request.ChainConfig.SetPersistentPeers || false,
     customAppConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
     customConsensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
     customClientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
@@ -141,6 +143,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
             value: value
           };
         }),
+        SetSeedNode: workflow.config.chainConfig?.setSeedNode,
+        SetPersistentPeers: workflow.config.chainConfig?.setPersistentPeers,
         // Parse config JSON strings back to objects
         AppConfig: (() => {
           try {

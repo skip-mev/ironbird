@@ -178,6 +178,16 @@ export class ChainConfig extends Message<ChainConfig> {
    */
   customClientConfig = "";
 
+  /**
+   * @generated from field: bool set_seed_node = 9;
+   */
+  setSeedNode = false;
+
+  /**
+   * @generated from field: bool set_persistent_peers = 10;
+   */
+  setPersistentPeers = false;
+
   constructor(data?: PartialMessage<ChainConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -194,6 +204,8 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 6, name: "custom_app_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "custom_consensus_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 8, name: "custom_client_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "set_seed_node", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "set_persistent_peers", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChainConfig {

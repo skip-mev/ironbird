@@ -60,9 +60,15 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			Image:                 req.ChainConfig.Image,
 			NumOfNodes:            req.ChainConfig.NumOfNodes,
 			NumOfValidators:       req.ChainConfig.NumOfValidators,
+			SetSeedNode:           req.ChainConfig.SetSeedNode,
+			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
 			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
 			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
 			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
+		}
+
+		if !chainConfig.SetSeedNode && !chainConfig.SetPersistentPeers {
+			return nil, fmt.Errorf("at least one of SetSeedNode or SetPersistentPeers must be set to true")
 		}
 
 		if req.ChainConfig.GenesisModifications != nil {
@@ -197,6 +203,8 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		NumOfNodes:            workflow.Config.ChainConfig.NumOfNodes,
 		NumOfValidators:       workflow.Config.ChainConfig.NumOfValidators,
 		Image:                 workflow.Config.ChainConfig.Image,
+		SetSeedNode:           workflow.Config.ChainConfig.SetSeedNode,
+		SetPersistentPeers:    workflow.Config.ChainConfig.SetPersistentPeers,
 		CustomAppConfig:       marshalJSONConfig(workflow.Config.ChainConfig.CustomAppConfig),
 		CustomConsensusConfig: marshalJSONConfig(workflow.Config.ChainConfig.CustomConsensusConfig),
 		CustomClientConfig:    marshalJSONConfig(workflow.Config.ChainConfig.CustomClientConfig),
