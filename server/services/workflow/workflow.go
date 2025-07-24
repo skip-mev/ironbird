@@ -53,9 +53,9 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			Image:                 req.ChainConfig.Image,
 			NumOfNodes:            req.ChainConfig.NumOfNodes,
 			NumOfValidators:       req.ChainConfig.NumOfValidators,
-			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "app_config"),
-			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "consensus_config"),
-			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "client_config"),
+			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
+			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
+			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
 		}
 
 		if req.ChainConfig.GenesisModifications != nil {

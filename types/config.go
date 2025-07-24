@@ -86,9 +86,9 @@ type ChainsConfig struct {
 	GenesisModifications  []petrichain.GenesisKV `yaml:"genesis_modifications"`
 	NumOfNodes            uint64                 `yaml:"num_of_nodes"`
 	NumOfValidators       uint64                 `yaml:"num_of_validators"`
-	CustomAppConfig       map[string]interface{} `yaml:"app_config"`
-	CustomConsensusConfig map[string]interface{} `yaml:"consensus_config"`
-	CustomClientConfig    map[string]interface{} `yaml:"client_config"`
+	CustomAppConfig       map[string]interface{} `yaml:"custom_app_config"`
+	CustomConsensusConfig map[string]interface{} `yaml:"custom_consensus_config"`
+	CustomClientConfig    map[string]interface{} `yaml:"custom_client_config"`
 }
 
 type GrafanaConfig struct {
