@@ -11,7 +11,9 @@ export interface ChainConfig {
   NumOfValidators: number;
   AppConfig?: Record<string, any>;       
   ConsensusConfig?: Record<string, any>; 
-  ClientConfig?: Record<string, any>;    
+  ClientConfig?: Record<string, any>;
+  SetSeedNode?: boolean;
+  SetPersistentPeers?: boolean;
 }
 
 // Define message types as string literals

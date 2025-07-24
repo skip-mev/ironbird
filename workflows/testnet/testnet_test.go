@@ -50,8 +50,9 @@ var (
 					Value: "75000000",
 				},
 			},
-			NumOfValidators: 1,
-			NumOfNodes:      1,
+			NumOfValidators:    1,
+			NumOfNodes:         1,
+			SetPersistentPeers: true,
 		},
 		LoadTestSpec: &catalysttypes.LoadTestSpec{
 			Name:        "e2e-test",
@@ -167,8 +168,9 @@ var (
 					Value: "75000000",
 				},
 			},
-			NumOfValidators: 1,
-			NumOfNodes:      1,
+			NumOfValidators:    1,
+			NumOfNodes:         1,
+			SetPersistentPeers: true,
 		},
 		LoadTestSpec: &catalysttypes.LoadTestSpec{
 			Name:        "e2e-test",
