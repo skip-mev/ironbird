@@ -2,7 +2,6 @@ package messages
 
 import (
 	"fmt"
-	"time"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -77,7 +76,7 @@ type TestnetWorkflowRequest struct {
 	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec
 	LongRunningTestnet bool
-	TestnetDuration    time.Duration
+	TestnetDuration    string
 	NumWallets         int
 }
 
@@ -98,7 +97,7 @@ func (r TestnetWorkflowRequest) Validate() error {
 		return fmt.Errorf("runner type must be one of: %s, %s", DigitalOcean, Docker)
 	}
 
-	if r.LongRunningTestnet && r.TestnetDuration > 0 {
+	if r.LongRunningTestnet && r.TestnetDuration != "" {
 		return fmt.Errorf("can not set duration on long-running testnet")
 	}
 

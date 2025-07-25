@@ -40,7 +40,7 @@ type TestnetWorkflowTestSuite struct {
 
 var (
 	simappReq = messages.TestnetWorkflowRequest{
-		TestnetDuration: 1 * time.Minute,
+		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
 			Name:  "stake-1",
 			Image: "",
@@ -84,7 +84,7 @@ var (
 		SHA:             "27397363ab7f28338c59542b0c99dfe736c7032c",
 		IsEvmChain:      true,
 		RunnerType:      messages.Docker,
-		TestnetDuration: 1 * time.Minute,
+		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
 			Name: "gaia-devnet",
 			GenesisModifications: []petrichain.GenesisKV{
@@ -429,6 +429,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
+	dockerReq.TestnetDuration = ""
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -448,7 +449,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
-	dockerReq.TestnetDuration = 0
+	dockerReq.TestnetDuration = ""
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
@@ -477,7 +478,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
-	dockerReq.TestnetDuration = 0
+	dockerReq.TestnetDuration = ""
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"

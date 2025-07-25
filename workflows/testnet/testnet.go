@@ -61,21 +61,33 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
 	selector workflow.Selector, providerState []byte) {
+	logger := workflow.GetLogger(ctx)
 	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
-		workflow.GetLogger(ctx).Info("testnet is in long-running mode")
+		logger.Info("testnet is in long-running mode")
 		f, setter := workflow.NewFuture(ctx)
 		workflow.Go(ctx, func(ctx workflow.Context) {
-			workflow.GetLogger(ctx).Info("waiting for shutdown signal")
+			logger.Info("waiting for shutdown signal")
 			signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
 			signalChan.Receive(ctx, nil)
-			workflow.GetLogger(ctx).Info("received shutdown signal for testnet")
+			logger.Info("received shutdown signal for testnet")
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	} else if req.LoadTestSpec == nil {
+		testnetDuration := defaultRuntime
+		if req.TestnetDuration != "" {
+			var err error
+			testnetDuration, err = time.ParseDuration(req.TestnetDuration)
+			if err != nil {
+				logger.Error("failed to parse testnet duration, falling back to default runtime",
+					zap.String("duration", req.TestnetDuration))
+				testnetDuration = defaultRuntime
+			}
+		}
+
 		// 3. No load test and not long-running will end after the timeout timer
-		networkTimeout := max(req.TestnetDuration, defaultRuntime)
+		networkTimeout := max(testnetDuration, defaultRuntime)
 		f := workflow.NewTimer(ctx, networkTimeout)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 

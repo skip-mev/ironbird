@@ -91,26 +91,6 @@ const WorkflowDetails = () => {
     }
   }, [workflow]);
 
-  // const runLoadTestMutation = useMutation({
-  //   mutationFn: (spec: LoadTestSpec) => workflowApi.runLoadTest(id!, spec),
-  //   onSuccess: () => {
-  //     toast({
-  //       title: 'Adhoc load test wen',
-  //       status: 'info',
-  //       duration: 3000,
-  //     });
-  //     refetch();
-  //   },
-  //   onError: (error) => {
-  //     toast({
-  //       title: 'Error starting load test',
-  //       description: error instanceof Error ? error.message : 'Unknown error occurred',
-  //       status: 'error',
-  //       duration: 5000,
-  //     });
-  //   },
-  // });
-
   const cancelWorkflowMutation = useMutation({
     mutationFn: () => {
       if (!workflow) return Promise.reject('No workflow data available');
@@ -218,12 +198,7 @@ const WorkflowDetails = () => {
       }
       
       if (workflow.config.TestnetDuration) {
-        // Convert nanoseconds to hours if needed
-        let duration = workflow.config.TestnetDuration;
-        if (duration > 1000000000) { // If it's in nanoseconds
-          duration = duration / (60 * 60 * 1000000000); // Convert to hours
-        }
-        params.append('testnetDuration', duration.toString());
+        params.append('testnetDuration', workflow.config.TestnetDuration);
       }
       
       // Number of wallets
