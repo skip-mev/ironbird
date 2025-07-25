@@ -47,7 +47,7 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
-    TestnetDuration: 2, // 2 hours
+    TestnetDuration: '2h', // 2 hours
     NumWallets: 2500, // Default number of wallets
   };
 
@@ -66,9 +66,12 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
-    TestnetDuration: 0,
+    TestnetDuration: '',
     NumWallets: 2500,
   });
+
+  // Separate display states for better UX
+  const [nodeInputValue, setNodeInputValue] = useState('');
   
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
@@ -94,7 +97,7 @@ const CreateWorkflow = () => {
         IsEvmChain: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
-        TestnetDuration: 0,
+        TestnetDuration: '',
         NumWallets: 2500,
       };
       
@@ -134,6 +137,7 @@ const CreateWorkflow = () => {
         const numNodes = parseInt(params.get('numOfNodes')!, 10);
         if (!isNaN(numNodes)) {
           newFormData.ChainConfig.NumOfNodes = numNodes;
+          setNodeInputValue(numNodes.toString());
           hasChanges = true;
           console.log("Setting numOfNodes:", newFormData.ChainConfig.NumOfNodes);
         }
@@ -210,12 +214,10 @@ const CreateWorkflow = () => {
       }
       
       if (params.get('testnetDuration')) {
-        const duration = parseFloat(params.get('testnetDuration')!);
-        if (!isNaN(duration)) {
-          newFormData.TestnetDuration = duration;
-          hasChanges = true;
-          console.log("Setting testnetDuration:", newFormData.TestnetDuration);
-        }
+        const duration = params.get('testnetDuration')!;
+        newFormData.TestnetDuration = duration;
+        hasChanges = true;
+        console.log("Setting testnetDuration:", newFormData.TestnetDuration);
       }
       
       if (params.get('numWallets')) {
@@ -309,12 +311,11 @@ const CreateWorkflow = () => {
     e.preventDefault();
 
     // Validate all required fields are filled
-    const requiredFields = [
+    const requiredFields: { name: string; value: string | number }[] = [
       { name: 'Repository', value: formData.Repo },
       { name: 'Commit SHA', value: formData.SHA },
       { name: 'Chain Name', value: formData.ChainConfig.Name },
       { name: 'Runner Type', value: formData.RunnerType },
-      { name: 'Number of Nodes', value: formData.ChainConfig.NumOfNodes },
       { name: 'Number of Validators', value: formData.ChainConfig.NumOfValidators }
     ];
 
@@ -329,9 +330,12 @@ const CreateWorkflow = () => {
     }
 
     // Check for empty required fields
-    const emptyFields = requiredFields.filter(field => 
-      field.value === '' || field.value === 0 || field.value === undefined
-    );
+    const emptyFields = requiredFields.filter(field => {
+      if (typeof field.value === 'number') {
+        return field.value === 0 || field.value === undefined;
+      }
+      return field.value === '' || field.value === undefined;
+    });
 
     if (emptyFields.length > 0) {
       toast({
@@ -341,13 +345,6 @@ const CreateWorkflow = () => {
         duration: 5000,
       });
       return;
-    }
-
-    // Convert hours to nanoseconds
-    let durationInNanos = 0;
-    if (!formData.LongRunningTestnet && formData.TestnetDuration) {
-      // Convert hours to nanoseconds (hours * 60 * 60 * 10^9)
-      durationInNanos = formData.TestnetDuration * 60 * 60 * 1000000000;
     }
 
     const submissionData: TestnetWorkflowRequest = {
@@ -367,7 +364,7 @@ const CreateWorkflow = () => {
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
-      TestnetDuration: durationInNanos,
+      TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
 
@@ -502,28 +499,28 @@ const CreateWorkflow = () => {
             </FormControl>
           )}
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel color="text">Number of Nodes</FormLabel>
-              <NumberInput
-                value={formData.ChainConfig.NumOfNodes || ''}
-                min={1}
-                onChange={(_, value) =>
+              <Input
+                type="number"
+                min={0}
+                value={nodeInputValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNodeInputValue(value);
                   setFormData({
                     ...formData,
                     ChainConfig: {
                       ...formData.ChainConfig,
-                      NumOfNodes: value || 0,
+                      NumOfNodes: value === '' ? 0 : parseInt(value) || 0,
                     },
-                  })
-                }
-              >
-                <NumberInputField 
-                  bg="surface" 
-                  color="text" 
-                  borderColor="divider" 
-                  placeholder={defaultValues.ChainConfig.NumOfNodes.toString()}
-                />
-            </NumberInput>
+                  });
+                }} 
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder={defaultValues.ChainConfig.NumOfNodes.toString()}
+              />
           </FormControl>
 
           <FormControl isRequired>
@@ -714,19 +711,16 @@ const CreateWorkflow = () => {
           {!formData.LongRunningTestnet && (
             <FormControl>
               <FormLabel>Testnet Duration (Hours)</FormLabel>
-              <NumberInput
-                min={1}
-                value={formData.TestnetDuration || ''}
-                onChange={(_, value) => {
-                  setFormData({ 
-                    ...formData, 
-                    TestnetDuration: value || 0
-                  });
-                }}
-              >
-                <NumberInputField placeholder={defaultValues.TestnetDuration.toString()} />
-              </NumberInput>
-              <FormHelperText>Duration in hours</FormHelperText>
+              <Input
+                type="text"
+                value={formData.TestnetDuration}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  TestnetDuration: e.target.value
+                })}
+                placeholder={defaultValues.TestnetDuration}
+              />
+              <FormHelperText>Duration in hours (e.g., "2h", "1.5h", "30m"). Default runtime if left blank is 2m.</FormHelperText>
             </FormControl>
           )}
 

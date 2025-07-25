@@ -26,7 +26,7 @@ message CreateWorkflowRequest {
     string runner_type = 5;
     LoadTestSpec load_test_spec = 6;
     bool long_running_testnet = 7;
-    int64 testnet_duration = 8;
+    string testnet_duration = 8;
     int32 num_wallets = 9;
 }
 

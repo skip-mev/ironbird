@@ -75,7 +75,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     chainConfig: chainConfig,
     runnerType: request.RunnerType,
     longRunningTestnet: request.LongRunningTestnet,
-    testnetDuration: protoInt64.zero,
+    testnetDuration: request.TestnetDuration || '',
     numWallets: request.NumWallets
   });
   
@@ -88,10 +88,6 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     grpcRequest.chainConfig!.numOfValidators = protoInt64.parse(request.ChainConfig.NumOfValidators.toString());
   }
   
-  if (request.TestnetDuration) {
-    grpcRequest.testnetDuration = protoInt64.parse(request.TestnetDuration.toString());
-  }
-
   if (request.LoadTestSpec) {
     const grpcLoadTestSpec = convertToGrpcLoadTestSpec(request.LoadTestSpec);
     grpcLoadTestSpec.isEvmChain = request.IsEvmChain;

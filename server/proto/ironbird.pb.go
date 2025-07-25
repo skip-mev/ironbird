@@ -30,7 +30,7 @@ type CreateWorkflowRequest struct {
 	RunnerType         string                 `protobuf:"bytes,5,opt,name=runner_type,json=runnerType,proto3" json:"runner_type,omitempty"`
 	LoadTestSpec       *LoadTestSpec          `protobuf:"bytes,6,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
 	LongRunningTestnet bool                   `protobuf:"varint,7,opt,name=long_running_testnet,json=longRunningTestnet,proto3" json:"long_running_testnet,omitempty"`
-	TestnetDuration    int64                  `protobuf:"varint,8,opt,name=testnet_duration,json=testnetDuration,proto3" json:"testnet_duration,omitempty"`
+	TestnetDuration    string                 `protobuf:"bytes,8,opt,name=testnet_duration,json=testnetDuration,proto3" json:"testnet_duration,omitempty"`
 	NumWallets         int32                  `protobuf:"varint,9,opt,name=num_wallets,json=numWallets,proto3" json:"num_wallets,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
@@ -115,11 +115,11 @@ func (x *CreateWorkflowRequest) GetLongRunningTestnet() bool {
 	return false
 }
 
-func (x *CreateWorkflowRequest) GetTestnetDuration() int64 {
+func (x *CreateWorkflowRequest) GetTestnetDuration() string {
 	if x != nil {
 		return x.TestnetDuration
 	}
-	return 0
+	return ""
 }
 
 func (x *CreateWorkflowRequest) GetNumWallets() int32 {
@@ -1317,7 +1317,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"runnerType\x12A\n" +
 	"\x0eload_test_spec\x18\x06 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\x120\n" +
 	"\x14long_running_testnet\x18\a \x01(\bR\x12longRunningTestnet\x12)\n" +
-	"\x10testnet_duration\x18\b \x01(\x03R\x0ftestnetDuration\x12\x1f\n" +
+	"\x10testnet_duration\x18\b \x01(\tR\x0ftestnetDuration\x12\x1f\n" +
 	"\vnum_wallets\x18\t \x01(\x05R\n" +
 	"numWallets\"3\n" +
 	"\tGenesisKV\x12\x10\n" +
