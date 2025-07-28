@@ -37,13 +37,20 @@ func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclien
 func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequest) (*pb.WorkflowResponse, error) {
 	s.logger.Info("CreateWorkflow request received", zap.Any("request", req))
 
+	if req.TestnetDuration != "" {
+		_, err := time.ParseDuration(req.TestnetDuration)
+		if err != nil {
+			return nil, fmt.Errorf("invalid testnet duration format '%s': %w", req.TestnetDuration, err)
+		}
+	}
+
 	workflowReq := messages.TestnetWorkflowRequest{
 		Repo:               req.Repo,
 		SHA:                req.Sha,
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
-		TestnetDuration:    time.Duration(req.TestnetDuration),
+		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int(req.NumWallets),
 	}
 
@@ -226,7 +233,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		IsEvmChain:         workflow.Config.IsEvmChain,
 		RunnerType:         string(workflow.Config.RunnerType),
 		LongRunningTestnet: workflow.Config.LongRunningTestnet,
-		TestnetDuration:    int64(workflow.Config.TestnetDuration.Seconds()),
+		TestnetDuration:    workflow.Config.TestnetDuration,
 		NumWallets:         int32(workflow.Config.NumWallets),
 		ChainConfig:        chainConfig,
 	}

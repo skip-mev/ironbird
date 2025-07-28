@@ -46,9 +46,9 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   longRunningTestnet = false;
 
   /**
-   * @generated from field: int64 testnet_duration = 8;
+   * @generated from field: string testnet_duration = 8;
    */
-  testnetDuration = protoInt64.zero;
+  testnetDuration = "";
 
   /**
    * @generated from field: int32 num_wallets = 9;
@@ -70,7 +70,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 5, name: "runner_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "load_test_spec", kind: "message", T: LoadTestSpec },
     { no: 7, name: "long_running_testnet", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 8, name: "testnet_duration", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
