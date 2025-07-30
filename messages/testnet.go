@@ -2,7 +2,6 @@ package messages
 
 import (
 	"fmt"
-
 	pb "github.com/skip-mev/ironbird/server/proto"
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
@@ -17,8 +16,33 @@ const (
 )
 
 var (
-	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-		"image_id": "194382907"}
+	DigitalOceanDefaultOpts = []map[string]string{
+		{
+			"region":   "nyc1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "194382907",
+		},
+		{
+			"region":   "sfo2",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "194382907",
+		},
+		{
+			"region":   "ams3",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "194382907",
+		},
+		{
+			"region":   "fra1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "194382907",
+		},
+		{
+			"region":   "sgp1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "194382907",
+		},
+	}
 )
 
 type RunnerType string

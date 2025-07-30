@@ -292,7 +292,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 
 func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
 	if runnerType == messages.DigitalOcean {
-		return messages.DigitalOceanDefaultOpts
+		return messages.DigitalOceanDefaultOpts[0]
 	}
 	return nil
 }
