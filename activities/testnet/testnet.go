@@ -60,6 +60,8 @@ const (
 	defaultEvmChainID = "4231"
 )
 
+var launchedNodes = 0
+
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
@@ -134,13 +136,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return
 	}
 
-	nodeOptions := petritypes.NodeOptions{}
-
-	if req.RunnerType == messages.DigitalOcean {
-		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
+	nodeOptions := petritypes.NodeOptions{
+		NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
+			// TODO: Figure out some geo-distribution here for creating provider nodes
+			definition.ProviderSpecificConfig = messages.DigitalOceanDefaultOpts[launchedNodes%5]
+			launchedNodes++
 			return definition
-		}
+		},
 	}
 
 	chainConfig, walletConfig := constructChainConfig(req, a.Chains)
@@ -148,13 +150,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	chain, chainErr := petrichain.CreateChain(
 		ctx, logger, p, chainConfig,
 		petritypes.ChainOptions{
-			NodeCreator: node.CreateNode,
-			NodeOptions: petritypes.NodeOptions{
-				NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
-					return definition
-				},
-			},
+			NodeCreator:  node.CreateNode,
+			NodeOptions:  nodeOptions,
 			WalletConfig: walletConfig,
 		},
 	)
@@ -176,6 +173,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,
+		NodeOptions:   nodeOptions,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)

@@ -122,7 +122,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			UID:   "100",
 			GID:   "100",
 		},
-		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts,
+		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts[0],
 		Command:                []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir:                "/tmp/catalyst",
 		Environment: map[string]string{
