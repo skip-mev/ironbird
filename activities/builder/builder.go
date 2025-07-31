@@ -26,6 +26,8 @@ import (
 	"github.com/skip-mev/ironbird/types"
 	"github.com/tonistiigi/fsutil"
 	fstypes "github.com/tonistiigi/fsutil/types"
+
+	"github.com/skip-mev/ironbird/util"
 )
 
 type Activity struct {
@@ -62,22 +64,12 @@ var (
 )
 
 func (a *Activity) getAuthenticationToken(ctx context.Context) (string, string, error) {
-	ecrClient := ecrpublic.NewFromConfig(*a.AwsConfig, func(options *ecrpublic.Options) {
-		// ecrpublic only works in us-east-1
-		options.Region = "us-east-1"
-	})
-
-	token, err := ecrClient.GetAuthorizationToken(ctx, &ecrpublic.GetAuthorizationTokenInput{})
-
+	token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
 	if err != nil {
 		return "", "", err
 	}
 
-	if token.AuthorizationData.AuthorizationToken == nil {
-		return "", "", fmt.Errorf("no authorization token found")
-	}
-
-	decodedToken, err := base64.StdEncoding.DecodeString(*token.AuthorizationData.AuthorizationToken)
+	decodedToken, err := base64.StdEncoding.DecodeString(token)
 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to decode token: %w", err)

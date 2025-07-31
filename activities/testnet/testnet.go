@@ -19,6 +19,7 @@ import (
 
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
@@ -34,6 +35,7 @@ type Activity struct {
 	Chains            types.Chains
 	GrafanaConfig     types.GrafanaConfig
 	GRPCClient        pb.IronbirdServiceClient
+	AwsConfig         *aws.Config
 }
 
 var (
@@ -137,8 +139,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	nodeOptions := petritypes.NodeOptions{}
 
 	if req.RunnerType == messages.DigitalOcean {
+		token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
+		if err != nil {
+			logger.Error("Failed to fetch docker repo token", zap.Error(err))
+		}
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
+			definition.ProviderSpecificConfig["docker_auth"] = token
 			return definition
 		}
 	}
