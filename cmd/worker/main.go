@@ -120,6 +120,7 @@ func main() {
 		Chains:            cfg.Chains,
 		GrafanaConfig:     cfg.Grafana,
 		GRPCClient:        grpcClient,
+		AwsConfig:         &awsConfig,
 	}
 
 	loadTestActivity := loadtest.Activity{
