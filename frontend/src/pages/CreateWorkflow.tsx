@@ -19,11 +19,12 @@ import {
   VStack,
   Flex,
   FormHelperText,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useMutation } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
 import type { TestnetWorkflowRequest, LoadTestSpec } from '../types/workflow';
-import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 import ChainConfigsModal from '../components/ChainConfigsModal';
 import GenesisModificationsModal from '../components/GenesisModificationsModal';
@@ -72,7 +73,7 @@ const CreateWorkflow = () => {
 
   // Separate display states for better UX
   const [nodeInputValue, setNodeInputValue] = useState('');
-  
+
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -213,6 +214,18 @@ const CreateWorkflow = () => {
         console.log("Setting evm flag:", newFormData.IsEvmChain);
       }
       
+      if (params.get('setSeedNode')) {
+        newFormData.ChainConfig.SetSeedNode = params.get('setSeedNode') === 'true';
+        hasChanges = true;
+        console.log("Setting setSeedNode:", newFormData.ChainConfig.SetSeedNode);
+      }
+
+      if (params.get('setPersistentPeers')) {
+        newFormData.ChainConfig.SetPersistentPeers = params.get('setPersistentPeers') === 'true';
+        hasChanges = true;
+        console.log("Setting setPersistentPeers:", newFormData.ChainConfig.SetPersistentPeers);
+      }
+
       if (params.get('testnetDuration')) {
         const duration = params.get('testnetDuration')!;
         newFormData.TestnetDuration = duration;
@@ -347,6 +360,17 @@ const CreateWorkflow = () => {
       return;
     }
 
+    // Validate that at least one of SetSeedNode or SetPersistentPeers is true
+    if (!formData.ChainConfig.SetSeedNode && !formData.ChainConfig.SetPersistentPeers) {
+      toast({
+        title: 'Validation Error',
+        description: 'At least one of "Set Seed Node" or "Set Persistent Peers" must be enabled',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     const submissionData: TestnetWorkflowRequest = {
       Repo: formData.Repo,
       SHA: formData.SHA,
@@ -359,6 +383,8 @@ const CreateWorkflow = () => {
         AppConfig: formData.ChainConfig.AppConfig,
         ConsensusConfig: formData.ChainConfig.ConsensusConfig,
         ClientConfig: formData.ChainConfig.ClientConfig,
+        SetSeedNode: formData.ChainConfig.SetSeedNode,
+        SetPersistentPeers: formData.ChainConfig.SetPersistentPeers,
       },
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
@@ -515,7 +541,7 @@ const CreateWorkflow = () => {
                       NumOfNodes: value === '' ? 0 : parseInt(value) || 0,
                     },
                   });
-                }} 
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -613,7 +639,45 @@ const CreateWorkflow = () => {
               )}
             </VStack>
           </FormControl>
-          
+
+            <FormControl display="flex" alignItems="center">
+              <FormLabel mb="0">Set Seed Node</FormLabel>
+              <Tooltip label="Set seed node will set a full node (or validator if no nodes exist) as seed for the network" placement="top">
+                <HStack>
+                  <Switch
+                    isChecked={formData.ChainConfig.SetSeedNode || false}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      ChainConfig: {
+                        ...formData.ChainConfig,
+                        SetSeedNode: e.target.checked
+                      }
+                    })}
+                  />
+                  <InfoIcon />
+                </HStack>
+              </Tooltip>
+            </FormControl>
+
+            <FormControl display="flex" alignItems="center">
+              <FormLabel mb="0">Set Persistent Peers</FormLabel>
+              <Tooltip label="Set persistent peers will add all nodes and validators of the network as persistent peers to the consensus config" placement="top">
+                <HStack>
+                  <Switch
+                    isChecked={formData.ChainConfig.SetPersistentPeers || false}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      ChainConfig: {
+                        ...formData.ChainConfig,
+                        SetPersistentPeers: e.target.checked
+                      }
+                    })}
+                  />
+                  <InfoIcon />
+                </HStack>
+              </Tooltip>
+            </FormControl>
+
           <FormControl display="flex" alignItems="center">
             <FormLabel mb="0">Run Load Test</FormLabel>
             <Switch
@@ -714,8 +778,8 @@ const CreateWorkflow = () => {
               <Input
                 type="text"
                 value={formData.TestnetDuration}
-                onChange={(e) => setFormData({ 
-                  ...formData, 
+                onChange={(e) => setFormData({
+                  ...formData,
                   TestnetDuration: e.target.value
                 })}
                 placeholder={defaultValues.TestnetDuration}

@@ -57,7 +57,9 @@ type LaunchTestnetRequest struct {
 	CustomConsensusConfig map[string]interface{}
 	CustomClientConfig    map[string]interface{}
 
-	ProviderState []byte
+	ProviderState      []byte
+	SetPersistentPeers bool
+	SetSeedNode        bool
 }
 
 type LaunchTestnetResponse struct {
@@ -99,6 +101,10 @@ func (r TestnetWorkflowRequest) Validate() error {
 
 	if r.LongRunningTestnet && r.TestnetDuration != "" {
 		return fmt.Errorf("can not set duration on long-running testnet")
+	}
+
+	if !r.ChainConfig.SetSeedNode && !r.ChainConfig.SetPersistentPeers {
+		return fmt.Errorf("at least one of SetSeedNode or SetPersistentPeers must be set to true")
 	}
 
 	return nil

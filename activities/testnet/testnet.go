@@ -313,6 +313,8 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomAppConfig:       req.CustomAppConfig,
 		CustomConsensusConfig: req.CustomConsensusConfig,
 		CustomClientConfig:    req.CustomClientConfig,
+		SetPersistentPeers:    req.SetPersistentPeers,
+		SetSeedNode:           req.SetSeedNode,
 	}
 	walletConfig := CosmosWalletConfig
 

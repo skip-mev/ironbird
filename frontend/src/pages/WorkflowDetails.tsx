@@ -243,6 +243,14 @@ const WorkflowDetails = () => {
         if (workflow.config.ChainConfig.ClientConfig) {
           params.append('clientConfig', JSON.stringify(workflow.config.ChainConfig.ClientConfig));
         }
+        
+        if (workflow.config.ChainConfig.SetSeedNode !== undefined) {
+          params.append('setSeedNode', workflow.config.ChainConfig.SetSeedNode.toString());
+        }
+        
+        if (workflow.config.ChainConfig.SetPersistentPeers !== undefined) {
+          params.append('setPersistentPeers', workflow.config.ChainConfig.SetPersistentPeers.toString());
+        }
       }
     }
     
