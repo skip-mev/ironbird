@@ -156,3 +156,30 @@ docker-clean:
 	@echo "--> Cleaning up Docker resources..."
 	docker-compose down --volumes --remove-orphans
 	docker system prune -f
+
+###############################################################################
+###                           Local Development                             ###
+###############################################################################
+
+.PHONY: install-deps generate-certs first-time-setup
+
+install-deps:
+	@echo "📦 Installing dependencies via Homebrew..."
+	@brew install docker docker-compose awscli aws-vault openssl make temporal || echo "⚠️  Some packages may already be installed"
+	@echo "✅ All dependencies installed!"
+	@echo ""
+
+generate-certs:
+	@echo "🔐 Generating SSL certificates..."
+	@mkdir -p conf
+	@if [ -f "conf/ib-local-key.pem" ] && [ -f "conf/ib-local-cert.pem" ]; then \
+		echo "⚠️  Certificates already exist, skipping generation"; \
+	else \
+		openssl genrsa -out conf/ib-local-key.pem 2048 && \
+		openssl req -x509 -new -nodes -key conf/ib-local-key.pem -sha256 -days 1825 -out conf/ib-local-cert.pem \
+			-subj "/C=/ST=/L=/O=/OU=/CN=localhost" && \
+		echo "✅ SSL certificates generated successfully"; \
+	fi
+
+first-time-setup: install-deps generate-certs
+	@echo "🎉 First-time setup complete!"
