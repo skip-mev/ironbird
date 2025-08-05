@@ -302,6 +302,12 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		panic(err)
 	}
 
+	awsConfig, err := config.LoadDefaultConfig(context.TODO())
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	cfg, err := types.ParseWorkerConfig("../../conf/worker.yaml")
 	if err != nil {
 		s.T().Fatal(err)
@@ -310,6 +316,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 		Chains:            cfg.Chains,
+		AwsConfig:         &awsConfig,
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
 		RootDomain:        "ib-local.dev.skip.build",
@@ -329,12 +336,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		TailscaleSettings: tailscaleSettings,
 	}
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
-
-	awsConfig, err := config.LoadDefaultConfig(context.TODO())
-
-	if err != nil {
-		log.Fatalln(err)
-	}
 
 	builderConfig := types.BuilderConfig{
 		BuildKitAddress: "tcp://localhost:1234",
