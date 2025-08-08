@@ -3,6 +3,22 @@ SERVER_BIN=./build/server
 GO_FILES=$(shell find . -name '*.go' -type f -not -path "./vendor/*")
 GO_DEPS=go.mod go.sum
 
+PROTO_PATH=./server/proto
+PROTO_FILE=$(PROTO_PATH)/ironbird.proto
+SERVICE=skip.ironbird.IronbirdService
+METHOD=CreateWorkflow
+ADDRESS=localhost:9006
+JSON_FILE=./hack/create-workflow.json
+
+call-grpc:
+	cat ./hack/create-workflow.json | grpcurl \
+	-import-path $(PROTO_PATH) \
+	-proto $(PROTO_FILE) \
+	-plaintext \
+	-d @ \
+	$(ADDRESS) \
+	$(SERVICE)/$(METHOD)
+
 temporal-reset:
 	temporal workflow list -o json | jq -r '.[] | select (.status == "WORKFLOW_EXECUTION_STATUS_RUNNING") | .execution.workflowId' | xargs -I{} temporal workflow terminate --reason lol --workflow-id "{}"
 

@@ -111,6 +111,9 @@ func main() {
 			Username: cfg.Telemetry.Loki.Username,
 			Password: cfg.Telemetry.Loki.Password,
 		},
+		Pyroscope: digitalocean.PyroscopeSettings{
+			URL: cfg.Telemetry.Pyroscope.URL,
+		},
 	}
 
 	testnetActivity := testnetactivity.Activity{

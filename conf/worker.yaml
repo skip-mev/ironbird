@@ -23,6 +23,8 @@ telemetry:
     url: "https://loki.overseer.skip.build/loki/api/v1/push"
     username: "overseer"
     password: "testytest"
+  pyroscope:
+    url: "https://profiles-prod-003.grafana.net"
 
 load_balancer:
   root_domain: ib-local.dev.skip.build
