@@ -37,6 +37,11 @@ type LoadBalancerConfig struct {
 type TelemetryConfig struct {
 	Prometheus PrometheusConfig `yaml:"prometheus"`
 	Loki       LokiConfig       `yaml:"loki"`
+	Pyroscope  PyroscopeConfig  `yaml:"pyroscope"`
+}
+
+type PyroscopeConfig struct {
+	URL string `json:"url"`
 }
 
 type PrometheusConfig struct {
