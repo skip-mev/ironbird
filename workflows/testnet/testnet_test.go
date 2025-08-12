@@ -19,7 +19,8 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
@@ -54,13 +55,13 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
+		CosmosLoadTestSpec: &cosmostypes.LoadTestSpec{
 			Name:        "e2e-test",
 			Description: "e2e test",
 			NumOfBlocks: 5,
 			NumOfTxs:    100,
 			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
+				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
 		NumWallets: 20,
@@ -172,13 +173,13 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
+		CosmosLoadTestSpec: &cosmostypes.LoadTestSpec{
 			Name:        "e2e-test",
 			Description: "e2e test",
 			NumOfBlocks: 5,
 			NumOfTxs:    10,
 			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
+				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
 		NumWallets: 10,
@@ -430,7 +431,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.EthereumLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
 
@@ -450,7 +451,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.EthereumLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 

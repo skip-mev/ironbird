@@ -477,7 +477,7 @@ func (x *LoadTestSpec) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LoadTestSpec.ProtoReflect.Descriptor instead.
+// Deprecated: Use EthereumLoadTestSpec.ProtoReflect.Descriptor instead.
 func (*LoadTestSpec) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{5}
 }
@@ -1616,7 +1616,7 @@ var file_server_proto_ironbird_proto_goTypes = []any{
 	(*ChainConfig)(nil),               // 2: skip.ironbird.ChainConfig
 	(*NodeAddress)(nil),               // 3: skip.ironbird.NodeAddress
 	(*LoadTestMsg)(nil),               // 4: skip.ironbird.LoadTestMsg
-	(*LoadTestSpec)(nil),              // 5: skip.ironbird.LoadTestSpec
+	(*LoadTestSpec)(nil),              // 5: skip.ironbird.EthereumLoadTestSpec
 	(*LoadTestSpecEthereum)(nil),      // 6: skip.ironbird.LoadTestSpecEthereum
 	(*GetWorkflowRequest)(nil),        // 7: skip.ironbird.GetWorkflowRequest
 	(*ListWorkflowsRequest)(nil),      // 8: skip.ironbird.ListWorkflowsRequest
@@ -1635,19 +1635,19 @@ var file_server_proto_ironbird_proto_goTypes = []any{
 }
 var file_server_proto_ironbird_proto_depIdxs = []int32{
 	2,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ChainConfig
-	5,  // 1: skip.ironbird.CreateWorkflowRequest.cosmos_load_test_spec:type_name -> skip.ironbird.LoadTestSpec
+	5,  // 1: skip.ironbird.CreateWorkflowRequest.cosmos_load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
 	6,  // 2: skip.ironbird.CreateWorkflowRequest.ethereum_load_test_spec:type_name -> skip.ironbird.LoadTestSpecEthereum
 	1,  // 3: skip.ironbird.ChainConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
-	3,  // 4: skip.ironbird.LoadTestSpec.nodes_addresses:type_name -> skip.ironbird.NodeAddress
-	4,  // 5: skip.ironbird.LoadTestSpec.msgs:type_name -> skip.ironbird.LoadTestMsg
+	3,  // 4: skip.ironbird.EthereumLoadTestSpec.nodes_addresses:type_name -> skip.ironbird.NodeAddress
+	4,  // 5: skip.ironbird.EthereumLoadTestSpec.msgs:type_name -> skip.ironbird.LoadTestMsg
 	4,  // 6: skip.ironbird.LoadTestSpecEthereum.msgs:type_name -> skip.ironbird.LoadTestMsg
-	5,  // 7: skip.ironbird.RunLoadTestRequest.load_test_spec:type_name -> skip.ironbird.LoadTestSpec
+	5,  // 7: skip.ironbird.RunLoadTestRequest.load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
 	13, // 8: skip.ironbird.Workflow.nodes:type_name -> skip.ironbird.Node
 	13, // 9: skip.ironbird.Workflow.validators:type_name -> skip.ironbird.Node
 	13, // 10: skip.ironbird.Workflow.load_balancers:type_name -> skip.ironbird.Node
 	19, // 11: skip.ironbird.Workflow.monitoring:type_name -> skip.ironbird.Workflow.MonitoringEntry
 	0,  // 12: skip.ironbird.Workflow.config:type_name -> skip.ironbird.CreateWorkflowRequest
-	5,  // 13: skip.ironbird.Workflow.load_test_spec:type_name -> skip.ironbird.LoadTestSpec
+	5,  // 13: skip.ironbird.Workflow.load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
 	14, // 14: skip.ironbird.Workflow.wallets:type_name -> skip.ironbird.WalletInfo
 	13, // 15: skip.ironbird.UpdateWorkflowDataRequest.load_balancers:type_name -> skip.ironbird.Node
 	20, // 16: skip.ironbird.UpdateWorkflowDataRequest.monitoring:type_name -> skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry

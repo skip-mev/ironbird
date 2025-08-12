@@ -41,6 +41,13 @@ func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclien
 func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequest) (*pb.WorkflowResponse, error) {
 	s.logger.Info("CreateWorkflow request received", zap.Any("request", req))
 
+	if req.CosmosLoadTestSpec != nil && req.EthereumLoadTestSpec != nil {
+		return nil, fmt.Errorf("cannot specify both ethereum and cosmos loadtest specs")
+	}
+	if req.EthereumLoadTestSpec == nil && req.CosmosLoadTestSpec == nil {
+		return nil, fmt.Errorf("must specify one of ethereum and cosmos loadtest specs")
+	}
+
 	if req.TestnetDuration != "" {
 		_, err := time.ParseDuration(req.TestnetDuration)
 		if err != nil {
@@ -117,10 +124,11 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		workflowReq.ChainConfig = chainConfig
 	}
 
-	if req.LoadTestSpec != nil {
-		loadTestSpec := s.convertProtoLoadTestSpec(req.LoadTestSpec)
-		workflowReq.LoadTestSpec = &loadTestSpec
+	if req.EthereumLoadTestSpec != nil {
+		loadTestSpec := s.convertProtoLoadTestSpec(req.EthereumLoadTestSpec)
+		workflowReq.EthereumLoadTestSpec = &loadTestSpec
 	}
+	// TODO: ethereum/cosmos switch? maybe generic. might be too much though.
 
 	options := temporalclient.StartWorkflowOptions{
 		TaskQueue:           messages.TaskQueue,
@@ -419,7 +427,7 @@ func (s *Service) UpdateWorkflowStatuses() {
 	}
 }
 
-func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpec) catethtypes.LoadTestSpec {
+func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpecEthereum) catethtypes.LoadTestSpec {
 	if spec == nil {
 		return catethtypes.LoadTestSpec{}
 	}
