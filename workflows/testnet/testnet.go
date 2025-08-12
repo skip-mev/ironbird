@@ -264,7 +264,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	}
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		var loadTestResp messages.RunLoadTestResponse
-		req.LoadTestSpec.IsEvmChain = req.IsEvmChain
+		// req.LoadTestSpec.IsEvmChain = req.IsEvmChain
 		f := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
@@ -294,7 +294,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 
 func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
 	if runnerType == messages.DigitalOcean {
-		return messages.DigitalOceanDefaultOpts
+		return messages.DigitalOceanDefaultOpts[0]
 	}
 	return nil
 }

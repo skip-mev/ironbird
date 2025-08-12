@@ -5,7 +5,7 @@ import (
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
@@ -17,8 +17,33 @@ const (
 )
 
 var (
-	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-		"image_id": "195881161"}
+	DigitalOceanDefaultOpts = []map[string]string{
+		{
+			"region":   "nyc1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "195881161",
+		},
+		{
+			"region":   "sfo2",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "195881161",
+		},
+		{
+			"region":   "ams3",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "195881161",
+		},
+		{
+			"region":   "fra1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "195881161",
+		},
+		{
+			"region":   "sgp1",
+			"size":     "s-4vcpu-8gb",
+			"image_id": "195881161",
+		},
+	}
 )
 
 type RunnerType string

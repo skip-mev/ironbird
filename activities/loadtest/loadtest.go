@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"time"
 
-	"github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/catalyst/chains/ethereum/types"
+	catchaintypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
@@ -50,40 +52,53 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
 	loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
-	chainConfig := chain.GetConfig()
-	loadTestSpec.GasDenom = chainConfig.Denom
-	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
-	loadTestSpec.ChainID = chainID
+	// chainConfig := chain.GetConfig()
+	// loadTestSpec.GasDenom = chainConfig.Denom
+	// loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
+	// loadTestSpec.ChainID = chainID
+	loadTestSpec.ChainID = *big.NewInt(262144)
 
 	validators := chain.GetValidators()
-	var nodes []types.NodeAddress
+	var nodes []string
 	for _, v := range validators {
-		grpcAddr, err := v.GetIP(ctx)
-		grpcAddr = grpcAddr + ":9090"
+		ipAddr, err := v.GetIP(ctx)
 		if err != nil {
 			return nil, err
 		}
-
-		rpcAddr, err := v.GetIP(ctx)
-		rpcAddr = rpcAddr + ":26657"
-		if err != nil {
-			return nil, err
-		}
-
-		nodes = append(nodes, types.NodeAddress{
-			GRPC: grpcAddr,
-			RPC:  fmt.Sprintf("http://%s", rpcAddr),
-		})
+		nodes = append(nodes, fmt.Sprintf("%s:%s", ipAddr, "8545"))
 	}
+	/*
+		var nodes []types.NodeAddress
+		for _, v := range validators {
+			grpcAddr, err := v.GetIP(ctx)
+			grpcAddr = grpcAddr + ":9090"
+			if err != nil {
+				return nil, err
+			}
+
+			rpcAddr, err := v.GetIP(ctx)
+			rpcAddr = rpcAddr + ":26657"
+			if err != nil {
+				return nil, err
+			}
+
+			nodes = append(nodes, types.NodeAddress{
+				GRPC: grpcAddr,
+				RPC:  fmt.Sprintf("http://%s", rpcAddr),
+			})
+		}
+	*/
 
 	loadTestSpec.NodesAddresses = nodes
 	loadTestSpec.Mnemonics = mnemonics
 
-	err := loadTestSpec.Validate()
-	if err != nil {
-		logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
-		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
-	}
+	/*
+		err := loadTestSpec.Validate()
+		if err != nil {
+			logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
+			return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
+		}
+	*/
 
 	logger.Info("Load test spec constructed", zap.Any("spec", loadTestSpec))
 	return yaml.Marshal(&loadTestSpec)
@@ -122,7 +137,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 			UID:   "100",
 			GID:   "100",
 		},
-		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts,
+		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts[0],
 		Command:                []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir:                "/tmp/catalyst",
 		Environment: map[string]string{
@@ -166,7 +181,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to read result file")
 			}
 
-			var result types.LoadTestResult
+			var result catchaintypes.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to parse result file")
 			}
