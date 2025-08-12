@@ -19,6 +19,10 @@ import (
 	"github.com/skip-mev/ironbird/util"
 )
 
+const (
+	walletFundChunkSize = 100
+)
+
 type Activity struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
@@ -85,30 +89,37 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
-	command := []string{
-		chainConfig.BinaryName,
-		"tx", "bank", "multi-send",
-		faucetWallet.FormattedAddress(),
-	}
+	for i := 0; i <= req.NumWallets/walletFundChunkSize; i++ {
+		command := []string{
+			chainConfig.BinaryName,
+			"tx", "bank", "multi-send",
+			faucetWallet.FormattedAddress(),
+		}
+		first := i * walletFundChunkSize
+		last := first + walletFundChunkSize
+		if last > len(addresses) {
+			last = len(addresses)
+		}
 
-	command = append(command, addresses...)
-	command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
-		"--chain-id", chainConfig.ChainId,
-		"--keyring-backend", "test",
-		"--from", "faucet",
-		"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
-		"--gas", "auto",
-		"--gas-adjustment", "1.5",
-		"--yes",
-		"--home", chainConfig.HomeDir,
-	)
+		command = append(command, addresses[first:last]...)
+		command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
+			"--chain-id", chainConfig.ChainId,
+			"--keyring-backend", "test",
+			"--from", "faucet",
+			"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
+			"--gas", "auto",
+			"--gas-adjustment", "1.5",
+			"--yes",
+			"--home", chainConfig.HomeDir,
+		)
 
-	stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
-	if err != nil || exitCode != 0 {
-		logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
-		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+		stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
+		if err != nil || exitCode != 0 {
+			logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
+			return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+		}
+		logger.Info("fund result", zap.String("stdout", stdout))
 	}
-	logger.Info("fund result", zap.String("stdout", stdout))
 	time.Sleep(5 * time.Second)
 
 	if a.GRPCClient != nil {
