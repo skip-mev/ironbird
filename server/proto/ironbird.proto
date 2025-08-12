@@ -10,9 +10,9 @@ service IronbirdService {
     rpc ListWorkflows(ListWorkflowsRequest) returns (WorkflowListResponse) {}
     rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowResponse) {}
     rpc SignalWorkflow(SignalWorkflowRequest) returns (WorkflowResponse) {}
-    
+
     rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
-    
+
     rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
 }
 
@@ -24,10 +24,11 @@ message CreateWorkflowRequest {
     bool isEvmChain = 3;
     ChainConfig chain_config = 4;
     string runner_type = 5;
-    LoadTestSpec load_test_spec = 6;
-    bool long_running_testnet = 7;
-    string testnet_duration = 8;
-    int32 num_wallets = 9;
+    LoadTestSpec cosmos_load_test_spec = 6;
+    LoadTestSpecEthereum ethereum_load_test_spec = 7;
+    bool long_running_testnet = 8;
+    string testnet_duration = 9;
+    int32 num_wallets = 10;
 }
 
 message GenesisKV {
@@ -41,8 +42,8 @@ message ChainConfig {
     uint64 num_of_validators = 3;
     repeated GenesisKV genesis_modifications = 4;
     string image = 5;
-    string custom_app_config = 6;       
-    string custom_consensus_config = 7; 
+    string custom_app_config = 6;
+    string custom_consensus_config = 7;
     string custom_client_config = 8;
     bool set_seed_node = 9;
     bool set_persistent_peers = 10;
@@ -75,6 +76,19 @@ message LoadTestSpec {
     repeated LoadTestMsg msgs = 11;
     bool unordered_txs = 12;
     int64 tx_timeout = 13;
+}
+
+// LoadTestSpecEthereum represents the configuration for an ethereum load test
+message LoadTestSpecEthereum {
+    string name = 1;
+    string description = 2;
+    string chain_id = 3;  // Using string for big.Int compatibility
+    int32 num_of_txs = 4;
+    int64 num_of_blocks = 5;
+    repeated string nodes_addresses = 6;
+    repeated LoadTestMsg msgs = 7;
+    int64 tx_timeout = 8;
+    repeated string private_keys = 9;
 }
 
 message GetWorkflowRequest {
