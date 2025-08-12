@@ -90,7 +90,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	*/
 
 	loadTestSpec.NodesAddresses = nodes
-	loadTestSpec.Mnemonics = mnemonics
+	// loadTestSpec.Mnemonics = mnemonics
 
 	/*
 		err := loadTestSpec.Validate()
