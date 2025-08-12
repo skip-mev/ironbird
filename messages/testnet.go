@@ -3,9 +3,9 @@ package messages
 import (
 	"fmt"
 
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	ethereumtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
-
-	catalysttypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
@@ -72,16 +72,20 @@ type LaunchTestnetResponse struct {
 }
 
 type TestnetWorkflowRequest struct {
-	Repo               string
-	SHA                string
-	IsEvmChain         bool
-	ChainConfig        types.ChainsConfig
-	RunnerType         RunnerType
-	LoadTestSpec       *catalysttypes.LoadTestSpec
-	LongRunningTestnet bool
+	Repo        string
+	SHA         string
+	IsEvmChain  bool
+	ChainConfig types.ChainsConfig
+	RunnerType  RunnerType
+
+	// TODO: support both specs. for now they are separate and ethereum will work. not cosmos on this branch.
+	EthereumLoadTestSpec *ethereumtypes.LoadTestSpec
+	CosmosLoadTestSpec   *cosmostypes.LoadTestSpec
+
+	LongRunningTestnet   bool
 	LaunchLoadBalancer bool
-	TestnetDuration    string
-	NumWallets         int
+	TestnetDuration      string
+	NumWallets           int
 }
 
 func (r TestnetWorkflowRequest) Validate() error {
