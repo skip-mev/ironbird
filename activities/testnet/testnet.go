@@ -59,8 +59,10 @@ const (
 	cosmosDenom       = "stake"
 	evmDenom          = "uatom"
 	cosmosDecimals    = 6
-	defaultEvmChainID = "4231"
+	DefaultEvmChainID = "262144"
 )
+
+var launchedNodes = 0
 
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
@@ -181,6 +183,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,
+		NodeOptions:   nodeOptions,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
@@ -326,7 +329,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 
 	if req.IsEvmChain {
 		config.Denom = evmDenom
-		chainID := defaultEvmChainID
+		chainID := DefaultEvmChainID
 		config.IsEVMChain = true
 		config.ChainId = chainID
 		config.CoinType = "60"

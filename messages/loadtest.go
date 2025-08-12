@@ -1,13 +1,14 @@
 package messages
 
 import (
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	"github.com/skip-mev/catalyst/chains/ethereum/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 )
 
 type RunLoadTestRequest struct {
 	ChainState    []byte
 	ProviderState []byte
-	LoadTestSpec  catalysttypes.LoadTestSpec
+	LoadTestSpec  types.LoadTestSpec
 	RunnerType    RunnerType
 	IsEvmChain    bool
 	Mnemonics     []string

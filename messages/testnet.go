@@ -5,7 +5,7 @@ import (
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"

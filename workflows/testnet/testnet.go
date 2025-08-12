@@ -264,7 +264,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	}
 	workflow.Go(ctx, func(ctx workflow.Context) {
 		var loadTestResp messages.RunLoadTestResponse
-		req.LoadTestSpec.IsEvmChain = req.IsEvmChain
+		// req.LoadTestSpec.IsEvmChain = req.IsEvmChain
 		f := workflow.ExecuteActivity(
 			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 			loadTestActivities.RunLoadTest,
