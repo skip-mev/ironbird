@@ -72,6 +72,16 @@ chains:
     home_dir: "/simd"
     gas_prices: "0.0005stake"
 
+  evm:
+    name: evm
+    version: v0.4.0-beta.0
+    dockerfile: "./hack/evm.Dockerfile"
+    gid: "1025"
+    uid: "1025"
+    binary_name: "/usr/bin/evmd"
+    home_dir: "/evmd"
+    gas_prices: "0.0005atest"
+
 grafana:
   url: "https://skipprotocol.grafana.net"
   dashboards:

@@ -53,6 +53,7 @@ var (
 		"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
 		"cometbft/cometbft":            "github.com/cometbft/cometbft",
 		"cosmos/cosmos-sdk":            "github.com/cosmos/cosmos-sdk",
+		"cosmos/evm":                   "github.com/cosmos/evm",
 	}
 	repoOwners = map[string]string{
 		"ironbird-cometbft":   "skip-mev",
@@ -60,6 +61,7 @@ var (
 		"cometbft":            "cometbft",
 		"cosmos-sdk":          "cosmos",
 		"gaia":                "cosmos",
+		"evm":                 "cosmos",
 	}
 )
 
