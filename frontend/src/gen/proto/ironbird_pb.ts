@@ -36,27 +36,32 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   runnerType = "";
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec load_test_spec = 6;
+   * @generated from field: skip.ironbird.LoadTestSpec cosmos_load_test_spec = 6;
    */
-  loadTestSpec?: LoadTestSpec;
+  cosmosLoadTestSpec?: LoadTestSpec;
 
   /**
-   * @generated from field: bool long_running_testnet = 7;
+   * @generated from field: skip.ironbird.LoadTestSpecEthereum ethereum_load_test_spec = 7;
+   */
+  ethereumLoadTestSpec?: LoadTestSpecEthereum;
+
+  /**
+   * @generated from field: bool long_running_testnet = 8;
    */
   longRunningTestnet = false;
 
   /**
-   * @generated from field: string testnet_duration = 8;
+   * @generated from field: string testnet_duration = 9;
    */
   testnetDuration = "";
 
   /**
-   * @generated from field: int32 num_wallets = 9;
+   * @generated from field: int32 num_wallets = 10;
    */
   numWallets = 0;
 
   /**
-   * @generated from field: bool launch_load_balancer = 10;
+   * @generated from field: bool launch_load_balancer = 11;
    */
   launchLoadBalancer = false;
 
@@ -73,11 +78,12 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 3, name: "isEvmChain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "chain_config", kind: "message", T: ChainConfig },
     { no: 5, name: "runner_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "load_test_spec", kind: "message", T: LoadTestSpec },
-    { no: 7, name: "long_running_testnet", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 8, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 10, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: "cosmos_load_test_spec", kind: "message", T: LoadTestSpec },
+    { no: 7, name: "ethereum_load_test_spec", kind: "message", T: LoadTestSpecEthereum },
+    { no: 8, name: "long_running_testnet", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 9, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 11, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {
@@ -496,6 +502,95 @@ export class LoadTestSpec extends Message<LoadTestSpec> {
 
   static equals(a: LoadTestSpec | PlainMessage<LoadTestSpec> | undefined, b: LoadTestSpec | PlainMessage<LoadTestSpec> | undefined): boolean {
     return proto3.util.equals(LoadTestSpec, a, b);
+  }
+}
+
+/**
+ * LoadTestSpecEthereum represents the configuration for an ethereum load test
+ *
+ * @generated from message skip.ironbird.LoadTestSpecEthereum
+ */
+export class LoadTestSpecEthereum extends Message<LoadTestSpecEthereum> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description = "";
+
+  /**
+   * Using string for big.Int compatibility
+   *
+   * @generated from field: string chain_id = 3;
+   */
+  chainId = "";
+
+  /**
+   * @generated from field: int32 num_of_txs = 4;
+   */
+  numOfTxs = 0;
+
+  /**
+   * @generated from field: int64 num_of_blocks = 5;
+   */
+  numOfBlocks = protoInt64.zero;
+
+  /**
+   * @generated from field: repeated string nodes_addresses = 6;
+   */
+  nodesAddresses: string[] = [];
+
+  /**
+   * @generated from field: repeated skip.ironbird.LoadTestMsg msgs = 7;
+   */
+  msgs: LoadTestMsg[] = [];
+
+  /**
+   * @generated from field: int64 tx_timeout = 8;
+   */
+  txTimeout = protoInt64.zero;
+
+  /**
+   * @generated from field: repeated string private_keys = 9;
+   */
+  privateKeys: string[] = [];
+
+  constructor(data?: PartialMessage<LoadTestSpecEthereum>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.LoadTestSpecEthereum";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "chain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "num_of_txs", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 5, name: "num_of_blocks", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 6, name: "nodes_addresses", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 7, name: "msgs", kind: "message", T: LoadTestMsg, repeated: true },
+    { no: 8, name: "tx_timeout", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 9, name: "private_keys", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadTestSpecEthereum {
+    return new LoadTestSpecEthereum().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoadTestSpecEthereum {
+    return new LoadTestSpecEthereum().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoadTestSpecEthereum {
+    return new LoadTestSpecEthereum().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: LoadTestSpecEthereum | PlainMessage<LoadTestSpecEthereum> | undefined, b: LoadTestSpecEthereum | PlainMessage<LoadTestSpecEthereum> | undefined): boolean {
+    return proto3.util.equals(LoadTestSpecEthereum, a, b);
   }
 }
 

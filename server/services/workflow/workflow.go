@@ -474,7 +474,7 @@ func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpec) catethtypes.Lo
 	}
 
 	// result.NodesAddresses = convertProtoNodeAddresses(spec.NodesAddresses)
-	result.Mnemonics = spec.Mnemonics
+	// result.Mnemonics = spec.Mnemonics
 	result.Msgs = convertProtoLoadTestMsgs(spec.Msgs)
 
 	return result
@@ -514,7 +514,7 @@ func (s *Service) convertCatalystLoadTestSpecToProto(spec *catethtypes.LoadTestS
 	}
 
 	// result.NodesAddresses = convertCatalystNodeAddresses(spec.NodesAddresses)
-	result.Mnemonics = spec.Mnemonics
+	// result.Mnemonics = spec.Mnemonics
 	result.Msgs = convertCatalystLoadTestMsgs(spec.Msgs)
 
 	return result
