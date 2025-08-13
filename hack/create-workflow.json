@@ -1,13 +1,70 @@
 {
-  "repo": "cosmos-sdk",
-  "sha": "c4a14fa7b6828432fdabdb8b4af68ade9403ce49",
-  "isEvmChain": false,
+  "repo": "evm",
+  "sha": "be2c215481ef1466328811d878675be75c90edf3",
+  "isEvmChain": true,
   "chain_config": {
     "name": "foobar-0",
     "num_of_nodes": 0,
-    "num_of_validators": 10,
-    "image": "simapp-v53",
-    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"50ms\"}}"
+    "num_of_validators": 5,
+    "image": "evm",
+    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"50ms\"}}",
+    "custom_client_config": "{\"chain-id\":\"262144\"}",
+    "set_persistent_peers": true,
+    "genesis_modifications":
+      [
+        {
+          "key": "app_state.staking.params.bond_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.gov.params.expedited_voting_period",
+          "value": "120s"
+        },
+        {
+          "key": "app_state.gov.params.voting_period",
+          "value": "300s"
+        },
+        {
+          "key": "app_state.gov.params.expedited_min_deposit.0.amount",
+          "value": "1"
+        },
+        {
+          "key": "app_state.gov.params.expedited_min_deposit.0.denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.gov.params.min_deposit.0.amount",
+          "value": "1"
+        },
+        {
+          "key": "app_state.gov.params.min_deposit.0.denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.evm.params.evm_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.mint.params.mint_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.bank.denom_metadata",
+          "value": "[{\"description\":\"The native staking token for evmd.\",\"denom_units\":[{\"denom\":\"atest\",\"exponent\":0,\"aliases\":[\"attotest\"]},{\"denom\":\"test\",\"exponent\":18,\"aliases\":[]}],\"base\":\"atest\",\"display\":\"test\",\"name\":\"Test Token\",\"symbol\":\"TEST\",\"uri\":\"\",\"uri_hash\":\"\"}]"
+        },
+        {
+          "key": "app_state.evm.params.active_static_precompiles",
+          "value": "[\"0x0000000000000000000000000000000000000100\",\"0x0000000000000000000000000000000000000400\",\"0x0000000000000000000000000000000000000800\",\"0x0000000000000000000000000000000000000801\",\"0x0000000000000000000000000000000000000802\",\"0x0000000000000000000000000000000000000803\",\"0x0000000000000000000000000000000000000804\",\"0x0000000000000000000000000000000000000805\"]"
+        },
+        {
+          "key": "app_state.erc20.token_pairs",
+          "value": "[{\"contract_owner\": 1,\"erc20_address\": \"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\",\"denom\": \"atest\",\"enabled\": true}]"
+        },
+        {
+          "key": "consensus.params.block.max_gas",
+          "value": "75000000"
+        }
+      ]
   },
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
