@@ -1,7 +1,7 @@
 package messages
 
 import (
-	"github.com/skip-mev/catalyst/chains/ethereum/types"
+	"github.com/skip-mev/catalyst/chains/types"
 	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 )
 

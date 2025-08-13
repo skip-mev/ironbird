@@ -3,8 +3,7 @@ package messages
 import (
 	"fmt"
 
-	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
-	ethereumtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/petri/core/v3/types"

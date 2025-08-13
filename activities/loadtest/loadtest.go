@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"time"
 
+	cosmos "github.com/skip-mev/catalyst/chains/cosmos"
+	types2 "github.com/skip-mev/catalyst/chains/cosmos/types"
+	"github.com/skip-mev/catalyst/chains/ethereum"
 	"github.com/skip-mev/catalyst/chains/ethereum/types"
 	catchaintypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
@@ -51,54 +53,58 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
-	// chainConfig := chain.GetConfig()
-	// loadTestSpec.GasDenom = chainConfig.Denom
-	// loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
-	// loadTestSpec.ChainID = chainID
-	loadTestSpec.ChainID = *big.NewInt(262144)
+	loadTestSpec catchaintypes.LoadTestSpec, mnemonics []string,
+) ([]byte, error) {
+	chainConfig := chain.GetConfig()
 
-	validators := chain.GetValidators()
 	var nodes []string
-	for _, v := range validators {
+	for _, v := range chain.GetValidators() {
 		ipAddr, err := v.GetIP(ctx)
 		if err != nil {
 			return nil, err
 		}
-		nodes = append(nodes, fmt.Sprintf("%s:%s", ipAddr, "8545"))
+		nodes = append(nodes, ipAddr)
 	}
-	/*
-		var nodes []types.NodeAddress
-		for _, v := range validators {
-			grpcAddr, err := v.GetIP(ctx)
-			grpcAddr = grpcAddr + ":9090"
-			if err != nil {
-				return nil, err
-			}
 
-			rpcAddr, err := v.GetIP(ctx)
-			rpcAddr = rpcAddr + ":26657"
-			if err != nil {
-				return nil, err
-			}
-
-			nodes = append(nodes, types.NodeAddress{
-				GRPC: grpcAddr,
-				RPC:  fmt.Sprintf("http://%s", rpcAddr),
+	var catalystChainConfig catchaintypes.ChainConfig
+	switch loadTestSpec.Kind {
+	case ethereum.Kind:
+		nodeAddresses := make([]types.NodeAddress, 0, len(nodes))
+		for _, addr := range nodes {
+			nodeAddresses = append(nodeAddresses, types.NodeAddress{
+				RPC:       "http://" + addr + ":8545",
+				Websocket: "ws://" + addr + ":8546",
 			})
 		}
-	*/
-
-	loadTestSpec.NodesAddresses = nodes
-	// loadTestSpec.Mnemonics = mnemonics
-
-	/*
-		err := loadTestSpec.Validate()
-		if err != nil {
-			logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
-			return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
+		catalystChainConfig = types.ChainConfig{
+			NodesAddresses: nodeAddresses,
 		}
-	*/
+	case cosmos.Kind:
+		nodeAddresses := make([]types2.NodeAddress, 0, len(nodes))
+		for _, addr := range nodes {
+			nodeAddresses = append(nodeAddresses, types2.NodeAddress{
+				GRPC: addr + ":9090",
+				RPC:  "http://" + addr + ":26657",
+			})
+		}
+		catalystChainConfig = types2.ChainConfig{
+			GasDenom:       chainConfig.Denom,
+			Bech32Prefix:   chainConfig.Bech32Prefix,
+			NodesAddresses: nodeAddresses,
+		}
+	default:
+		return nil, fmt.Errorf("unknown load test spec kind: %v", loadTestSpec.Kind)
+	}
+	loadTestSpec.ChainCfg = catalystChainConfig
+	loadTestSpec.ChainID = chainID
+
+	loadTestSpec.Mnemonics = mnemonics
+
+	err := loadTestSpec.Validate()
+	if err != nil {
+		logger.Error("failed to validate custom load test config", zap.Error(err), zap.Any("spec", loadTestSpec))
+		return nil, fmt.Errorf("failed to validate custom load test config: %w", err)
+	}
 
 	logger.Info("Load test spec constructed", zap.Any("spec", loadTestSpec))
 	return yaml.Marshal(&loadTestSpec)

@@ -36,14 +36,11 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   runnerType = "";
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec cosmos_load_test_spec = 6;
+   * json encoded loadtest spec.
+   *
+   * @generated from field: string encoded_load_test_spec = 6;
    */
-  cosmosLoadTestSpec?: LoadTestSpec;
-
-  /**
-   * @generated from field: skip.ironbird.LoadTestSpecEthereum ethereum_load_test_spec = 7;
-   */
-  ethereumLoadTestSpec?: LoadTestSpecEthereum;
+  encodedLoadTestSpec = "";
 
   /**
    * @generated from field: bool long_running_testnet = 8;
@@ -78,8 +75,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 3, name: "isEvmChain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 4, name: "chain_config", kind: "message", T: ChainConfig },
     { no: 5, name: "runner_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "cosmos_load_test_spec", kind: "message", T: LoadTestSpec },
-    { no: 7, name: "ethereum_load_test_spec", kind: "message", T: LoadTestSpecEthereum },
+    { no: 6, name: "encoded_load_test_spec", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 8, name: "long_running_testnet", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 9, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 10, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
@@ -293,308 +289,6 @@ export class ChainConfig extends Message<ChainConfig> {
 }
 
 /**
- * @generated from message skip.ironbird.NodeAddress
- */
-export class NodeAddress extends Message<NodeAddress> {
-  /**
-   * @generated from field: string grpc = 1;
-   */
-  grpc = "";
-
-  /**
-   * @generated from field: string rpc = 2;
-   */
-  rpc = "";
-
-  constructor(data?: PartialMessage<NodeAddress>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "skip.ironbird.NodeAddress";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "grpc", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "rpc", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): NodeAddress {
-    return new NodeAddress().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): NodeAddress {
-    return new NodeAddress().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): NodeAddress {
-    return new NodeAddress().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: NodeAddress | PlainMessage<NodeAddress> | undefined, b: NodeAddress | PlainMessage<NodeAddress> | undefined): boolean {
-    return proto3.util.equals(NodeAddress, a, b);
-  }
-}
-
-/**
- * @generated from message skip.ironbird.LoadTestMsg
- */
-export class LoadTestMsg extends Message<LoadTestMsg> {
-  /**
-   * @generated from field: float weight = 1;
-   */
-  weight = 0;
-
-  /**
-   * @generated from field: string type = 2;
-   */
-  type = "";
-
-  /**
-   * @generated from field: int32 num_msgs = 3;
-   */
-  numMsgs = 0;
-
-  /**
-   * @generated from field: string contained_type = 4;
-   */
-  containedType = "";
-
-  /**
-   * @generated from field: int32 num_of_recipients = 5;
-   */
-  numOfRecipients = 0;
-
-  constructor(data?: PartialMessage<LoadTestMsg>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "skip.ironbird.LoadTestMsg";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "weight", kind: "scalar", T: 2 /* ScalarType.FLOAT */ },
-    { no: 2, name: "type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "num_msgs", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 4, name: "contained_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "num_of_recipients", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadTestMsg {
-    return new LoadTestMsg().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoadTestMsg {
-    return new LoadTestMsg().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoadTestMsg {
-    return new LoadTestMsg().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: LoadTestMsg | PlainMessage<LoadTestMsg> | undefined, b: LoadTestMsg | PlainMessage<LoadTestMsg> | undefined): boolean {
-    return proto3.util.equals(LoadTestMsg, a, b);
-  }
-}
-
-/**
- * @generated from message skip.ironbird.LoadTestSpec
- */
-export class LoadTestSpec extends Message<LoadTestSpec> {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name = "";
-
-  /**
-   * @generated from field: string description = 2;
-   */
-  description = "";
-
-  /**
-   * @generated from field: bool isEvmChain = 3;
-   */
-  isEvmChain = false;
-
-  /**
-   * @generated from field: string chain_id = 4;
-   */
-  chainId = "";
-
-  /**
-   * @generated from field: int32 num_of_txs = 5;
-   */
-  numOfTxs = 0;
-
-  /**
-   * @generated from field: int32 num_of_blocks = 6;
-   */
-  numOfBlocks = 0;
-
-  /**
-   * @generated from field: repeated skip.ironbird.NodeAddress nodes_addresses = 7;
-   */
-  nodesAddresses: NodeAddress[] = [];
-
-  /**
-   * @generated from field: repeated string mnemonics = 8;
-   */
-  mnemonics: string[] = [];
-
-  /**
-   * @generated from field: string gas_denom = 9;
-   */
-  gasDenom = "";
-
-  /**
-   * @generated from field: string bech32_prefix = 10;
-   */
-  bech32Prefix = "";
-
-  /**
-   * @generated from field: repeated skip.ironbird.LoadTestMsg msgs = 11;
-   */
-  msgs: LoadTestMsg[] = [];
-
-  /**
-   * @generated from field: bool unordered_txs = 12;
-   */
-  unorderedTxs = false;
-
-  /**
-   * @generated from field: int64 tx_timeout = 13;
-   */
-  txTimeout = protoInt64.zero;
-
-  constructor(data?: PartialMessage<LoadTestSpec>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "skip.ironbird.LoadTestSpec";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "isEvmChain", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 4, name: "chain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "num_of_txs", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 6, name: "num_of_blocks", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 7, name: "nodes_addresses", kind: "message", T: NodeAddress, repeated: true },
-    { no: 8, name: "mnemonics", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 9, name: "gas_denom", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 10, name: "bech32_prefix", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 11, name: "msgs", kind: "message", T: LoadTestMsg, repeated: true },
-    { no: 12, name: "unordered_txs", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
-    { no: 13, name: "tx_timeout", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadTestSpec {
-    return new LoadTestSpec().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoadTestSpec {
-    return new LoadTestSpec().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoadTestSpec {
-    return new LoadTestSpec().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: LoadTestSpec | PlainMessage<LoadTestSpec> | undefined, b: LoadTestSpec | PlainMessage<LoadTestSpec> | undefined): boolean {
-    return proto3.util.equals(LoadTestSpec, a, b);
-  }
-}
-
-/**
- * LoadTestSpecEthereum represents the configuration for an ethereum load test
- *
- * @generated from message skip.ironbird.LoadTestSpecEthereum
- */
-export class LoadTestSpecEthereum extends Message<LoadTestSpecEthereum> {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name = "";
-
-  /**
-   * @generated from field: string description = 2;
-   */
-  description = "";
-
-  /**
-   * Using string for big.Int compatibility
-   *
-   * @generated from field: string chain_id = 3;
-   */
-  chainId = "";
-
-  /**
-   * @generated from field: int32 num_of_txs = 4;
-   */
-  numOfTxs = 0;
-
-  /**
-   * @generated from field: int64 num_of_blocks = 5;
-   */
-  numOfBlocks = protoInt64.zero;
-
-  /**
-   * @generated from field: repeated string nodes_addresses = 6;
-   */
-  nodesAddresses: string[] = [];
-
-  /**
-   * @generated from field: repeated skip.ironbird.LoadTestMsg msgs = 7;
-   */
-  msgs: LoadTestMsg[] = [];
-
-  /**
-   * @generated from field: int64 tx_timeout = 8;
-   */
-  txTimeout = protoInt64.zero;
-
-  /**
-   * @generated from field: repeated string private_keys = 9;
-   */
-  privateKeys: string[] = [];
-
-  constructor(data?: PartialMessage<LoadTestSpecEthereum>) {
-    super();
-    proto3.util.initPartial(data, this);
-  }
-
-  static readonly runtime: typeof proto3 = proto3;
-  static readonly typeName = "skip.ironbird.LoadTestSpecEthereum";
-  static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "chain_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "num_of_txs", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
-    { no: 5, name: "num_of_blocks", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 6, name: "nodes_addresses", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-    { no: 7, name: "msgs", kind: "message", T: LoadTestMsg, repeated: true },
-    { no: 8, name: "tx_timeout", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
-    { no: 9, name: "private_keys", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
-  ]);
-
-  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): LoadTestSpecEthereum {
-    return new LoadTestSpecEthereum().fromBinary(bytes, options);
-  }
-
-  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): LoadTestSpecEthereum {
-    return new LoadTestSpecEthereum().fromJson(jsonValue, options);
-  }
-
-  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): LoadTestSpecEthereum {
-    return new LoadTestSpecEthereum().fromJsonString(jsonString, options);
-  }
-
-  static equals(a: LoadTestSpecEthereum | PlainMessage<LoadTestSpecEthereum> | undefined, b: LoadTestSpecEthereum | PlainMessage<LoadTestSpecEthereum> | undefined): boolean {
-    return proto3.util.equals(LoadTestSpecEthereum, a, b);
-  }
-}
-
-/**
  * @generated from message skip.ironbird.GetWorkflowRequest
  */
 export class GetWorkflowRequest extends Message<GetWorkflowRequest> {
@@ -764,9 +458,9 @@ export class RunLoadTestRequest extends Message<RunLoadTestRequest> {
   workflowId = "";
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec load_test_spec = 2;
+   * @generated from field: string load_test_spec = 2;
    */
-  loadTestSpec?: LoadTestSpec;
+  loadTestSpec = "";
 
   constructor(data?: PartialMessage<RunLoadTestRequest>) {
     super();
@@ -777,7 +471,7 @@ export class RunLoadTestRequest extends Message<RunLoadTestRequest> {
   static readonly typeName = "skip.ironbird.RunLoadTestRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "workflow_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "load_test_spec", kind: "message", T: LoadTestSpec },
+    { no: 2, name: "load_test_spec", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RunLoadTestRequest {
@@ -990,9 +684,9 @@ export class Workflow extends Message<Workflow> {
   config?: CreateWorkflowRequest;
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec load_test_spec = 17;
+   * @generated from field: string load_test_spec = 17;
    */
-  loadTestSpec?: LoadTestSpec;
+  loadTestSpec = "";
 
   /**
    * @generated from field: skip.ironbird.WalletInfo wallets = 18;
@@ -1019,7 +713,7 @@ export class Workflow extends Message<Workflow> {
     { no: 5, name: "load_balancers", kind: "message", T: Node, repeated: true },
     { no: 6, name: "monitoring", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
     { no: 7, name: "config", kind: "message", T: CreateWorkflowRequest },
-    { no: 17, name: "load_test_spec", kind: "message", T: LoadTestSpec },
+    { no: 17, name: "load_test_spec", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 18, name: "wallets", kind: "message", T: WalletInfo },
     { no: 19, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
