@@ -664,11 +664,11 @@ const CreateWorkflow = () => {
                 <VStack spacing={3} align="stretch">
                   {['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'].map((region) => {
                     const regionLabels: Record<string, string> = {
-                      'nyc1': 'New York (NYC1)',
-                      'sfo2': 'San Francisco (SFO2)', 
-                      'ams3': 'Amsterdam (AMS3)',
-                      'fra1': 'Frankfurt (FRA1)',
-                      'sgp1': 'Singapore (SGP1)',
+                      'nyc1': 'New York (nyc1)',
+                      'sfo2': 'San Francisco (sfo2)',
+                      'ams3': 'Amsterdam (ams3)',
+                      'fra1': 'Frankfurt (fra1)',
+                      'sgp1': 'Singapore (sgp1)',
                     };
                     const config = formData.ChainConfig.RegionConfigs?.find(rc => rc.name === region) || { name: region, numOfNodes: 0, numOfValidators: 0 };
                     
