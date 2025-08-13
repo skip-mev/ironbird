@@ -141,7 +141,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
 	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
 	var providerState, chainState []byte
-	providerSpecificOptions := determineProviderOptions(req.RunnerType)
+	workflow.GetLogger(ctx).Info("launching testnet", zap.Any("req", req))
 
 	var createProviderResp messages.CreateProviderResponse
 	if err := workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
@@ -164,23 +164,23 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
 		messages.LaunchTestnetRequest{
-			Name:                    req.ChainConfig.Name,
-			Repo:                    req.Repo,
-			SHA:                     req.SHA,
-			IsEvmChain:              req.IsEvmChain,
-			Image:                   buildResult.FQDNTag,
-			BaseImage:               req.ChainConfig.Image,
-			GenesisModifications:    req.ChainConfig.GenesisModifications,
-			RunnerType:              req.RunnerType,
-			NumOfValidators:         req.ChainConfig.NumOfValidators,
-			NumOfNodes:              req.ChainConfig.NumOfNodes,
-			CustomAppConfig:         req.ChainConfig.CustomAppConfig,
-			CustomConsensusConfig:   req.ChainConfig.CustomConsensusConfig,
-			CustomClientConfig:      req.ChainConfig.CustomClientConfig,
-			SetSeedNode:             req.ChainConfig.SetSeedNode,
-			SetPersistentPeers:      req.ChainConfig.SetPersistentPeers,
-			ProviderSpecificOptions: providerSpecificOptions,
-			ProviderState:           providerState,
+			Name:                  req.ChainConfig.Name,
+			Repo:                  req.Repo,
+			SHA:                   req.SHA,
+			IsEvmChain:            req.IsEvmChain,
+			Image:                 buildResult.FQDNTag,
+			BaseImage:             req.ChainConfig.Image,
+			GenesisModifications:  req.ChainConfig.GenesisModifications,
+			RunnerType:            req.RunnerType,
+			NumOfValidators:       req.ChainConfig.NumOfValidators,
+			NumOfNodes:            req.ChainConfig.NumOfNodes,
+			RegionConfigs:         req.ChainConfig.RegionConfigs,
+			CustomAppConfig:       req.ChainConfig.CustomAppConfig,
+			CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
+			CustomClientConfig:    req.ChainConfig.CustomClientConfig,
+			SetSeedNode:           req.ChainConfig.SetSeedNode,
+			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+			ProviderState:         providerState,
 		}).Get(ctx, &testnetResp); err != nil {
 		return nil, providerState, nil, nil, err
 	}
@@ -289,13 +289,6 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 
 	})
 
-	return nil
-}
-
-func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
-	if runnerType == messages.DigitalOcean {
-		return messages.DigitalOceanDefaultOpts
-	}
 	return nil
 }
 

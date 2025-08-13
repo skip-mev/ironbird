@@ -5,7 +5,8 @@ import {
   ChainConfig, 
   LoadTestSpec as GrpcLoadTestSpec,
   LoadTestMsg,
-  GenesisKV
+  GenesisKV,
+  RegionConfig
 } from '../gen/proto/ironbird_pb.js';
 import { protoInt64 } from "@bufbuild/protobuf";
 
@@ -46,8 +47,8 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
   // Create the chain config with proper constructor
   const chainConfig = new ChainConfig({
     name: request.ChainConfig.Name,
-    numOfNodes: protoInt64.zero,
-    numOfValidators: protoInt64.zero,
+    numOfNodes: request.ChainConfig.NumOfNodes !== undefined ? protoInt64.parse(request.ChainConfig.NumOfNodes.toString()) : protoInt64.zero,
+    numOfValidators: request.ChainConfig.NumOfValidators !== undefined ? protoInt64.parse(request.ChainConfig.NumOfValidators.toString()) : protoInt64.zero,
     image: request.ChainConfig.Image,
     genesisModifications: [],
     setSeedNode: request.ChainConfig.SetSeedNode || false,
@@ -67,6 +68,15 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
         value: valueStr
       });
     });
+  }
+
+  // Add RegionConfigs if available
+  if (request.ChainConfig.RegionConfigs && request.ChainConfig.RegionConfigs.length > 0) {
+    chainConfig.regionConfigs = request.ChainConfig.RegionConfigs.map(rc => new RegionConfig({
+      name: rc.name,
+      numOfNodes: protoInt64.parse(rc.numOfNodes.toString()),
+      numOfValidators: protoInt64.parse(rc.numOfValidators.toString())
+    }));
   }
   
   // Create the request with proper constructor
@@ -124,8 +134,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       ChainConfig: {
         Name: workflow.config.chainConfig?.name || '',
         Image: workflow.config.chainConfig?.image || '',
-        NumOfNodes: Number(workflow.config.chainConfig?.numOfNodes) || 0,
-        NumOfValidators: Number(workflow.config.chainConfig?.numOfValidators) || 0,
+        NumOfNodes: workflow.config.chainConfig?.numOfNodes ? Number(workflow.config.chainConfig.numOfNodes) : 0,
+        NumOfValidators: workflow.config.chainConfig?.numOfValidators ? Number(workflow.config.chainConfig.numOfValidators) : 0,
         GenesisModifications: (workflow.config.chainConfig?.genesisModifications || []).map((gm: any) => {
           // Try to parse the value as JSON if it's a string
           let value = gm.value;
@@ -143,6 +153,11 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
             value: value
           };
         }),
+        RegionConfigs: (workflow.config.chainConfig?.regionConfigs || []).map((rc: any) => ({
+          name: rc.name,
+          numOfNodes: Number(rc.numOfNodes) || 0,
+          numOfValidators: Number(rc.numOfValidators) || 0
+        })),
         SetSeedNode: workflow.config.chainConfig?.setSeedNode,
         SetPersistentPeers: workflow.config.chainConfig?.setPersistentPeers,
         // Parse config JSON strings back to objects

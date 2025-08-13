@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/ironbird/activities/walletcreator"
 
@@ -413,6 +414,18 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
+		{
+			Name:          "nyc1",
+			NumValidators: 1,
+			NumNodes:      1,
+		},
+		{
+			Name:          "fra1",
+			NumValidators: 1,
+			NumNodes:      0,
+		},
+	}
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 

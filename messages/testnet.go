@@ -7,6 +7,7 @@ import (
 
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
 )
 
@@ -40,16 +41,16 @@ type TeardownProviderRequest struct {
 type TeardownProviderResponse struct{}
 
 type LaunchTestnetRequest struct {
-	Name                    string
-	IsEvmChain              bool
-	Repo                    string
-	SHA                     string
-	Image                   string // tag of image e.g.  public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:gaia-evmv23.3.0-gaia-b84ff4c1702d3cc7756209a6de81ab95b3e6c6e5
-	BaseImage               string // base image used e.g. simapp-v53, gaia (defined in worker.yaml chains map)
-	ProviderSpecificOptions map[string]string
-	GenesisModifications    []petrichain.GenesisKV
-	RunnerType              RunnerType
+	Name                 string
+	IsEvmChain           bool
+	Repo                 string
+	SHA                  string
+	Image                string // tag of image e.g.  public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:gaia-evmv23.3.0-gaia-b84ff4c1702d3cc7756209a6de81ab95b3e6c6e5
+	BaseImage            string // base image used e.g. simapp-v53, gaia (defined in worker.yaml chains map)
+	GenesisModifications []petrichain.GenesisKV
+	RunnerType           RunnerType
 
+	RegionConfigs   []petritypes.RegionConfig
 	NumOfValidators uint64
 	NumOfNodes      uint64
 
