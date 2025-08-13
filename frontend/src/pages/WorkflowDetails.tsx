@@ -474,11 +474,11 @@ const WorkflowDetails = () => {
                         }, {} as Record<string, typeof workflow.Nodes>);
 
                         const regionLabels = {
-                          'nyc1': 'New York (NYC1)',
-                          'sfo2': 'San Francisco (SFO2)', 
-                          'ams3': 'Amsterdam (AMS3)',
-                          'fra1': 'Frankfurt (FRA1)',
-                          'sgp1': 'Singapore (SGP1)',
+                          'nyc1': 'New York (nyc1)',
+                          'sfo2': 'San Francisco (sfo2)',
+                          'ams3': 'Amsterdam (ams3)',
+                          'fra1': 'Frankfurt (fra1)',
+                          'sgp1': 'Singapore (sgp1)',
                         };
 
                         return (
@@ -663,11 +663,11 @@ const WorkflowDetails = () => {
                         }, {} as Record<string, typeof workflow.Validators>);
 
                         const regionLabels = {
-                          'nyc1': 'New York (NYC1)',
-                          'sfo2': 'San Francisco (SFO2)', 
-                          'ams3': 'Amsterdam (AMS3)',
-                          'fra1': 'Frankfurt (FRA1)',
-                          'sgp1': 'Singapore (SGP1)',
+                          'nyc1': 'New York (nyc1)',
+                          'sfo2': 'San Francisco (sfo2)',
+                          'ams3': 'Amsterdam (ams3)',
+                          'fra1': 'Frankfurt (fra1)',
+                          'sgp1': 'Singapore (sgp1)',
                         };
 
                         return (
