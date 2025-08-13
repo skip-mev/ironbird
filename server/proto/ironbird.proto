@@ -35,6 +35,12 @@ message GenesisKV {
     string value = 2;
 }
 
+message RegionConfig {
+    string name = 1;
+    uint64 num_of_nodes = 2;
+    uint64 num_of_validators = 3;
+}
+
 message ChainConfig {
     string name = 1;
     uint64 num_of_nodes = 2;
@@ -46,6 +52,7 @@ message ChainConfig {
     string custom_client_config = 8;
     bool set_seed_node = 9;
     bool set_persistent_peers = 10;
+    repeated RegionConfig region_configs = 11;
 }
 
 message NodeAddress {

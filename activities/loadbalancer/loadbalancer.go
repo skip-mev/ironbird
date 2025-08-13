@@ -38,10 +38,10 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 	}
 
 	lb, err := apps.LaunchLoadBalancer(ctx, p, a.RootDomain, apps.LoadBalancerDefinition{
-		SSLKey:                  a.SSLKey,
-		SSLCertificate:          a.SSLCertificate,
-		ProviderSpecificOptions: messages.DigitalOceanDefaultOpts,
-		Domains:                 req.Domains,
+		SSLKey:             a.SSLKey,
+		SSLCertificate:     a.SSLCertificate,
+		DigitalOceanConfig: messages.DigitalOceanDefaultOpts,
+		Domains:            req.Domains,
 	})
 
 	if err != nil {

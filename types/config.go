@@ -5,7 +5,9 @@ import (
 	"os"
 	"time"
 
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -84,18 +86,18 @@ type RegistryConfig struct {
 	// e.g. skip-mev/ironbird
 	ImageName string `yaml:"image_name"`
 }
-
 type ChainsConfig struct {
-	Name                  string                 `yaml:"name"`
-	Image                 string                 `yaml:"image"`
-	GenesisModifications  []petrichain.GenesisKV `yaml:"genesis_modifications"`
-	NumOfNodes            uint64                 `yaml:"num_of_nodes"`
-	NumOfValidators       uint64                 `yaml:"num_of_validators"`
-	CustomAppConfig       map[string]interface{} `yaml:"custom_app_config"`
-	CustomConsensusConfig map[string]interface{} `yaml:"custom_consensus_config"`
-	CustomClientConfig    map[string]interface{} `yaml:"custom_client_config"`
-	SetSeedNode           bool                   `yaml:"set_seed_node"`
-	SetPersistentPeers    bool                   `yaml:"set_persistent_peers"`
+	Name                  string                    `yaml:"name"`
+	Image                 string                    `yaml:"image"`
+	GenesisModifications  []petrichain.GenesisKV    `yaml:"genesis_modifications"`
+	NumOfNodes            uint64                    `yaml:"num_of_nodes"`
+	NumOfValidators       uint64                    `yaml:"num_of_validators"`
+	RegionConfigs         []petritypes.RegionConfig `yaml:"region_configs"`
+	CustomAppConfig       map[string]interface{}    `yaml:"custom_app_config"`
+	CustomConsensusConfig map[string]interface{}    `yaml:"custom_consensus_config"`
+	CustomClientConfig    map[string]interface{}    `yaml:"custom_client_config"`
+	SetSeedNode           bool                      `yaml:"set_seed_node"`
+	SetPersistentPeers    bool                      `yaml:"set_persistent_peers"`
 }
 
 type GrafanaConfig struct {
