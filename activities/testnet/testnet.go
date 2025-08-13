@@ -144,7 +144,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			logger.Error("Failed to fetch docker repo token", zap.Error(err))
 		}
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
+			if definition.ProviderSpecificConfig == nil {
+				definition.ProviderSpecificConfig = make(map[string]string)
+			}
 			definition.ProviderSpecificConfig["docker_auth"] = token
 			return definition
 		}
@@ -155,13 +157,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	chain, chainErr := petrichain.CreateChain(
 		ctx, logger, p, chainConfig,
 		petritypes.ChainOptions{
-			NodeCreator: node.CreateNode,
-			NodeOptions: petritypes.NodeOptions{
-				NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
-					return definition
-				},
-			},
+			NodeCreator:  node.CreateNode,
+			NodeOptions:  nodeOptions,
 			WalletConfig: walletConfig,
 		},
 	)
@@ -322,6 +319,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomClientConfig:    req.CustomClientConfig,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
+		RegionConfig:          req.RegionConfigs,
 	}
 	walletConfig := CosmosWalletConfig
 

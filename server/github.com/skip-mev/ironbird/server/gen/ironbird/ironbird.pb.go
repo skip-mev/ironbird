@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: server/proto/ironbird.proto
+// source: proto/ironbird.proto
 
 package ironbird
 
@@ -38,7 +38,7 @@ type CreateWorkflowRequest struct {
 
 func (x *CreateWorkflowRequest) Reset() {
 	*x = CreateWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[0]
+	mi := &file_proto_ironbird_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -50,7 +50,7 @@ func (x *CreateWorkflowRequest) String() string {
 func (*CreateWorkflowRequest) ProtoMessage() {}
 
 func (x *CreateWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[0]
+	mi := &file_proto_ironbird_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -63,7 +63,7 @@ func (x *CreateWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*CreateWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{0}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *CreateWorkflowRequest) GetRepo() string {
@@ -139,7 +139,7 @@ type GenesisKV struct {
 
 func (x *GenesisKV) Reset() {
 	*x = GenesisKV{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[1]
+	mi := &file_proto_ironbird_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -151,7 +151,7 @@ func (x *GenesisKV) String() string {
 func (*GenesisKV) ProtoMessage() {}
 
 func (x *GenesisKV) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[1]
+	mi := &file_proto_ironbird_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -164,7 +164,7 @@ func (x *GenesisKV) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenesisKV.ProtoReflect.Descriptor instead.
 func (*GenesisKV) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{1}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GenesisKV) GetKey() string {
@@ -192,7 +192,7 @@ type RegionConfig struct {
 
 func (x *RegionConfig) Reset() {
 	*x = RegionConfig{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[2]
+	mi := &file_proto_ironbird_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -204,7 +204,7 @@ func (x *RegionConfig) String() string {
 func (*RegionConfig) ProtoMessage() {}
 
 func (x *RegionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[2]
+	mi := &file_proto_ironbird_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -217,7 +217,7 @@ func (x *RegionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegionConfig.ProtoReflect.Descriptor instead.
 func (*RegionConfig) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{2}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RegionConfig) GetName() string {
@@ -260,7 +260,7 @@ type ChainConfig struct {
 
 func (x *ChainConfig) Reset() {
 	*x = ChainConfig{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[3]
+	mi := &file_proto_ironbird_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -272,7 +272,7 @@ func (x *ChainConfig) String() string {
 func (*ChainConfig) ProtoMessage() {}
 
 func (x *ChainConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[3]
+	mi := &file_proto_ironbird_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,7 +285,7 @@ func (x *ChainConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChainConfig.ProtoReflect.Descriptor instead.
 func (*ChainConfig) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{3}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ChainConfig) GetName() string {
@@ -375,7 +375,7 @@ type NodeAddress struct {
 
 func (x *NodeAddress) Reset() {
 	*x = NodeAddress{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[4]
+	mi := &file_proto_ironbird_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -387,7 +387,7 @@ func (x *NodeAddress) String() string {
 func (*NodeAddress) ProtoMessage() {}
 
 func (x *NodeAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[4]
+	mi := &file_proto_ironbird_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -400,7 +400,7 @@ func (x *NodeAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeAddress.ProtoReflect.Descriptor instead.
 func (*NodeAddress) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{4}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *NodeAddress) GetGrpc() string {
@@ -430,7 +430,7 @@ type LoadTestMsg struct {
 
 func (x *LoadTestMsg) Reset() {
 	*x = LoadTestMsg{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[5]
+	mi := &file_proto_ironbird_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +442,7 @@ func (x *LoadTestMsg) String() string {
 func (*LoadTestMsg) ProtoMessage() {}
 
 func (x *LoadTestMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[5]
+	mi := &file_proto_ironbird_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +455,7 @@ func (x *LoadTestMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadTestMsg.ProtoReflect.Descriptor instead.
 func (*LoadTestMsg) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{5}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *LoadTestMsg) GetWeight() float32 {
@@ -514,7 +514,7 @@ type LoadTestSpec struct {
 
 func (x *LoadTestSpec) Reset() {
 	*x = LoadTestSpec{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[6]
+	mi := &file_proto_ironbird_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +526,7 @@ func (x *LoadTestSpec) String() string {
 func (*LoadTestSpec) ProtoMessage() {}
 
 func (x *LoadTestSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[6]
+	mi := &file_proto_ironbird_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +539,7 @@ func (x *LoadTestSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadTestSpec.ProtoReflect.Descriptor instead.
 func (*LoadTestSpec) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{6}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *LoadTestSpec) GetName() string {
@@ -642,7 +642,7 @@ type GetWorkflowRequest struct {
 
 func (x *GetWorkflowRequest) Reset() {
 	*x = GetWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[7]
+	mi := &file_proto_ironbird_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +654,7 @@ func (x *GetWorkflowRequest) String() string {
 func (*GetWorkflowRequest) ProtoMessage() {}
 
 func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[7]
+	mi := &file_proto_ironbird_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +667,7 @@ func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{7}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetWorkflowRequest) GetWorkflowId() string {
@@ -687,7 +687,7 @@ type ListWorkflowsRequest struct {
 
 func (x *ListWorkflowsRequest) Reset() {
 	*x = ListWorkflowsRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[8]
+	mi := &file_proto_ironbird_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -699,7 +699,7 @@ func (x *ListWorkflowsRequest) String() string {
 func (*ListWorkflowsRequest) ProtoMessage() {}
 
 func (x *ListWorkflowsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[8]
+	mi := &file_proto_ironbird_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +712,7 @@ func (x *ListWorkflowsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkflowsRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkflowsRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{8}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListWorkflowsRequest) GetLimit() int32 {
@@ -738,7 +738,7 @@ type CancelWorkflowRequest struct {
 
 func (x *CancelWorkflowRequest) Reset() {
 	*x = CancelWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[9]
+	mi := &file_proto_ironbird_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -750,7 +750,7 @@ func (x *CancelWorkflowRequest) String() string {
 func (*CancelWorkflowRequest) ProtoMessage() {}
 
 func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[9]
+	mi := &file_proto_ironbird_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -763,7 +763,7 @@ func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*CancelWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{9}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CancelWorkflowRequest) GetWorkflowId() string {
@@ -783,7 +783,7 @@ type SignalWorkflowRequest struct {
 
 func (x *SignalWorkflowRequest) Reset() {
 	*x = SignalWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[10]
+	mi := &file_proto_ironbird_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -795,7 +795,7 @@ func (x *SignalWorkflowRequest) String() string {
 func (*SignalWorkflowRequest) ProtoMessage() {}
 
 func (x *SignalWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[10]
+	mi := &file_proto_ironbird_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -808,7 +808,7 @@ func (x *SignalWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignalWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*SignalWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{10}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SignalWorkflowRequest) GetWorkflowId() string {
@@ -835,7 +835,7 @@ type RunLoadTestRequest struct {
 
 func (x *RunLoadTestRequest) Reset() {
 	*x = RunLoadTestRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[11]
+	mi := &file_proto_ironbird_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -847,7 +847,7 @@ func (x *RunLoadTestRequest) String() string {
 func (*RunLoadTestRequest) ProtoMessage() {}
 
 func (x *RunLoadTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[11]
+	mi := &file_proto_ironbird_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -860,7 +860,7 @@ func (x *RunLoadTestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunLoadTestRequest.ProtoReflect.Descriptor instead.
 func (*RunLoadTestRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{11}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RunLoadTestRequest) GetWorkflowId() string {
@@ -886,7 +886,7 @@ type WorkflowResponse struct {
 
 func (x *WorkflowResponse) Reset() {
 	*x = WorkflowResponse{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[12]
+	mi := &file_proto_ironbird_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -898,7 +898,7 @@ func (x *WorkflowResponse) String() string {
 func (*WorkflowResponse) ProtoMessage() {}
 
 func (x *WorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[12]
+	mi := &file_proto_ironbird_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -911,7 +911,7 @@ func (x *WorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{12}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WorkflowResponse) GetWorkflowId() string {
@@ -934,7 +934,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[13]
+	mi := &file_proto_ironbird_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -946,7 +946,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[13]
+	mi := &file_proto_ironbird_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -959,7 +959,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{13}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *Node) GetName() string {
@@ -1009,7 +1009,7 @@ type WalletInfo struct {
 
 func (x *WalletInfo) Reset() {
 	*x = WalletInfo{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[14]
+	mi := &file_proto_ironbird_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1021,7 +1021,7 @@ func (x *WalletInfo) String() string {
 func (*WalletInfo) ProtoMessage() {}
 
 func (x *WalletInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[14]
+	mi := &file_proto_ironbird_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1034,7 +1034,7 @@ func (x *WalletInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WalletInfo.ProtoReflect.Descriptor instead.
 func (*WalletInfo) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{14}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *WalletInfo) GetFaucetAddress() string {
@@ -1082,7 +1082,7 @@ type Workflow struct {
 
 func (x *Workflow) Reset() {
 	*x = Workflow{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_proto_ironbird_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1094,7 +1094,7 @@ func (x *Workflow) String() string {
 func (*Workflow) ProtoMessage() {}
 
 func (x *Workflow) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_proto_ironbird_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1107,7 +1107,7 @@ func (x *Workflow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Workflow.ProtoReflect.Descriptor instead.
 func (*Workflow) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{15}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Workflow) GetWorkflowId() string {
@@ -1186,7 +1186,7 @@ type WorkflowSummary struct {
 
 func (x *WorkflowSummary) Reset() {
 	*x = WorkflowSummary{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[16]
+	mi := &file_proto_ironbird_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1198,7 +1198,7 @@ func (x *WorkflowSummary) String() string {
 func (*WorkflowSummary) ProtoMessage() {}
 
 func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[16]
+	mi := &file_proto_ironbird_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1211,7 +1211,7 @@ func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowSummary.ProtoReflect.Descriptor instead.
 func (*WorkflowSummary) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{16}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *WorkflowSummary) GetWorkflowId() string {
@@ -1263,7 +1263,7 @@ type UpdateWorkflowDataRequest struct {
 
 func (x *UpdateWorkflowDataRequest) Reset() {
 	*x = UpdateWorkflowDataRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[17]
+	mi := &file_proto_ironbird_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1275,7 +1275,7 @@ func (x *UpdateWorkflowDataRequest) String() string {
 func (*UpdateWorkflowDataRequest) ProtoMessage() {}
 
 func (x *UpdateWorkflowDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[17]
+	mi := &file_proto_ironbird_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1288,7 +1288,7 @@ func (x *UpdateWorkflowDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWorkflowDataRequest.ProtoReflect.Descriptor instead.
 func (*UpdateWorkflowDataRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{17}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UpdateWorkflowDataRequest) GetWorkflowId() string {
@@ -1343,7 +1343,7 @@ type WorkflowListResponse struct {
 
 func (x *WorkflowListResponse) Reset() {
 	*x = WorkflowListResponse{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[18]
+	mi := &file_proto_ironbird_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1355,7 +1355,7 @@ func (x *WorkflowListResponse) String() string {
 func (*WorkflowListResponse) ProtoMessage() {}
 
 func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[18]
+	mi := &file_proto_ironbird_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1368,7 +1368,7 @@ func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowListResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowListResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{18}
+	return file_proto_ironbird_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *WorkflowListResponse) GetWorkflows() []*WorkflowSummary {
@@ -1385,11 +1385,11 @@ func (x *WorkflowListResponse) GetCount() int32 {
 	return 0
 }
 
-var File_server_proto_ironbird_proto protoreflect.FileDescriptor
+var File_proto_ironbird_proto protoreflect.FileDescriptor
 
-const file_server_proto_ironbird_proto_rawDesc = "" +
+const file_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
-	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xfe\x02\n" +
+	"\x14proto/ironbird.proto\x12\rskip.ironbird\"\xfe\x02\n" +
 	"\x15CreateWorkflowRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x1e\n" +
@@ -1541,19 +1541,19 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x12UpdateWorkflowData\x12(.skip.ironbird.UpdateWorkflowDataRequest\x1a\x1f.skip.ironbird.WorkflowResponse\"\x00B2Z0github.com/skip-mev/ironbird/server/gen/ironbirdb\x06proto3"
 
 var (
-	file_server_proto_ironbird_proto_rawDescOnce sync.Once
-	file_server_proto_ironbird_proto_rawDescData []byte
+	file_proto_ironbird_proto_rawDescOnce sync.Once
+	file_proto_ironbird_proto_rawDescData []byte
 )
 
-func file_server_proto_ironbird_proto_rawDescGZIP() []byte {
-	file_server_proto_ironbird_proto_rawDescOnce.Do(func() {
-		file_server_proto_ironbird_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_server_proto_ironbird_proto_rawDesc), len(file_server_proto_ironbird_proto_rawDesc)))
+func file_proto_ironbird_proto_rawDescGZIP() []byte {
+	file_proto_ironbird_proto_rawDescOnce.Do(func() {
+		file_proto_ironbird_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_ironbird_proto_rawDesc), len(file_proto_ironbird_proto_rawDesc)))
 	})
-	return file_server_proto_ironbird_proto_rawDescData
+	return file_proto_ironbird_proto_rawDescData
 }
 
-var file_server_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
-var file_server_proto_ironbird_proto_goTypes = []any{
+var file_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_proto_ironbird_proto_goTypes = []any{
 	(*CreateWorkflowRequest)(nil),     // 0: skip.ironbird.CreateWorkflowRequest
 	(*GenesisKV)(nil),                 // 1: skip.ironbird.GenesisKV
 	(*RegionConfig)(nil),              // 2: skip.ironbird.RegionConfig
@@ -1576,7 +1576,7 @@ var file_server_proto_ironbird_proto_goTypes = []any{
 	nil,                               // 19: skip.ironbird.Workflow.MonitoringEntry
 	nil,                               // 20: skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
 }
-var file_server_proto_ironbird_proto_depIdxs = []int32{
+var file_proto_ironbird_proto_depIdxs = []int32{
 	3,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ChainConfig
 	6,  // 1: skip.ironbird.CreateWorkflowRequest.load_test_spec:type_name -> skip.ironbird.LoadTestSpec
 	1,  // 2: skip.ironbird.ChainConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
@@ -1618,26 +1618,26 @@ var file_server_proto_ironbird_proto_depIdxs = []int32{
 	0,  // [0:20] is the sub-list for field type_name
 }
 
-func init() { file_server_proto_ironbird_proto_init() }
-func file_server_proto_ironbird_proto_init() {
-	if File_server_proto_ironbird_proto != nil {
+func init() { file_proto_ironbird_proto_init() }
+func file_proto_ironbird_proto_init() {
+	if File_proto_ironbird_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_proto_ironbird_proto_rawDesc), len(file_server_proto_ironbird_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_ironbird_proto_rawDesc), len(file_proto_ironbird_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_server_proto_ironbird_proto_goTypes,
-		DependencyIndexes: file_server_proto_ironbird_proto_depIdxs,
-		MessageInfos:      file_server_proto_ironbird_proto_msgTypes,
+		GoTypes:           file_proto_ironbird_proto_goTypes,
+		DependencyIndexes: file_proto_ironbird_proto_depIdxs,
+		MessageInfos:      file_proto_ironbird_proto_msgTypes,
 	}.Build()
-	File_server_proto_ironbird_proto = out.File
-	file_server_proto_ironbird_proto_goTypes = nil
-	file_server_proto_ironbird_proto_depIdxs = nil
+	File_proto_ironbird_proto = out.File
+	file_proto_ironbird_proto_goTypes = nil
+	file_proto_ironbird_proto_depIdxs = nil
 }
