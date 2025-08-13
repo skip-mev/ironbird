@@ -66,6 +66,7 @@
         }
       ]
   },
+  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"num_of_txs\":50,\"num_of_blocks\":50,\"msgs\":[{\"type\":\"MsgCreateContract\",\"num_msgs\":20},{\"type\":\"MsgWriteTo\",\"num_msgs\":20},{\"type\":\"MsgCrossContractCall\",\"num_msgs\":20},{\"type\":\"MsgCallDataBlast\",\"num_msgs\":20}]}",
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
   "testnet_duration": "10m",
