@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -57,7 +58,7 @@ var (
 
 const (
 	cosmosDenom       = "stake"
-	evmDenom          = "uatom"
+	evmDenom          = "atest"
 	cosmosDecimals    = 6
 	DefaultEvmChainID = "262144"
 )
@@ -299,6 +300,9 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
+	deleg := new(big.Int)
+	deleg.SetString("10000000000000000000000000", 10)
+	genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
 
 	config := petritypes.ChainConfig{
 		Name:          req.Name,
@@ -323,7 +327,12 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomClientConfig:    req.CustomClientConfig,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
+<<<<<<< HEAD
 		RegionConfig:          req.RegionConfigs,
+=======
+		GenesisDelegation:     deleg,
+		GenesisBalance:        genBal,
+>>>>>>> 8bf7d38 (Update)
 	}
 	walletConfig := CosmosWalletConfig
 

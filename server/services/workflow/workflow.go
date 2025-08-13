@@ -468,11 +468,12 @@ func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpecEthereum) cateth
 	if err != nil {
 		panic(err)
 	}
+	chainIdBigInt := big.NewInt(chainIdInt)
 
 	result := catethtypes.LoadTestSpec{
 		Name:        spec.Name,
 		Description: spec.Description,
-		ChainID:     *big.NewInt(chainIdInt),
+		ChainID:     *chainIdBigInt,
 		NumOfTxs:    int(spec.NumOfTxs),
 		NumOfBlocks: int64(spec.NumOfBlocks),
 		// GasDenom:     spec.GasDenom,
@@ -484,6 +485,8 @@ func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpecEthereum) cateth
 	// result.NodesAddresses = convertProtoNodeAddresses(spec.NodesAddresses)
 	// result.Mnemonics = spec.Mnemonics
 	result.Msgs = convertProtoLoadTestMsgs(spec.Msgs)
+
+	s.logger.Info("convertProtoLoadTestSpec", zap.Any("result", result))
 
 	return result
 }
