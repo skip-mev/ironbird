@@ -1,6 +1,6 @@
 {
   "repo": "evm",
-  "sha": "be2c215481ef1466328811d878675be75c90edf3",
+  "sha": "99abc7f3a47af1289ddd90c279e49f885ee06278",
   "isEvmChain": true,
   "chain_config": {
     "name": "foobar-0",

@@ -47,7 +47,7 @@ var (
 	// (e.g. cosmos-sdk repo does not need to replace a dependency, just to run simapp using the SDK version
 	// based on the commit SHA passed to ironbird. To test cometbft on the other hand, we use a base simapp image
 	// and then replace the cometbft dependency with the intended commit version)
-	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia"}
+	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia", "evm"}
 	dependencies       = map[string]string{
 		"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
 		"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
