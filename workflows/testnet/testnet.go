@@ -74,7 +74,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
-	} else if req.EthereumLoadTestSpec == nil {
+	} else if req.LoadTestSpec == nil {
 		testnetDuration := defaultRuntime
 		if req.TestnetDuration != "" {
 			var err error
@@ -259,7 +259,7 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
 	mnemonics []string, selector workflow.Selector) error {
-	if req.EthereumLoadTestSpec == nil {
+	if req.LoadTestSpec == nil {
 		return nil
 	}
 	workflow.Go(ctx, func(ctx workflow.Context) {
@@ -271,7 +271,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 			messages.RunLoadTestRequest{
 				ChainState:    chainState,
 				ProviderState: providerState,
-				LoadTestSpec:  *req.EthereumLoadTestSpec,
+				LoadTestSpec:  *req.LoadTestSpec,
 				RunnerType:    req.RunnerType,
 				IsEvmChain:    req.IsEvmChain,
 				Mnemonics:     mnemonics,

@@ -3,8 +3,7 @@ package messages
 import (
 	"fmt"
 
-	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
-	ethereumtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
@@ -102,12 +101,10 @@ type TestnetWorkflowRequest struct {
 	ChainConfig types.ChainsConfig
 	RunnerType  RunnerType
 
-	// TODO: support both specs. for now they are separate and ethereum will work. not cosmos on this branch.
-	EthereumLoadTestSpec *ethereumtypes.LoadTestSpec
-	CosmosLoadTestSpec   *cosmostypes.LoadTestSpec
-	LongRunningTestnet   bool
-	TestnetDuration      string
-	NumWallets           int
+	LoadTestSpec       *catalysttypes.LoadTestSpec
+	LongRunningTestnet bool
+	TestnetDuration    string
+	NumWallets         int
 }
 
 func (r TestnetWorkflowRequest) Validate() error {

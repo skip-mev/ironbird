@@ -4,17 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/workflows/testnet"
+	"gopkg.in/yaml.v3"
 
-	catcosmotypes "github.com/skip-mev/catalyst/chains/cosmos/types"
-	catethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
-	loadtesttypes "github.com/skip-mev/catalyst/chains/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
@@ -40,13 +37,6 @@ func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclien
 
 func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequest) (*pb.WorkflowResponse, error) {
 	s.logger.Info("CreateWorkflow request received", zap.Any("request", req))
-
-	if req.CosmosLoadTestSpec != nil && req.EthereumLoadTestSpec != nil {
-		return nil, fmt.Errorf("cannot specify both ethereum and cosmos loadtest specs")
-	}
-	if req.EthereumLoadTestSpec == nil && req.CosmosLoadTestSpec == nil {
-		return nil, fmt.Errorf("must specify one of ethereum and cosmos loadtest specs")
-	}
 
 	if req.TestnetDuration != "" {
 		_, err := time.ParseDuration(req.TestnetDuration)
@@ -124,11 +114,13 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		workflowReq.ChainConfig = chainConfig
 	}
 
-	if req.EthereumLoadTestSpec != nil {
-		loadTestSpec := s.convertProtoLoadTestSpec(req.EthereumLoadTestSpec)
-		workflowReq.EthereumLoadTestSpec = &loadTestSpec
+	if len(req.EncodedLoadTestSpec) != 0 {
+		loadTestSpec, err := decodeLoadTestSpec(req.EncodedLoadTestSpec)
+		if err != nil {
+			return nil, err
+		}
+		workflowReq.LoadTestSpec = &loadTestSpec
 	}
-	// TODO: ethereum/cosmos switch? maybe generic. might be too much though.
 
 	options := temporalclient.StartWorkflowOptions{
 		TaskQueue:           messages.TaskQueue,
@@ -204,9 +196,13 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	}
 
 	if workflow.LoadTestSpec != nil {
-		var loadTestSpec catethtypes.LoadTestSpec
+		var loadTestSpec catalysttypes.LoadTestSpec
 		if err := json.Unmarshal(workflow.LoadTestSpec, &loadTestSpec); err == nil {
-			response.LoadTestSpec = s.convertCatalystLoadTestSpecToProto(&loadTestSpec)
+			encodedSpec, err := encodeLoadTestSpec(loadTestSpec)
+			if err != nil {
+				return nil, err
+			}
+			response.LoadTestSpec = encodedSpec
 		}
 	}
 
@@ -427,38 +423,6 @@ func (s *Service) UpdateWorkflowStatuses() {
 	}
 }
 
-func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpecEthereum) catethtypes.LoadTestSpec {
-	if spec == nil {
-		return catethtypes.LoadTestSpec{}
-	}
-
-	chainIdInt, err := strconv.ParseInt(spec.ChainId, 10, 64)
-	if err != nil {
-		panic(err)
-	}
-	chainIdBigInt := big.NewInt(chainIdInt)
-
-	result := catethtypes.LoadTestSpec{
-		Name:        spec.Name,
-		Description: spec.Description,
-		ChainID:     *chainIdBigInt,
-		NumOfTxs:    int(spec.NumOfTxs),
-		NumOfBlocks: int64(spec.NumOfBlocks),
-		// GasDenom:     spec.GasDenom,
-		// Bech32Prefix: spec.Bech32Prefix,
-		// UnorderedTxs: spec.UnorderedTxs,
-		TxTimeout: time.Duration(spec.TxTimeout),
-	}
-
-	// result.NodesAddresses = convertProtoNodeAddresses(spec.NodesAddresses)
-	// result.Mnemonics = spec.Mnemonics
-	result.Msgs = convertProtoLoadTestMsgs(spec.Msgs)
-
-	s.logger.Info("convertProtoLoadTestSpec", zap.Any("result", result))
-
-	return result
-}
-
 func isNumericString(s string) bool {
 	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
 		s = s[1 : len(s)-1]
@@ -475,30 +439,6 @@ func isNumericString(s string) bool {
 	return isNumeric
 }
 
-func (s *Service) convertCatalystLoadTestSpecToProto(spec *catethtypes.LoadTestSpec) *pb.LoadTestSpec {
-	if spec == nil {
-		return nil
-	}
-
-	result := &pb.LoadTestSpec{
-		Name:        spec.Name,
-		Description: spec.Description,
-		// ChainId:      spec.ChainID,
-		NumOfTxs:    int32(spec.NumOfTxs),
-		NumOfBlocks: int32(spec.NumOfBlocks),
-		// GasDenom:     spec.GasDenom,
-		// Bech32Prefix: spec.Bech32Prefix,
-		// UnorderedTxs: spec.UnorderedTxs,
-		TxTimeout: int64(spec.TxTimeout.Seconds()),
-	}
-
-	// result.NodesAddresses = convertCatalystNodeAddresses(spec.NodesAddresses)
-	// result.Mnemonics = spec.Mnemonics
-	result.Msgs = convertCatalystLoadTestMsgs(spec.Msgs)
-
-	return result
-}
-
 func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
 	if protoNodes == nil {
 		return nil
@@ -512,72 +452,6 @@ func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
 			Rpc:     protoNodes[i].Rpc,
 			Lcd:     protoNodes[i].Lcd,
 			Grpc:    protoNodes[i].Grpc,
-		})
-	}
-	return result
-}
-
-func convertProtoNodeAddresses(protoAddrs []*pb.NodeAddress) []catcosmotypes.NodeAddress {
-	if protoAddrs == nil {
-		return nil
-	}
-
-	var result []catcosmotypes.NodeAddress
-	for _, addr := range protoAddrs {
-		result = append(result, catcosmotypes.NodeAddress{
-			GRPC: addr.Grpc,
-			RPC:  addr.Rpc,
-		})
-	}
-	return result
-}
-
-func convertCatalystNodeAddresses(addrs []catcosmotypes.NodeAddress) []*pb.NodeAddress {
-	if addrs == nil {
-		return nil
-	}
-
-	var result []*pb.NodeAddress
-	for _, addr := range addrs {
-		result = append(result, &pb.NodeAddress{
-			Grpc: addr.GRPC,
-			Rpc:  addr.RPC,
-		})
-	}
-	return result
-}
-
-func convertProtoLoadTestMsgs(protoMsgs []*pb.LoadTestMsg) []loadtesttypes.LoadTestMsg {
-	if protoMsgs == nil {
-		return nil
-	}
-
-	var result []loadtesttypes.LoadTestMsg
-	for _, msg := range protoMsgs {
-		result = append(result, loadtesttypes.LoadTestMsg{
-			Weight:          float64(msg.Weight),
-			Type:            loadtesttypes.MsgType(msg.Type),
-			NumMsgs:         int(msg.NumMsgs),
-			ContainedType:   loadtesttypes.MsgType(msg.ContainedType),
-			NumOfRecipients: int(msg.NumOfRecipients),
-		})
-	}
-	return result
-}
-
-func convertCatalystLoadTestMsgs(msgs []loadtesttypes.LoadTestMsg) []*pb.LoadTestMsg {
-	if msgs == nil {
-		return nil
-	}
-
-	var result []*pb.LoadTestMsg
-	for _, msg := range msgs {
-		result = append(result, &pb.LoadTestMsg{
-			Weight:          float32(msg.Weight),
-			Type:            msg.Type.String(),
-			NumMsgs:         int32(msg.NumMsgs),
-			ContainedType:   msg.ContainedType.String(),
-			NumOfRecipients: int32(msg.NumOfRecipients),
 		})
 	}
 	return result
@@ -614,4 +488,15 @@ func marshalJSONConfig(config map[string]interface{}) string {
 	}
 
 	return ""
+}
+
+func decodeLoadTestSpec(s string) (catalysttypes.LoadTestSpec, error) {
+	spec := catalysttypes.LoadTestSpec{}
+	err := yaml.Unmarshal([]byte(s), &spec)
+	return spec, err
+}
+
+func encodeLoadTestSpec(s catalysttypes.LoadTestSpec) (string, error) {
+	bz, err := yaml.Marshal(s)
+	return string(bz), err
 }

@@ -22,19 +22,19 @@ const (
 )
 
 type CreateWorkflowRequest struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Repo                 string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
-	Sha                  string                 `protobuf:"bytes,2,opt,name=sha,proto3" json:"sha,omitempty"`
-	IsEvmChain           bool                   `protobuf:"varint,3,opt,name=isEvmChain,proto3" json:"isEvmChain,omitempty"`
-	ChainConfig          *ChainConfig           `protobuf:"bytes,4,opt,name=chain_config,json=chainConfig,proto3" json:"chain_config,omitempty"`
-	RunnerType           string                 `protobuf:"bytes,5,opt,name=runner_type,json=runnerType,proto3" json:"runner_type,omitempty"`
-	CosmosLoadTestSpec   *LoadTestSpec          `protobuf:"bytes,6,opt,name=cosmos_load_test_spec,json=cosmosLoadTestSpec,proto3" json:"cosmos_load_test_spec,omitempty"`
-	EthereumLoadTestSpec *LoadTestSpecEthereum  `protobuf:"bytes,7,opt,name=ethereum_load_test_spec,json=ethereumLoadTestSpec,proto3" json:"ethereum_load_test_spec,omitempty"`
-	LongRunningTestnet   bool                   `protobuf:"varint,8,opt,name=long_running_testnet,json=longRunningTestnet,proto3" json:"long_running_testnet,omitempty"`
-	TestnetDuration      string                 `protobuf:"bytes,9,opt,name=testnet_duration,json=testnetDuration,proto3" json:"testnet_duration,omitempty"`
-	NumWallets           int32                  `protobuf:"varint,10,opt,name=num_wallets,json=numWallets,proto3" json:"num_wallets,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Repo        string                 `protobuf:"bytes,1,opt,name=repo,proto3" json:"repo,omitempty"`
+	Sha         string                 `protobuf:"bytes,2,opt,name=sha,proto3" json:"sha,omitempty"`
+	IsEvmChain  bool                   `protobuf:"varint,3,opt,name=isEvmChain,proto3" json:"isEvmChain,omitempty"`
+	ChainConfig *ChainConfig           `protobuf:"bytes,4,opt,name=chain_config,json=chainConfig,proto3" json:"chain_config,omitempty"`
+	RunnerType  string                 `protobuf:"bytes,5,opt,name=runner_type,json=runnerType,proto3" json:"runner_type,omitempty"`
+	// json encoded loadtest spec.
+	EncodedLoadTestSpec string `protobuf:"bytes,6,opt,name=encoded_load_test_spec,json=encodedLoadTestSpec,proto3" json:"encoded_load_test_spec,omitempty"`
+	LongRunningTestnet  bool   `protobuf:"varint,8,opt,name=long_running_testnet,json=longRunningTestnet,proto3" json:"long_running_testnet,omitempty"`
+	TestnetDuration     string `protobuf:"bytes,9,opt,name=testnet_duration,json=testnetDuration,proto3" json:"testnet_duration,omitempty"`
+	NumWallets          int32  `protobuf:"varint,10,opt,name=num_wallets,json=numWallets,proto3" json:"num_wallets,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *CreateWorkflowRequest) Reset() {
@@ -102,18 +102,11 @@ func (x *CreateWorkflowRequest) GetRunnerType() string {
 	return ""
 }
 
-func (x *CreateWorkflowRequest) GetCosmosLoadTestSpec() *LoadTestSpec {
+func (x *CreateWorkflowRequest) GetEncodedLoadTestSpec() string {
 	if x != nil {
-		return x.CosmosLoadTestSpec
+		return x.EncodedLoadTestSpec
 	}
-	return nil
-}
-
-func (x *CreateWorkflowRequest) GetEthereumLoadTestSpec() *LoadTestSpecEthereum {
-	if x != nil {
-		return x.EthereumLoadTestSpec
-	}
-	return nil
+	return ""
 }
 
 func (x *CreateWorkflowRequest) GetLongRunningTestnet() bool {
@@ -305,383 +298,6 @@ func (x *ChainConfig) GetSetPersistentPeers() bool {
 	return false
 }
 
-type NodeAddress struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Grpc          string                 `protobuf:"bytes,1,opt,name=grpc,proto3" json:"grpc,omitempty"`
-	Rpc           string                 `protobuf:"bytes,2,opt,name=rpc,proto3" json:"rpc,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NodeAddress) Reset() {
-	*x = NodeAddress{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NodeAddress) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NodeAddress) ProtoMessage() {}
-
-func (x *NodeAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NodeAddress.ProtoReflect.Descriptor instead.
-func (*NodeAddress) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *NodeAddress) GetGrpc() string {
-	if x != nil {
-		return x.Grpc
-	}
-	return ""
-}
-
-func (x *NodeAddress) GetRpc() string {
-	if x != nil {
-		return x.Rpc
-	}
-	return ""
-}
-
-type LoadTestMsg struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Weight          float32                `protobuf:"fixed32,1,opt,name=weight,proto3" json:"weight,omitempty"`
-	Type            string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	NumMsgs         int32                  `protobuf:"varint,3,opt,name=num_msgs,json=numMsgs,proto3" json:"num_msgs,omitempty"`
-	ContainedType   string                 `protobuf:"bytes,4,opt,name=contained_type,json=containedType,proto3" json:"contained_type,omitempty"`
-	NumOfRecipients int32                  `protobuf:"varint,5,opt,name=num_of_recipients,json=numOfRecipients,proto3" json:"num_of_recipients,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *LoadTestMsg) Reset() {
-	*x = LoadTestMsg{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoadTestMsg) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoadTestMsg) ProtoMessage() {}
-
-func (x *LoadTestMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LoadTestMsg.ProtoReflect.Descriptor instead.
-func (*LoadTestMsg) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *LoadTestMsg) GetWeight() float32 {
-	if x != nil {
-		return x.Weight
-	}
-	return 0
-}
-
-func (x *LoadTestMsg) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *LoadTestMsg) GetNumMsgs() int32 {
-	if x != nil {
-		return x.NumMsgs
-	}
-	return 0
-}
-
-func (x *LoadTestMsg) GetContainedType() string {
-	if x != nil {
-		return x.ContainedType
-	}
-	return ""
-}
-
-func (x *LoadTestMsg) GetNumOfRecipients() int32 {
-	if x != nil {
-		return x.NumOfRecipients
-	}
-	return 0
-}
-
-type LoadTestSpec struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	IsEvmChain     bool                   `protobuf:"varint,3,opt,name=isEvmChain,proto3" json:"isEvmChain,omitempty"`
-	ChainId        string                 `protobuf:"bytes,4,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"`
-	NumOfTxs       int32                  `protobuf:"varint,5,opt,name=num_of_txs,json=numOfTxs,proto3" json:"num_of_txs,omitempty"`
-	NumOfBlocks    int32                  `protobuf:"varint,6,opt,name=num_of_blocks,json=numOfBlocks,proto3" json:"num_of_blocks,omitempty"`
-	NodesAddresses []*NodeAddress         `protobuf:"bytes,7,rep,name=nodes_addresses,json=nodesAddresses,proto3" json:"nodes_addresses,omitempty"`
-	Mnemonics      []string               `protobuf:"bytes,8,rep,name=mnemonics,proto3" json:"mnemonics,omitempty"`
-	GasDenom       string                 `protobuf:"bytes,9,opt,name=gas_denom,json=gasDenom,proto3" json:"gas_denom,omitempty"`
-	Bech32Prefix   string                 `protobuf:"bytes,10,opt,name=bech32_prefix,json=bech32Prefix,proto3" json:"bech32_prefix,omitempty"`
-	Msgs           []*LoadTestMsg         `protobuf:"bytes,11,rep,name=msgs,proto3" json:"msgs,omitempty"`
-	UnorderedTxs   bool                   `protobuf:"varint,12,opt,name=unordered_txs,json=unorderedTxs,proto3" json:"unordered_txs,omitempty"`
-	TxTimeout      int64                  `protobuf:"varint,13,opt,name=tx_timeout,json=txTimeout,proto3" json:"tx_timeout,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *LoadTestSpec) Reset() {
-	*x = LoadTestSpec{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoadTestSpec) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoadTestSpec) ProtoMessage() {}
-
-func (x *LoadTestSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use EthereumLoadTestSpec.ProtoReflect.Descriptor instead.
-func (*LoadTestSpec) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *LoadTestSpec) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *LoadTestSpec) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *LoadTestSpec) GetIsEvmChain() bool {
-	if x != nil {
-		return x.IsEvmChain
-	}
-	return false
-}
-
-func (x *LoadTestSpec) GetChainId() string {
-	if x != nil {
-		return x.ChainId
-	}
-	return ""
-}
-
-func (x *LoadTestSpec) GetNumOfTxs() int32 {
-	if x != nil {
-		return x.NumOfTxs
-	}
-	return 0
-}
-
-func (x *LoadTestSpec) GetNumOfBlocks() int32 {
-	if x != nil {
-		return x.NumOfBlocks
-	}
-	return 0
-}
-
-func (x *LoadTestSpec) GetNodesAddresses() []*NodeAddress {
-	if x != nil {
-		return x.NodesAddresses
-	}
-	return nil
-}
-
-func (x *LoadTestSpec) GetMnemonics() []string {
-	if x != nil {
-		return x.Mnemonics
-	}
-	return nil
-}
-
-func (x *LoadTestSpec) GetGasDenom() string {
-	if x != nil {
-		return x.GasDenom
-	}
-	return ""
-}
-
-func (x *LoadTestSpec) GetBech32Prefix() string {
-	if x != nil {
-		return x.Bech32Prefix
-	}
-	return ""
-}
-
-func (x *LoadTestSpec) GetMsgs() []*LoadTestMsg {
-	if x != nil {
-		return x.Msgs
-	}
-	return nil
-}
-
-func (x *LoadTestSpec) GetUnorderedTxs() bool {
-	if x != nil {
-		return x.UnorderedTxs
-	}
-	return false
-}
-
-func (x *LoadTestSpec) GetTxTimeout() int64 {
-	if x != nil {
-		return x.TxTimeout
-	}
-	return 0
-}
-
-// LoadTestSpecEthereum represents the configuration for an ethereum load test
-type LoadTestSpecEthereum struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	ChainId        string                 `protobuf:"bytes,3,opt,name=chain_id,json=chainId,proto3" json:"chain_id,omitempty"` // Using string for big.Int compatibility
-	NumOfTxs       int32                  `protobuf:"varint,4,opt,name=num_of_txs,json=numOfTxs,proto3" json:"num_of_txs,omitempty"`
-	NumOfBlocks    int64                  `protobuf:"varint,5,opt,name=num_of_blocks,json=numOfBlocks,proto3" json:"num_of_blocks,omitempty"`
-	NodesAddresses []string               `protobuf:"bytes,6,rep,name=nodes_addresses,json=nodesAddresses,proto3" json:"nodes_addresses,omitempty"`
-	Msgs           []*LoadTestMsg         `protobuf:"bytes,7,rep,name=msgs,proto3" json:"msgs,omitempty"`
-	TxTimeout      int64                  `protobuf:"varint,8,opt,name=tx_timeout,json=txTimeout,proto3" json:"tx_timeout,omitempty"`
-	PrivateKeys    []string               `protobuf:"bytes,9,rep,name=private_keys,json=privateKeys,proto3" json:"private_keys,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *LoadTestSpecEthereum) Reset() {
-	*x = LoadTestSpecEthereum{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoadTestSpecEthereum) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoadTestSpecEthereum) ProtoMessage() {}
-
-func (x *LoadTestSpecEthereum) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LoadTestSpecEthereum.ProtoReflect.Descriptor instead.
-func (*LoadTestSpecEthereum) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *LoadTestSpecEthereum) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *LoadTestSpecEthereum) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-func (x *LoadTestSpecEthereum) GetChainId() string {
-	if x != nil {
-		return x.ChainId
-	}
-	return ""
-}
-
-func (x *LoadTestSpecEthereum) GetNumOfTxs() int32 {
-	if x != nil {
-		return x.NumOfTxs
-	}
-	return 0
-}
-
-func (x *LoadTestSpecEthereum) GetNumOfBlocks() int64 {
-	if x != nil {
-		return x.NumOfBlocks
-	}
-	return 0
-}
-
-func (x *LoadTestSpecEthereum) GetNodesAddresses() []string {
-	if x != nil {
-		return x.NodesAddresses
-	}
-	return nil
-}
-
-func (x *LoadTestSpecEthereum) GetMsgs() []*LoadTestMsg {
-	if x != nil {
-		return x.Msgs
-	}
-	return nil
-}
-
-func (x *LoadTestSpecEthereum) GetTxTimeout() int64 {
-	if x != nil {
-		return x.TxTimeout
-	}
-	return 0
-}
-
-func (x *LoadTestSpecEthereum) GetPrivateKeys() []string {
-	if x != nil {
-		return x.PrivateKeys
-	}
-	return nil
-}
-
 type GetWorkflowRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
@@ -691,7 +307,7 @@ type GetWorkflowRequest struct {
 
 func (x *GetWorkflowRequest) Reset() {
 	*x = GetWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[7]
+	mi := &file_server_proto_ironbird_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +319,7 @@ func (x *GetWorkflowRequest) String() string {
 func (*GetWorkflowRequest) ProtoMessage() {}
 
 func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[7]
+	mi := &file_server_proto_ironbird_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -716,7 +332,7 @@ func (x *GetWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*GetWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{7}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetWorkflowRequest) GetWorkflowId() string {
@@ -736,7 +352,7 @@ type ListWorkflowsRequest struct {
 
 func (x *ListWorkflowsRequest) Reset() {
 	*x = ListWorkflowsRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[8]
+	mi := &file_server_proto_ironbird_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +364,7 @@ func (x *ListWorkflowsRequest) String() string {
 func (*ListWorkflowsRequest) ProtoMessage() {}
 
 func (x *ListWorkflowsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[8]
+	mi := &file_server_proto_ironbird_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +377,7 @@ func (x *ListWorkflowsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkflowsRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkflowsRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{8}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListWorkflowsRequest) GetLimit() int32 {
@@ -787,7 +403,7 @@ type CancelWorkflowRequest struct {
 
 func (x *CancelWorkflowRequest) Reset() {
 	*x = CancelWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[9]
+	mi := &file_server_proto_ironbird_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -799,7 +415,7 @@ func (x *CancelWorkflowRequest) String() string {
 func (*CancelWorkflowRequest) ProtoMessage() {}
 
 func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[9]
+	mi := &file_server_proto_ironbird_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -812,7 +428,7 @@ func (x *CancelWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*CancelWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{9}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CancelWorkflowRequest) GetWorkflowId() string {
@@ -832,7 +448,7 @@ type SignalWorkflowRequest struct {
 
 func (x *SignalWorkflowRequest) Reset() {
 	*x = SignalWorkflowRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[10]
+	mi := &file_server_proto_ironbird_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -844,7 +460,7 @@ func (x *SignalWorkflowRequest) String() string {
 func (*SignalWorkflowRequest) ProtoMessage() {}
 
 func (x *SignalWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[10]
+	mi := &file_server_proto_ironbird_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -857,7 +473,7 @@ func (x *SignalWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignalWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*SignalWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{10}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SignalWorkflowRequest) GetWorkflowId() string {
@@ -877,14 +493,14 @@ func (x *SignalWorkflowRequest) GetSignalName() string {
 type RunLoadTestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
-	LoadTestSpec  *LoadTestSpec          `protobuf:"bytes,2,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
+	LoadTestSpec  string                 `protobuf:"bytes,2,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RunLoadTestRequest) Reset() {
 	*x = RunLoadTestRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[11]
+	mi := &file_server_proto_ironbird_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +512,7 @@ func (x *RunLoadTestRequest) String() string {
 func (*RunLoadTestRequest) ProtoMessage() {}
 
 func (x *RunLoadTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[11]
+	mi := &file_server_proto_ironbird_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +525,7 @@ func (x *RunLoadTestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunLoadTestRequest.ProtoReflect.Descriptor instead.
 func (*RunLoadTestRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{11}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RunLoadTestRequest) GetWorkflowId() string {
@@ -919,11 +535,11 @@ func (x *RunLoadTestRequest) GetWorkflowId() string {
 	return ""
 }
 
-func (x *RunLoadTestRequest) GetLoadTestSpec() *LoadTestSpec {
+func (x *RunLoadTestRequest) GetLoadTestSpec() string {
 	if x != nil {
 		return x.LoadTestSpec
 	}
-	return nil
+	return ""
 }
 
 type WorkflowResponse struct {
@@ -935,7 +551,7 @@ type WorkflowResponse struct {
 
 func (x *WorkflowResponse) Reset() {
 	*x = WorkflowResponse{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[12]
+	mi := &file_server_proto_ironbird_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -947,7 +563,7 @@ func (x *WorkflowResponse) String() string {
 func (*WorkflowResponse) ProtoMessage() {}
 
 func (x *WorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[12]
+	mi := &file_server_proto_ironbird_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -960,7 +576,7 @@ func (x *WorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{12}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *WorkflowResponse) GetWorkflowId() string {
@@ -983,7 +599,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[13]
+	mi := &file_server_proto_ironbird_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +611,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[13]
+	mi := &file_server_proto_ironbird_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +624,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{13}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Node) GetName() string {
@@ -1058,7 +674,7 @@ type WalletInfo struct {
 
 func (x *WalletInfo) Reset() {
 	*x = WalletInfo{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[14]
+	mi := &file_server_proto_ironbird_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1070,7 +686,7 @@ func (x *WalletInfo) String() string {
 func (*WalletInfo) ProtoMessage() {}
 
 func (x *WalletInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[14]
+	mi := &file_server_proto_ironbird_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1083,7 +699,7 @@ func (x *WalletInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WalletInfo.ProtoReflect.Descriptor instead.
 func (*WalletInfo) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{14}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *WalletInfo) GetFaucetAddress() string {
@@ -1123,7 +739,7 @@ type Workflow struct {
 	LoadBalancers []*Node                `protobuf:"bytes,5,rep,name=load_balancers,json=loadBalancers,proto3" json:"load_balancers,omitempty"`
 	Monitoring    map[string]string      `protobuf:"bytes,6,rep,name=monitoring,proto3" json:"monitoring,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Config        *CreateWorkflowRequest `protobuf:"bytes,7,opt,name=config,proto3" json:"config,omitempty"`
-	LoadTestSpec  *LoadTestSpec          `protobuf:"bytes,17,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
+	LoadTestSpec  string                 `protobuf:"bytes,17,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
 	Wallets       *WalletInfo            `protobuf:"bytes,18,opt,name=wallets,proto3" json:"wallets,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1131,7 +747,7 @@ type Workflow struct {
 
 func (x *Workflow) Reset() {
 	*x = Workflow{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_server_proto_ironbird_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1143,7 +759,7 @@ func (x *Workflow) String() string {
 func (*Workflow) ProtoMessage() {}
 
 func (x *Workflow) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[15]
+	mi := &file_server_proto_ironbird_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1156,7 +772,7 @@ func (x *Workflow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Workflow.ProtoReflect.Descriptor instead.
 func (*Workflow) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{15}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Workflow) GetWorkflowId() string {
@@ -1208,11 +824,11 @@ func (x *Workflow) GetConfig() *CreateWorkflowRequest {
 	return nil
 }
 
-func (x *Workflow) GetLoadTestSpec() *LoadTestSpec {
+func (x *Workflow) GetLoadTestSpec() string {
 	if x != nil {
 		return x.LoadTestSpec
 	}
-	return nil
+	return ""
 }
 
 func (x *Workflow) GetWallets() *WalletInfo {
@@ -1235,7 +851,7 @@ type WorkflowSummary struct {
 
 func (x *WorkflowSummary) Reset() {
 	*x = WorkflowSummary{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[16]
+	mi := &file_server_proto_ironbird_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1247,7 +863,7 @@ func (x *WorkflowSummary) String() string {
 func (*WorkflowSummary) ProtoMessage() {}
 
 func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[16]
+	mi := &file_server_proto_ironbird_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1260,7 +876,7 @@ func (x *WorkflowSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowSummary.ProtoReflect.Descriptor instead.
 func (*WorkflowSummary) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{16}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *WorkflowSummary) GetWorkflowId() string {
@@ -1312,7 +928,7 @@ type UpdateWorkflowDataRequest struct {
 
 func (x *UpdateWorkflowDataRequest) Reset() {
 	*x = UpdateWorkflowDataRequest{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[17]
+	mi := &file_server_proto_ironbird_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1324,7 +940,7 @@ func (x *UpdateWorkflowDataRequest) String() string {
 func (*UpdateWorkflowDataRequest) ProtoMessage() {}
 
 func (x *UpdateWorkflowDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[17]
+	mi := &file_server_proto_ironbird_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1337,7 +953,7 @@ func (x *UpdateWorkflowDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWorkflowDataRequest.ProtoReflect.Descriptor instead.
 func (*UpdateWorkflowDataRequest) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{17}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdateWorkflowDataRequest) GetWorkflowId() string {
@@ -1392,7 +1008,7 @@ type WorkflowListResponse struct {
 
 func (x *WorkflowListResponse) Reset() {
 	*x = WorkflowListResponse{}
-	mi := &file_server_proto_ironbird_proto_msgTypes[18]
+	mi := &file_server_proto_ironbird_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1404,7 +1020,7 @@ func (x *WorkflowListResponse) String() string {
 func (*WorkflowListResponse) ProtoMessage() {}
 
 func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_server_proto_ironbird_proto_msgTypes[18]
+	mi := &file_server_proto_ironbird_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1033,7 @@ func (x *WorkflowListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowListResponse.ProtoReflect.Descriptor instead.
 func (*WorkflowListResponse) Descriptor() ([]byte, []int) {
-	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{18}
+	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *WorkflowListResponse) GetWorkflows() []*WorkflowSummary {
@@ -1438,7 +1054,7 @@ var File_server_proto_ironbird_proto protoreflect.FileDescriptor
 
 const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
-	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xe7\x03\n" +
+	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xf0\x02\n" +
 	"\x15CreateWorkflowRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x1e\n" +
@@ -1447,9 +1063,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"isEvmChain\x12=\n" +
 	"\fchain_config\x18\x04 \x01(\v2\x1a.skip.ironbird.ChainConfigR\vchainConfig\x12\x1f\n" +
 	"\vrunner_type\x18\x05 \x01(\tR\n" +
-	"runnerType\x12N\n" +
-	"\x15cosmos_load_test_spec\x18\x06 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\x12cosmosLoadTestSpec\x12Z\n" +
-	"\x17ethereum_load_test_spec\x18\a \x01(\v2#.skip.ironbird.LoadTestSpecEthereumR\x14ethereumLoadTestSpec\x120\n" +
+	"runnerType\x123\n" +
+	"\x16encoded_load_test_spec\x18\x06 \x01(\tR\x13encodedLoadTestSpec\x120\n" +
 	"\x14long_running_testnet\x18\b \x01(\bR\x12longRunningTestnet\x12)\n" +
 	"\x10testnet_duration\x18\t \x01(\tR\x0ftestnetDuration\x12\x1f\n" +
 	"\vnum_wallets\x18\n" +
@@ -1470,47 +1085,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x14custom_client_config\x18\b \x01(\tR\x12customClientConfig\x12\"\n" +
 	"\rset_seed_node\x18\t \x01(\bR\vsetSeedNode\x120\n" +
 	"\x14set_persistent_peers\x18\n" +
-	" \x01(\bR\x12setPersistentPeers\"3\n" +
-	"\vNodeAddress\x12\x12\n" +
-	"\x04grpc\x18\x01 \x01(\tR\x04grpc\x12\x10\n" +
-	"\x03rpc\x18\x02 \x01(\tR\x03rpc\"\xa7\x01\n" +
-	"\vLoadTestMsg\x12\x16\n" +
-	"\x06weight\x18\x01 \x01(\x02R\x06weight\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x19\n" +
-	"\bnum_msgs\x18\x03 \x01(\x05R\anumMsgs\x12%\n" +
-	"\x0econtained_type\x18\x04 \x01(\tR\rcontainedType\x12*\n" +
-	"\x11num_of_recipients\x18\x05 \x01(\x05R\x0fnumOfRecipients\"\xda\x03\n" +
-	"\fLoadTestSpec\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
-	"\n" +
-	"isEvmChain\x18\x03 \x01(\bR\n" +
-	"isEvmChain\x12\x19\n" +
-	"\bchain_id\x18\x04 \x01(\tR\achainId\x12\x1c\n" +
-	"\n" +
-	"num_of_txs\x18\x05 \x01(\x05R\bnumOfTxs\x12\"\n" +
-	"\rnum_of_blocks\x18\x06 \x01(\x05R\vnumOfBlocks\x12C\n" +
-	"\x0fnodes_addresses\x18\a \x03(\v2\x1a.skip.ironbird.NodeAddressR\x0enodesAddresses\x12\x1c\n" +
-	"\tmnemonics\x18\b \x03(\tR\tmnemonics\x12\x1b\n" +
-	"\tgas_denom\x18\t \x01(\tR\bgasDenom\x12#\n" +
-	"\rbech32_prefix\x18\n" +
-	" \x01(\tR\fbech32Prefix\x12.\n" +
-	"\x04msgs\x18\v \x03(\v2\x1a.skip.ironbird.LoadTestMsgR\x04msgs\x12#\n" +
-	"\runordered_txs\x18\f \x01(\bR\funorderedTxs\x12\x1d\n" +
-	"\n" +
-	"tx_timeout\x18\r \x01(\x03R\ttxTimeout\"\xc4\x02\n" +
-	"\x14LoadTestSpecEthereum\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x19\n" +
-	"\bchain_id\x18\x03 \x01(\tR\achainId\x12\x1c\n" +
-	"\n" +
-	"num_of_txs\x18\x04 \x01(\x05R\bnumOfTxs\x12\"\n" +
-	"\rnum_of_blocks\x18\x05 \x01(\x03R\vnumOfBlocks\x12'\n" +
-	"\x0fnodes_addresses\x18\x06 \x03(\tR\x0enodesAddresses\x12.\n" +
-	"\x04msgs\x18\a \x03(\v2\x1a.skip.ironbird.LoadTestMsgR\x04msgs\x12\x1d\n" +
-	"\n" +
-	"tx_timeout\x18\b \x01(\x03R\ttxTimeout\x12!\n" +
-	"\fprivate_keys\x18\t \x03(\tR\vprivateKeys\"5\n" +
+	" \x01(\bR\x12setPersistentPeers\"5\n" +
 	"\x12GetWorkflowRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\"D\n" +
@@ -1524,11 +1099,11 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x1f\n" +
 	"\vsignal_name\x18\x02 \x01(\tR\n" +
-	"signalName\"x\n" +
+	"signalName\"[\n" +
 	"\x12RunLoadTestRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
-	"workflowId\x12A\n" +
-	"\x0eload_test_spec\x18\x02 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\"3\n" +
+	"workflowId\x12$\n" +
+	"\x0eload_test_spec\x18\x02 \x01(\tR\floadTestSpec\"3\n" +
 	"\x10WorkflowResponse\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\"l\n" +
@@ -1543,7 +1118,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x0efaucet_address\x18\x01 \x01(\tR\rfaucetAddress\x12'\n" +
 	"\x0ffaucet_mnemonic\x18\x02 \x01(\tR\x0efaucetMnemonic\x12%\n" +
 	"\x0euser_addresses\x18\x03 \x03(\tR\ruserAddresses\x12%\n" +
-	"\x0euser_mnemonics\x18\x04 \x03(\tR\ruserMnemonics\"\x9d\x04\n" +
+	"\x0euser_mnemonics\x18\x04 \x03(\tR\ruserMnemonics\"\x80\x04\n" +
 	"\bWorkflow\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x16\n" +
@@ -1556,8 +1131,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
 	"monitoring\x18\x06 \x03(\v2'.skip.ironbird.Workflow.MonitoringEntryR\n" +
 	"monitoring\x12<\n" +
-	"\x06config\x18\a \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x06config\x12A\n" +
-	"\x0eload_test_spec\x18\x11 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\x123\n" +
+	"\x06config\x18\a \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x06config\x12$\n" +
+	"\x0eload_test_spec\x18\x11 \x01(\tR\floadTestSpec\x123\n" +
 	"\awallets\x18\x12 \x01(\v2\x19.skip.ironbird.WalletInfoR\awallets\x1a=\n" +
 	"\x0fMonitoringEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -1609,71 +1184,60 @@ func file_server_proto_ironbird_proto_rawDescGZIP() []byte {
 	return file_server_proto_ironbird_proto_rawDescData
 }
 
-var file_server_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_server_proto_ironbird_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_server_proto_ironbird_proto_goTypes = []any{
 	(*CreateWorkflowRequest)(nil),     // 0: skip.ironbird.CreateWorkflowRequest
 	(*GenesisKV)(nil),                 // 1: skip.ironbird.GenesisKV
 	(*ChainConfig)(nil),               // 2: skip.ironbird.ChainConfig
-	(*NodeAddress)(nil),               // 3: skip.ironbird.NodeAddress
-	(*LoadTestMsg)(nil),               // 4: skip.ironbird.LoadTestMsg
-	(*LoadTestSpec)(nil),              // 5: skip.ironbird.EthereumLoadTestSpec
-	(*LoadTestSpecEthereum)(nil),      // 6: skip.ironbird.LoadTestSpecEthereum
-	(*GetWorkflowRequest)(nil),        // 7: skip.ironbird.GetWorkflowRequest
-	(*ListWorkflowsRequest)(nil),      // 8: skip.ironbird.ListWorkflowsRequest
-	(*CancelWorkflowRequest)(nil),     // 9: skip.ironbird.CancelWorkflowRequest
-	(*SignalWorkflowRequest)(nil),     // 10: skip.ironbird.SignalWorkflowRequest
-	(*RunLoadTestRequest)(nil),        // 11: skip.ironbird.RunLoadTestRequest
-	(*WorkflowResponse)(nil),          // 12: skip.ironbird.WorkflowResponse
-	(*Node)(nil),                      // 13: skip.ironbird.Node
-	(*WalletInfo)(nil),                // 14: skip.ironbird.WalletInfo
-	(*Workflow)(nil),                  // 15: skip.ironbird.Workflow
-	(*WorkflowSummary)(nil),           // 16: skip.ironbird.WorkflowSummary
-	(*UpdateWorkflowDataRequest)(nil), // 17: skip.ironbird.UpdateWorkflowDataRequest
-	(*WorkflowListResponse)(nil),      // 18: skip.ironbird.WorkflowListResponse
-	nil,                               // 19: skip.ironbird.Workflow.MonitoringEntry
-	nil,                               // 20: skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
+	(*GetWorkflowRequest)(nil),        // 3: skip.ironbird.GetWorkflowRequest
+	(*ListWorkflowsRequest)(nil),      // 4: skip.ironbird.ListWorkflowsRequest
+	(*CancelWorkflowRequest)(nil),     // 5: skip.ironbird.CancelWorkflowRequest
+	(*SignalWorkflowRequest)(nil),     // 6: skip.ironbird.SignalWorkflowRequest
+	(*RunLoadTestRequest)(nil),        // 7: skip.ironbird.RunLoadTestRequest
+	(*WorkflowResponse)(nil),          // 8: skip.ironbird.WorkflowResponse
+	(*Node)(nil),                      // 9: skip.ironbird.Node
+	(*WalletInfo)(nil),                // 10: skip.ironbird.WalletInfo
+	(*Workflow)(nil),                  // 11: skip.ironbird.Workflow
+	(*WorkflowSummary)(nil),           // 12: skip.ironbird.WorkflowSummary
+	(*UpdateWorkflowDataRequest)(nil), // 13: skip.ironbird.UpdateWorkflowDataRequest
+	(*WorkflowListResponse)(nil),      // 14: skip.ironbird.WorkflowListResponse
+	nil,                               // 15: skip.ironbird.Workflow.MonitoringEntry
+	nil,                               // 16: skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
 }
 var file_server_proto_ironbird_proto_depIdxs = []int32{
 	2,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ChainConfig
-	5,  // 1: skip.ironbird.CreateWorkflowRequest.cosmos_load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
-	6,  // 2: skip.ironbird.CreateWorkflowRequest.ethereum_load_test_spec:type_name -> skip.ironbird.LoadTestSpecEthereum
-	1,  // 3: skip.ironbird.ChainConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
-	3,  // 4: skip.ironbird.EthereumLoadTestSpec.nodes_addresses:type_name -> skip.ironbird.NodeAddress
-	4,  // 5: skip.ironbird.EthereumLoadTestSpec.msgs:type_name -> skip.ironbird.LoadTestMsg
-	4,  // 6: skip.ironbird.LoadTestSpecEthereum.msgs:type_name -> skip.ironbird.LoadTestMsg
-	5,  // 7: skip.ironbird.RunLoadTestRequest.load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
-	13, // 8: skip.ironbird.Workflow.nodes:type_name -> skip.ironbird.Node
-	13, // 9: skip.ironbird.Workflow.validators:type_name -> skip.ironbird.Node
-	13, // 10: skip.ironbird.Workflow.load_balancers:type_name -> skip.ironbird.Node
-	19, // 11: skip.ironbird.Workflow.monitoring:type_name -> skip.ironbird.Workflow.MonitoringEntry
-	0,  // 12: skip.ironbird.Workflow.config:type_name -> skip.ironbird.CreateWorkflowRequest
-	5,  // 13: skip.ironbird.Workflow.load_test_spec:type_name -> skip.ironbird.EthereumLoadTestSpec
-	14, // 14: skip.ironbird.Workflow.wallets:type_name -> skip.ironbird.WalletInfo
-	13, // 15: skip.ironbird.UpdateWorkflowDataRequest.load_balancers:type_name -> skip.ironbird.Node
-	20, // 16: skip.ironbird.UpdateWorkflowDataRequest.monitoring:type_name -> skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
-	13, // 17: skip.ironbird.UpdateWorkflowDataRequest.nodes:type_name -> skip.ironbird.Node
-	13, // 18: skip.ironbird.UpdateWorkflowDataRequest.validators:type_name -> skip.ironbird.Node
-	14, // 19: skip.ironbird.UpdateWorkflowDataRequest.wallets:type_name -> skip.ironbird.WalletInfo
-	16, // 20: skip.ironbird.WorkflowListResponse.workflows:type_name -> skip.ironbird.WorkflowSummary
-	0,  // 21: skip.ironbird.IronbirdService.CreateWorkflow:input_type -> skip.ironbird.CreateWorkflowRequest
-	7,  // 22: skip.ironbird.IronbirdService.GetWorkflow:input_type -> skip.ironbird.GetWorkflowRequest
-	8,  // 23: skip.ironbird.IronbirdService.ListWorkflows:input_type -> skip.ironbird.ListWorkflowsRequest
-	9,  // 24: skip.ironbird.IronbirdService.CancelWorkflow:input_type -> skip.ironbird.CancelWorkflowRequest
-	10, // 25: skip.ironbird.IronbirdService.SignalWorkflow:input_type -> skip.ironbird.SignalWorkflowRequest
-	11, // 26: skip.ironbird.IronbirdService.RunLoadTest:input_type -> skip.ironbird.RunLoadTestRequest
-	17, // 27: skip.ironbird.IronbirdService.UpdateWorkflowData:input_type -> skip.ironbird.UpdateWorkflowDataRequest
-	12, // 28: skip.ironbird.IronbirdService.CreateWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	15, // 29: skip.ironbird.IronbirdService.GetWorkflow:output_type -> skip.ironbird.Workflow
-	18, // 30: skip.ironbird.IronbirdService.ListWorkflows:output_type -> skip.ironbird.WorkflowListResponse
-	12, // 31: skip.ironbird.IronbirdService.CancelWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	12, // 32: skip.ironbird.IronbirdService.SignalWorkflow:output_type -> skip.ironbird.WorkflowResponse
-	12, // 33: skip.ironbird.IronbirdService.RunLoadTest:output_type -> skip.ironbird.WorkflowResponse
-	12, // 34: skip.ironbird.IronbirdService.UpdateWorkflowData:output_type -> skip.ironbird.WorkflowResponse
-	28, // [28:35] is the sub-list for method output_type
-	21, // [21:28] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	1,  // 1: skip.ironbird.ChainConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
+	9,  // 2: skip.ironbird.Workflow.nodes:type_name -> skip.ironbird.Node
+	9,  // 3: skip.ironbird.Workflow.validators:type_name -> skip.ironbird.Node
+	9,  // 4: skip.ironbird.Workflow.load_balancers:type_name -> skip.ironbird.Node
+	15, // 5: skip.ironbird.Workflow.monitoring:type_name -> skip.ironbird.Workflow.MonitoringEntry
+	0,  // 6: skip.ironbird.Workflow.config:type_name -> skip.ironbird.CreateWorkflowRequest
+	10, // 7: skip.ironbird.Workflow.wallets:type_name -> skip.ironbird.WalletInfo
+	9,  // 8: skip.ironbird.UpdateWorkflowDataRequest.load_balancers:type_name -> skip.ironbird.Node
+	16, // 9: skip.ironbird.UpdateWorkflowDataRequest.monitoring:type_name -> skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
+	9,  // 10: skip.ironbird.UpdateWorkflowDataRequest.nodes:type_name -> skip.ironbird.Node
+	9,  // 11: skip.ironbird.UpdateWorkflowDataRequest.validators:type_name -> skip.ironbird.Node
+	10, // 12: skip.ironbird.UpdateWorkflowDataRequest.wallets:type_name -> skip.ironbird.WalletInfo
+	12, // 13: skip.ironbird.WorkflowListResponse.workflows:type_name -> skip.ironbird.WorkflowSummary
+	0,  // 14: skip.ironbird.IronbirdService.CreateWorkflow:input_type -> skip.ironbird.CreateWorkflowRequest
+	3,  // 15: skip.ironbird.IronbirdService.GetWorkflow:input_type -> skip.ironbird.GetWorkflowRequest
+	4,  // 16: skip.ironbird.IronbirdService.ListWorkflows:input_type -> skip.ironbird.ListWorkflowsRequest
+	5,  // 17: skip.ironbird.IronbirdService.CancelWorkflow:input_type -> skip.ironbird.CancelWorkflowRequest
+	6,  // 18: skip.ironbird.IronbirdService.SignalWorkflow:input_type -> skip.ironbird.SignalWorkflowRequest
+	7,  // 19: skip.ironbird.IronbirdService.RunLoadTest:input_type -> skip.ironbird.RunLoadTestRequest
+	13, // 20: skip.ironbird.IronbirdService.UpdateWorkflowData:input_type -> skip.ironbird.UpdateWorkflowDataRequest
+	8,  // 21: skip.ironbird.IronbirdService.CreateWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	11, // 22: skip.ironbird.IronbirdService.GetWorkflow:output_type -> skip.ironbird.Workflow
+	14, // 23: skip.ironbird.IronbirdService.ListWorkflows:output_type -> skip.ironbird.WorkflowListResponse
+	8,  // 24: skip.ironbird.IronbirdService.CancelWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	8,  // 25: skip.ironbird.IronbirdService.SignalWorkflow:output_type -> skip.ironbird.WorkflowResponse
+	8,  // 26: skip.ironbird.IronbirdService.RunLoadTest:output_type -> skip.ironbird.WorkflowResponse
+	8,  // 27: skip.ironbird.IronbirdService.UpdateWorkflowData:output_type -> skip.ironbird.WorkflowResponse
+	21, // [21:28] is the sub-list for method output_type
+	14, // [14:21] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_server_proto_ironbird_proto_init() }
@@ -1687,7 +1251,7 @@ func file_server_proto_ironbird_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_server_proto_ironbird_proto_rawDesc), len(file_server_proto_ironbird_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

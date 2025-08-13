@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ironbird.proto.
  */
 export const file_ironbird: GenFile = /*@__PURE__*/
-  fileDesc("Cg5pcm9uYmlyZC5wcm90bxINc2tpcC5pcm9uYmlyZCLcAgoVQ3JlYXRlV29ya2Zsb3dSZXF1ZXN0EgwKBHJlcG8YASABKAkSCwoDc2hhGAIgASgJEhIKCmlzRXZtQ2hhaW4YAyABKAgSMAoMY2hhaW5fY29uZmlnGAQgASgLMhouc2tpcC5pcm9uYmlyZC5DaGFpbkNvbmZpZxITCgtydW5uZXJfdHlwZRgFIAEoCRI6ChVjb3Ntb3NfbG9hZF90ZXN0X3NwZWMYBiABKAsyGy5za2lwLmlyb25iaXJkLkxvYWRUZXN0U3BlYxJEChdldGhlcmV1bV9sb2FkX3Rlc3Rfc3BlYxgHIAEoCzIjLnNraXAuaXJvbmJpcmQuTG9hZFRlc3RTcGVjRXRoZXJldW0SHAoUbG9uZ19ydW5uaW5nX3Rlc3RuZXQYCCABKAgSGAoQdGVzdG5ldF9kdXJhdGlvbhgJIAEoCRITCgtudW1fd2FsbGV0cxgKIAEoBSInCglHZW5lc2lzS1YSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJIqMCCgtDaGFpbkNvbmZpZxIMCgRuYW1lGAEgASgJEhQKDG51bV9vZl9ub2RlcxgCIAEoBBIZChFudW1fb2ZfdmFsaWRhdG9ycxgDIAEoBBI3ChVnZW5lc2lzX21vZGlmaWNhdGlvbnMYBCADKAsyGC5za2lwLmlyb25iaXJkLkdlbmVzaXNLVhINCgVpbWFnZRgFIAEoCRIZChFjdXN0b21fYXBwX2NvbmZpZxgGIAEoCRIfChdjdXN0b21fY29uc2Vuc3VzX2NvbmZpZxgHIAEoCRIcChRjdXN0b21fY2xpZW50X2NvbmZpZxgIIAEoCRIVCg1zZXRfc2VlZF9ub2RlGAkgASgIEhwKFHNldF9wZXJzaXN0ZW50X3BlZXJzGAogASgIIigKC05vZGVBZGRyZXNzEgwKBGdycGMYASABKAkSCwoDcnBjGAIgASgJInAKC0xvYWRUZXN0TXNnEg4KBndlaWdodBgBIAEoAhIMCgR0eXBlGAIgASgJEhAKCG51bV9tc2dzGAMgASgFEhYKDmNvbnRhaW5lZF90eXBlGAQgASgJEhkKEW51bV9vZl9yZWNpcGllbnRzGAUgASgFIskCCgxMb2FkVGVzdFNwZWMSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRISCgppc0V2bUNoYWluGAMgASgIEhAKCGNoYWluX2lkGAQgASgJEhIKCm51bV9vZl90eHMYBSABKAUSFQoNbnVtX29mX2Jsb2NrcxgGIAEoBRIzCg9ub2Rlc19hZGRyZXNzZXMYByADKAsyGi5za2lwLmlyb25iaXJkLk5vZGVBZGRyZXNzEhEKCW1uZW1vbmljcxgIIAMoCRIRCglnYXNfZGVub20YCSABKAkSFQoNYmVjaDMyX3ByZWZpeBgKIAEoCRIoCgRtc2dzGAsgAygLMhouc2tpcC5pcm9uYmlyZC5Mb2FkVGVzdE1zZxIVCg11bm9yZGVyZWRfdHhzGAwgASgIEhIKCnR4X3RpbWVvdXQYDSABKAMi4wEKFExvYWRUZXN0U3BlY0V0aGVyZXVtEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEAoIY2hhaW5faWQYAyABKAkSEgoKbnVtX29mX3R4cxgEIAEoBRIVCg1udW1fb2ZfYmxvY2tzGAUgASgDEhcKD25vZGVzX2FkZHJlc3NlcxgGIAMoCRIoCgRtc2dzGAcgAygLMhouc2tpcC5pcm9uYmlyZC5Mb2FkVGVzdE1zZxISCgp0eF90aW1lb3V0GAggASgDEhQKDHByaXZhdGVfa2V5cxgJIAMoCSIpChJHZXRXb3JrZmxvd1JlcXVlc3QSEwoLd29ya2Zsb3dfaWQYASABKAkiNQoUTGlzdFdvcmtmbG93c1JlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGb2Zmc2V0GAIgASgFIiwKFUNhbmNlbFdvcmtmbG93UmVxdWVzdBITCgt3b3JrZmxvd19pZBgBIAEoCSJBChVTaWduYWxXb3JrZmxvd1JlcXVlc3QSEwoLd29ya2Zsb3dfaWQYASABKAkSEwoLc2lnbmFsX25hbWUYAiABKAkiXgoSUnVuTG9hZFRlc3RSZXF1ZXN0EhMKC3dvcmtmbG93X2lkGAEgASgJEjMKDmxvYWRfdGVzdF9zcGVjGAIgASgLMhsuc2tpcC5pcm9uYmlyZC5Mb2FkVGVzdFNwZWMiJwoQV29ya2Zsb3dSZXNwb25zZRITCgt3b3JrZmxvd19pZBgBIAEoCSJNCgROb2RlEgwKBG5hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRILCgNycGMYAyABKAkSCwoDbGNkGAQgASgJEgwKBGdycGMYBSABKAkibQoKV2FsbGV0SW5mbxIWCg5mYXVjZXRfYWRkcmVzcxgBIAEoCRIXCg9mYXVjZXRfbW5lbW9uaWMYAiABKAkSFgoOdXNlcl9hZGRyZXNzZXMYAyADKAkSFgoOdXNlcl9tbmVtb25pY3MYBCADKAkisAMKCFdvcmtmbG93EhMKC3dvcmtmbG93X2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIiCgVub2RlcxgDIAMoCzITLnNraXAuaXJvbmJpcmQuTm9kZRInCgp2YWxpZGF0b3JzGAQgAygLMhMuc2tpcC5pcm9uYmlyZC5Ob2RlEisKDmxvYWRfYmFsYW5jZXJzGAUgAygLMhMuc2tpcC5pcm9uYmlyZC5Ob2RlEjsKCm1vbml0b3JpbmcYBiADKAsyJy5za2lwLmlyb25iaXJkLldvcmtmbG93Lk1vbml0b3JpbmdFbnRyeRI0CgZjb25maWcYByABKAsyJC5za2lwLmlyb25iaXJkLkNyZWF0ZVdvcmtmbG93UmVxdWVzdBIzCg5sb2FkX3Rlc3Rfc3BlYxgRIAEoCzIbLnNraXAuaXJvbmJpcmQuTG9hZFRlc3RTcGVjEioKB3dhbGxldHMYEiABKAsyGS5za2lwLmlyb25iaXJkLldhbGxldEluZm8aMQoPTW9uaXRvcmluZ0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZQoPV29ya2Zsb3dTdW1tYXJ5EhMKC3dvcmtmbG93X2lkGAEgASgJEg4KBnN0YXR1cxgCIAEoCRISCgpzdGFydF90aW1lGAMgASgJEgwKBHJlcG8YBCABKAkSCwoDc2hhGAUgASgJItcCChlVcGRhdGVXb3JrZmxvd0RhdGFSZXF1ZXN0EhMKC3dvcmtmbG93X2lkGAEgASgJEisKDmxvYWRfYmFsYW5jZXJzGAIgAygLMhMuc2tpcC5pcm9uYmlyZC5Ob2RlEkwKCm1vbml0b3JpbmcYAyADKAsyOC5za2lwLmlyb25iaXJkLlVwZGF0ZVdvcmtmbG93RGF0YVJlcXVlc3QuTW9uaXRvcmluZ0VudHJ5EiIKBW5vZGVzGAQgAygLMhMuc2tpcC5pcm9uYmlyZC5Ob2RlEicKCnZhbGlkYXRvcnMYBSADKAsyEy5za2lwLmlyb25iaXJkLk5vZGUSKgoHd2FsbGV0cxgGIAEoCzIZLnNraXAuaXJvbmJpcmQuV2FsbGV0SW5mbxoxCg9Nb25pdG9yaW5nRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJYChRXb3JrZmxvd0xpc3RSZXNwb25zZRIxCgl3b3JrZmxvd3MYASADKAsyHi5za2lwLmlyb25iaXJkLldvcmtmbG93U3VtbWFyeRINCgVjb3VudBgCIAEoBTKEBQoPSXJvbmJpcmRTZXJ2aWNlElkKDkNyZWF0ZVdvcmtmbG93EiQuc2tpcC5pcm9uYmlyZC5DcmVhdGVXb3JrZmxvd1JlcXVlc3QaHy5za2lwLmlyb25iaXJkLldvcmtmbG93UmVzcG9uc2UiABJLCgtHZXRXb3JrZmxvdxIhLnNraXAuaXJvbmJpcmQuR2V0V29ya2Zsb3dSZXF1ZXN0Ghcuc2tpcC5pcm9uYmlyZC5Xb3JrZmxvdyIAElsKDUxpc3RXb3JrZmxvd3MSIy5za2lwLmlyb25iaXJkLkxpc3RXb3JrZmxvd3NSZXF1ZXN0GiMuc2tpcC5pcm9uYmlyZC5Xb3JrZmxvd0xpc3RSZXNwb25zZSIAElkKDkNhbmNlbFdvcmtmbG93EiQuc2tpcC5pcm9uYmlyZC5DYW5jZWxXb3JrZmxvd1JlcXVlc3QaHy5za2lwLmlyb25iaXJkLldvcmtmbG93UmVzcG9uc2UiABJZCg5TaWduYWxXb3JrZmxvdxIkLnNraXAuaXJvbmJpcmQuU2lnbmFsV29ya2Zsb3dSZXF1ZXN0Gh8uc2tpcC5pcm9uYmlyZC5Xb3JrZmxvd1Jlc3BvbnNlIgASUwoLUnVuTG9hZFRlc3QSIS5za2lwLmlyb25iaXJkLlJ1bkxvYWRUZXN0UmVxdWVzdBofLnNraXAuaXJvbmJpcmQuV29ya2Zsb3dSZXNwb25zZSIAEmEKElVwZGF0ZVdvcmtmbG93RGF0YRIoLnNraXAuaXJvbmJpcmQuVXBkYXRlV29ya2Zsb3dEYXRhUmVxdWVzdBofLnNraXAuaXJvbmJpcmQuV29ya2Zsb3dSZXNwb25zZSIAQjJaMGdpdGh1Yi5jb20vc2tpcC1tZXYvaXJvbmJpcmQvc2VydmVyL2dlbi9pcm9uYmlyZGIGcHJvdG8z");
+  fileDesc("Cg5pcm9uYmlyZC5wcm90bxINc2tpcC5pcm9uYmlyZCL6AQoVQ3JlYXRlV29ya2Zsb3dSZXF1ZXN0EgwKBHJlcG8YASABKAkSCwoDc2hhGAIgASgJEhIKCmlzRXZtQ2hhaW4YAyABKAgSMAoMY2hhaW5fY29uZmlnGAQgASgLMhouc2tpcC5pcm9uYmlyZC5DaGFpbkNvbmZpZxITCgtydW5uZXJfdHlwZRgFIAEoCRIeChZlbmNvZGVkX2xvYWRfdGVzdF9zcGVjGAYgASgJEhwKFGxvbmdfcnVubmluZ190ZXN0bmV0GAggASgIEhgKEHRlc3RuZXRfZHVyYXRpb24YCSABKAkSEwoLbnVtX3dhbGxldHMYCiABKAUiJwoJR2VuZXNpc0tWEgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCSKjAgoLQ2hhaW5Db25maWcSDAoEbmFtZRgBIAEoCRIUCgxudW1fb2Zfbm9kZXMYAiABKAQSGQoRbnVtX29mX3ZhbGlkYXRvcnMYAyABKAQSNwoVZ2VuZXNpc19tb2RpZmljYXRpb25zGAQgAygLMhguc2tpcC5pcm9uYmlyZC5HZW5lc2lzS1YSDQoFaW1hZ2UYBSABKAkSGQoRY3VzdG9tX2FwcF9jb25maWcYBiABKAkSHwoXY3VzdG9tX2NvbnNlbnN1c19jb25maWcYByABKAkSHAoUY3VzdG9tX2NsaWVudF9jb25maWcYCCABKAkSFQoNc2V0X3NlZWRfbm9kZRgJIAEoCBIcChRzZXRfcGVyc2lzdGVudF9wZWVycxgKIAEoCCIpChJHZXRXb3JrZmxvd1JlcXVlc3QSEwoLd29ya2Zsb3dfaWQYASABKAkiNQoUTGlzdFdvcmtmbG93c1JlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGb2Zmc2V0GAIgASgFIiwKFUNhbmNlbFdvcmtmbG93UmVxdWVzdBITCgt3b3JrZmxvd19pZBgBIAEoCSJBChVTaWduYWxXb3JrZmxvd1JlcXVlc3QSEwoLd29ya2Zsb3dfaWQYASABKAkSEwoLc2lnbmFsX25hbWUYAiABKAkiQQoSUnVuTG9hZFRlc3RSZXF1ZXN0EhMKC3dvcmtmbG93X2lkGAEgASgJEhYKDmxvYWRfdGVzdF9zcGVjGAIgASgJIicKEFdvcmtmbG93UmVzcG9uc2USEwoLd29ya2Zsb3dfaWQYASABKAkiTQoETm9kZRIMCgRuYW1lGAEgASgJEg8KB2FkZHJlc3MYAiABKAkSCwoDcnBjGAMgASgJEgsKA2xjZBgEIAEoCRIMCgRncnBjGAUgASgJIm0KCldhbGxldEluZm8SFgoOZmF1Y2V0X2FkZHJlc3MYASABKAkSFwoPZmF1Y2V0X21uZW1vbmljGAIgASgJEhYKDnVzZXJfYWRkcmVzc2VzGAMgAygJEhYKDnVzZXJfbW5lbW9uaWNzGAQgAygJIpMDCghXb3JrZmxvdxITCgt3b3JrZmxvd19pZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSIgoFbm9kZXMYAyADKAsyEy5za2lwLmlyb25iaXJkLk5vZGUSJwoKdmFsaWRhdG9ycxgEIAMoCzITLnNraXAuaXJvbmJpcmQuTm9kZRIrCg5sb2FkX2JhbGFuY2VycxgFIAMoCzITLnNraXAuaXJvbmJpcmQuTm9kZRI7Cgptb25pdG9yaW5nGAYgAygLMicuc2tpcC5pcm9uYmlyZC5Xb3JrZmxvdy5Nb25pdG9yaW5nRW50cnkSNAoGY29uZmlnGAcgASgLMiQuc2tpcC5pcm9uYmlyZC5DcmVhdGVXb3JrZmxvd1JlcXVlc3QSFgoObG9hZF90ZXN0X3NwZWMYESABKAkSKgoHd2FsbGV0cxgSIAEoCzIZLnNraXAuaXJvbmJpcmQuV2FsbGV0SW5mbxoxCg9Nb25pdG9yaW5nRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJlCg9Xb3JrZmxvd1N1bW1hcnkSEwoLd29ya2Zsb3dfaWQYASABKAkSDgoGc3RhdHVzGAIgASgJEhIKCnN0YXJ0X3RpbWUYAyABKAkSDAoEcmVwbxgEIAEoCRILCgNzaGEYBSABKAki1wIKGVVwZGF0ZVdvcmtmbG93RGF0YVJlcXVlc3QSEwoLd29ya2Zsb3dfaWQYASABKAkSKwoObG9hZF9iYWxhbmNlcnMYAiADKAsyEy5za2lwLmlyb25iaXJkLk5vZGUSTAoKbW9uaXRvcmluZxgDIAMoCzI4LnNraXAuaXJvbmJpcmQuVXBkYXRlV29ya2Zsb3dEYXRhUmVxdWVzdC5Nb25pdG9yaW5nRW50cnkSIgoFbm9kZXMYBCADKAsyEy5za2lwLmlyb25iaXJkLk5vZGUSJwoKdmFsaWRhdG9ycxgFIAMoCzITLnNraXAuaXJvbmJpcmQuTm9kZRIqCgd3YWxsZXRzGAYgASgLMhkuc2tpcC5pcm9uYmlyZC5XYWxsZXRJbmZvGjEKD01vbml0b3JpbmdFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIlgKFFdvcmtmbG93TGlzdFJlc3BvbnNlEjEKCXdvcmtmbG93cxgBIAMoCzIeLnNraXAuaXJvbmJpcmQuV29ya2Zsb3dTdW1tYXJ5Eg0KBWNvdW50GAIgASgFMoQFCg9Jcm9uYmlyZFNlcnZpY2USWQoOQ3JlYXRlV29ya2Zsb3cSJC5za2lwLmlyb25iaXJkLkNyZWF0ZVdvcmtmbG93UmVxdWVzdBofLnNraXAuaXJvbmJpcmQuV29ya2Zsb3dSZXNwb25zZSIAEksKC0dldFdvcmtmbG93EiEuc2tpcC5pcm9uYmlyZC5HZXRXb3JrZmxvd1JlcXVlc3QaFy5za2lwLmlyb25iaXJkLldvcmtmbG93IgASWwoNTGlzdFdvcmtmbG93cxIjLnNraXAuaXJvbmJpcmQuTGlzdFdvcmtmbG93c1JlcXVlc3QaIy5za2lwLmlyb25iaXJkLldvcmtmbG93TGlzdFJlc3BvbnNlIgASWQoOQ2FuY2VsV29ya2Zsb3cSJC5za2lwLmlyb25iaXJkLkNhbmNlbFdvcmtmbG93UmVxdWVzdBofLnNraXAuaXJvbmJpcmQuV29ya2Zsb3dSZXNwb25zZSIAElkKDlNpZ25hbFdvcmtmbG93EiQuc2tpcC5pcm9uYmlyZC5TaWduYWxXb3JrZmxvd1JlcXVlc3QaHy5za2lwLmlyb25iaXJkLldvcmtmbG93UmVzcG9uc2UiABJTCgtSdW5Mb2FkVGVzdBIhLnNraXAuaXJvbmJpcmQuUnVuTG9hZFRlc3RSZXF1ZXN0Gh8uc2tpcC5pcm9uYmlyZC5Xb3JrZmxvd1Jlc3BvbnNlIgASYQoSVXBkYXRlV29ya2Zsb3dEYXRhEiguc2tpcC5pcm9uYmlyZC5VcGRhdGVXb3JrZmxvd0RhdGFSZXF1ZXN0Gh8uc2tpcC5pcm9uYmlyZC5Xb3JrZmxvd1Jlc3BvbnNlIgBCMlowZ2l0aHViLmNvbS9za2lwLW1ldi9pcm9uYmlyZC9zZXJ2ZXIvZ2VuL2lyb25iaXJkYgZwcm90bzM");
 
 /**
  * @generated from message skip.ironbird.CreateWorkflowRequest
@@ -42,14 +42,11 @@ export type CreateWorkflowRequest = Message<"skip.ironbird.CreateWorkflowRequest
   runnerType: string;
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec cosmos_load_test_spec = 6;
+   * json encoded loadtest spec.
+   *
+   * @generated from field: string encoded_load_test_spec = 6;
    */
-  cosmosLoadTestSpec?: LoadTestSpec;
-
-  /**
-   * @generated from field: skip.ironbird.LoadTestSpecEthereum ethereum_load_test_spec = 7;
-   */
-  ethereumLoadTestSpec?: LoadTestSpecEthereum;
+  encodedLoadTestSpec: string;
 
   /**
    * @generated from field: bool long_running_testnet = 8;
@@ -159,203 +156,6 @@ export const ChainConfigSchema: GenMessage<ChainConfig> = /*@__PURE__*/
   messageDesc(file_ironbird, 2);
 
 /**
- * @generated from message skip.ironbird.NodeAddress
- */
-export type NodeAddress = Message<"skip.ironbird.NodeAddress"> & {
-  /**
-   * @generated from field: string grpc = 1;
-   */
-  grpc: string;
-
-  /**
-   * @generated from field: string rpc = 2;
-   */
-  rpc: string;
-};
-
-/**
- * Describes the message skip.ironbird.NodeAddress.
- * Use `create(NodeAddressSchema)` to create a new message.
- */
-export const NodeAddressSchema: GenMessage<NodeAddress> = /*@__PURE__*/
-  messageDesc(file_ironbird, 3);
-
-/**
- * @generated from message skip.ironbird.LoadTestMsg
- */
-export type LoadTestMsg = Message<"skip.ironbird.LoadTestMsg"> & {
-  /**
-   * @generated from field: float weight = 1;
-   */
-  weight: number;
-
-  /**
-   * @generated from field: string type = 2;
-   */
-  type: string;
-
-  /**
-   * @generated from field: int32 num_msgs = 3;
-   */
-  numMsgs: number;
-
-  /**
-   * @generated from field: string contained_type = 4;
-   */
-  containedType: string;
-
-  /**
-   * @generated from field: int32 num_of_recipients = 5;
-   */
-  numOfRecipients: number;
-};
-
-/**
- * Describes the message skip.ironbird.LoadTestMsg.
- * Use `create(LoadTestMsgSchema)` to create a new message.
- */
-export const LoadTestMsgSchema: GenMessage<LoadTestMsg> = /*@__PURE__*/
-  messageDesc(file_ironbird, 4);
-
-/**
- * @generated from message skip.ironbird.LoadTestSpec
- */
-export type LoadTestSpec = Message<"skip.ironbird.LoadTestSpec"> & {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string description = 2;
-   */
-  description: string;
-
-  /**
-   * @generated from field: bool isEvmChain = 3;
-   */
-  isEvmChain: boolean;
-
-  /**
-   * @generated from field: string chain_id = 4;
-   */
-  chainId: string;
-
-  /**
-   * @generated from field: int32 num_of_txs = 5;
-   */
-  numOfTxs: number;
-
-  /**
-   * @generated from field: int32 num_of_blocks = 6;
-   */
-  numOfBlocks: number;
-
-  /**
-   * @generated from field: repeated skip.ironbird.NodeAddress nodes_addresses = 7;
-   */
-  nodesAddresses: NodeAddress[];
-
-  /**
-   * @generated from field: repeated string mnemonics = 8;
-   */
-  mnemonics: string[];
-
-  /**
-   * @generated from field: string gas_denom = 9;
-   */
-  gasDenom: string;
-
-  /**
-   * @generated from field: string bech32_prefix = 10;
-   */
-  bech32Prefix: string;
-
-  /**
-   * @generated from field: repeated skip.ironbird.LoadTestMsg msgs = 11;
-   */
-  msgs: LoadTestMsg[];
-
-  /**
-   * @generated from field: bool unordered_txs = 12;
-   */
-  unorderedTxs: boolean;
-
-  /**
-   * @generated from field: int64 tx_timeout = 13;
-   */
-  txTimeout: bigint;
-};
-
-/**
- * Describes the message skip.ironbird.LoadTestSpec.
- * Use `create(LoadTestSpecSchema)` to create a new message.
- */
-export const LoadTestSpecSchema: GenMessage<LoadTestSpec> = /*@__PURE__*/
-  messageDesc(file_ironbird, 5);
-
-/**
- * LoadTestSpecEthereum represents the configuration for an ethereum load test
- *
- * @generated from message skip.ironbird.LoadTestSpecEthereum
- */
-export type LoadTestSpecEthereum = Message<"skip.ironbird.LoadTestSpecEthereum"> & {
-  /**
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string description = 2;
-   */
-  description: string;
-
-  /**
-   * Using string for big.Int compatibility
-   *
-   * @generated from field: string chain_id = 3;
-   */
-  chainId: string;
-
-  /**
-   * @generated from field: int32 num_of_txs = 4;
-   */
-  numOfTxs: number;
-
-  /**
-   * @generated from field: int64 num_of_blocks = 5;
-   */
-  numOfBlocks: bigint;
-
-  /**
-   * @generated from field: repeated string nodes_addresses = 6;
-   */
-  nodesAddresses: string[];
-
-  /**
-   * @generated from field: repeated skip.ironbird.LoadTestMsg msgs = 7;
-   */
-  msgs: LoadTestMsg[];
-
-  /**
-   * @generated from field: int64 tx_timeout = 8;
-   */
-  txTimeout: bigint;
-
-  /**
-   * @generated from field: repeated string private_keys = 9;
-   */
-  privateKeys: string[];
-};
-
-/**
- * Describes the message skip.ironbird.LoadTestSpecEthereum.
- * Use `create(LoadTestSpecEthereumSchema)` to create a new message.
- */
-export const LoadTestSpecEthereumSchema: GenMessage<LoadTestSpecEthereum> = /*@__PURE__*/
-  messageDesc(file_ironbird, 6);
-
-/**
  * @generated from message skip.ironbird.GetWorkflowRequest
  */
 export type GetWorkflowRequest = Message<"skip.ironbird.GetWorkflowRequest"> & {
@@ -370,7 +170,7 @@ export type GetWorkflowRequest = Message<"skip.ironbird.GetWorkflowRequest"> & {
  * Use `create(GetWorkflowRequestSchema)` to create a new message.
  */
 export const GetWorkflowRequestSchema: GenMessage<GetWorkflowRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 7);
+  messageDesc(file_ironbird, 3);
 
 /**
  * @generated from message skip.ironbird.ListWorkflowsRequest
@@ -392,7 +192,7 @@ export type ListWorkflowsRequest = Message<"skip.ironbird.ListWorkflowsRequest">
  * Use `create(ListWorkflowsRequestSchema)` to create a new message.
  */
 export const ListWorkflowsRequestSchema: GenMessage<ListWorkflowsRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 8);
+  messageDesc(file_ironbird, 4);
 
 /**
  * @generated from message skip.ironbird.CancelWorkflowRequest
@@ -409,7 +209,7 @@ export type CancelWorkflowRequest = Message<"skip.ironbird.CancelWorkflowRequest
  * Use `create(CancelWorkflowRequestSchema)` to create a new message.
  */
 export const CancelWorkflowRequestSchema: GenMessage<CancelWorkflowRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 9);
+  messageDesc(file_ironbird, 5);
 
 /**
  * @generated from message skip.ironbird.SignalWorkflowRequest
@@ -431,7 +231,7 @@ export type SignalWorkflowRequest = Message<"skip.ironbird.SignalWorkflowRequest
  * Use `create(SignalWorkflowRequestSchema)` to create a new message.
  */
 export const SignalWorkflowRequestSchema: GenMessage<SignalWorkflowRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 10);
+  messageDesc(file_ironbird, 6);
 
 /**
  * @generated from message skip.ironbird.RunLoadTestRequest
@@ -443,9 +243,9 @@ export type RunLoadTestRequest = Message<"skip.ironbird.RunLoadTestRequest"> & {
   workflowId: string;
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec load_test_spec = 2;
+   * @generated from field: string load_test_spec = 2;
    */
-  loadTestSpec?: LoadTestSpec;
+  loadTestSpec: string;
 };
 
 /**
@@ -453,7 +253,7 @@ export type RunLoadTestRequest = Message<"skip.ironbird.RunLoadTestRequest"> & {
  * Use `create(RunLoadTestRequestSchema)` to create a new message.
  */
 export const RunLoadTestRequestSchema: GenMessage<RunLoadTestRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 11);
+  messageDesc(file_ironbird, 7);
 
 /**
  * @generated from message skip.ironbird.WorkflowResponse
@@ -470,7 +270,7 @@ export type WorkflowResponse = Message<"skip.ironbird.WorkflowResponse"> & {
  * Use `create(WorkflowResponseSchema)` to create a new message.
  */
 export const WorkflowResponseSchema: GenMessage<WorkflowResponse> = /*@__PURE__*/
-  messageDesc(file_ironbird, 12);
+  messageDesc(file_ironbird, 8);
 
 /**
  * @generated from message skip.ironbird.Node
@@ -507,7 +307,7 @@ export type Node = Message<"skip.ironbird.Node"> & {
  * Use `create(NodeSchema)` to create a new message.
  */
 export const NodeSchema: GenMessage<Node> = /*@__PURE__*/
-  messageDesc(file_ironbird, 13);
+  messageDesc(file_ironbird, 9);
 
 /**
  * @generated from message skip.ironbird.WalletInfo
@@ -539,7 +339,7 @@ export type WalletInfo = Message<"skip.ironbird.WalletInfo"> & {
  * Use `create(WalletInfoSchema)` to create a new message.
  */
 export const WalletInfoSchema: GenMessage<WalletInfo> = /*@__PURE__*/
-  messageDesc(file_ironbird, 14);
+  messageDesc(file_ironbird, 10);
 
 /**
  * @generated from message skip.ironbird.Workflow
@@ -581,9 +381,9 @@ export type Workflow = Message<"skip.ironbird.Workflow"> & {
   config?: CreateWorkflowRequest;
 
   /**
-   * @generated from field: skip.ironbird.LoadTestSpec load_test_spec = 17;
+   * @generated from field: string load_test_spec = 17;
    */
-  loadTestSpec?: LoadTestSpec;
+  loadTestSpec: string;
 
   /**
    * @generated from field: skip.ironbird.WalletInfo wallets = 18;
@@ -596,7 +396,7 @@ export type Workflow = Message<"skip.ironbird.Workflow"> & {
  * Use `create(WorkflowSchema)` to create a new message.
  */
 export const WorkflowSchema: GenMessage<Workflow> = /*@__PURE__*/
-  messageDesc(file_ironbird, 15);
+  messageDesc(file_ironbird, 11);
 
 /**
  * @generated from message skip.ironbird.WorkflowSummary
@@ -633,7 +433,7 @@ export type WorkflowSummary = Message<"skip.ironbird.WorkflowSummary"> & {
  * Use `create(WorkflowSummarySchema)` to create a new message.
  */
 export const WorkflowSummarySchema: GenMessage<WorkflowSummary> = /*@__PURE__*/
-  messageDesc(file_ironbird, 16);
+  messageDesc(file_ironbird, 12);
 
 /**
  * @generated from message skip.ironbird.UpdateWorkflowDataRequest
@@ -675,7 +475,7 @@ export type UpdateWorkflowDataRequest = Message<"skip.ironbird.UpdateWorkflowDat
  * Use `create(UpdateWorkflowDataRequestSchema)` to create a new message.
  */
 export const UpdateWorkflowDataRequestSchema: GenMessage<UpdateWorkflowDataRequest> = /*@__PURE__*/
-  messageDesc(file_ironbird, 17);
+  messageDesc(file_ironbird, 13);
 
 /**
  * @generated from message skip.ironbird.WorkflowListResponse
@@ -697,7 +497,7 @@ export type WorkflowListResponse = Message<"skip.ironbird.WorkflowListResponse">
  * Use `create(WorkflowListResponseSchema)` to create a new message.
  */
 export const WorkflowListResponseSchema: GenMessage<WorkflowListResponse> = /*@__PURE__*/
-  messageDesc(file_ironbird, 18);
+  messageDesc(file_ironbird, 14);
 
 /**
  * @generated from service skip.ironbird.IronbirdService
