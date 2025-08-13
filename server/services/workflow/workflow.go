@@ -11,6 +11,8 @@ import (
 	"github.com/skip-mev/ironbird/workflows/testnet"
 	"gopkg.in/yaml.v3"
 
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
@@ -29,6 +31,8 @@ type Service struct {
 }
 
 func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclient.Client) *Service {
+	cosmostypes.Register()
+	ethtypes.Register()
 	return &Service{
 		db:             database,
 		logger:         logger,
