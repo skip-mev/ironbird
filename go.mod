@@ -4,7 +4,10 @@ go 1.24.0
 
 toolchain go1.24.2
 
-replace github.com/skip-mev/catalyst => ../catalyst
+replace (
+	github.com/skip-mev/catalyst => ../catalyst
+	github.com/skip-mev/petri/cosmos/v3 => ../petri/cosmos
+)
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
