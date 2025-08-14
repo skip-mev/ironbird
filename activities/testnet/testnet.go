@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -57,10 +58,12 @@ var (
 
 const (
 	cosmosDenom       = "stake"
-	evmDenom          = "uatom"
+	evmDenom          = "atest"
 	cosmosDecimals    = 6
-	defaultEvmChainID = "4231"
+	DefaultEvmChainID = "262144"
 )
+
+var launchedNodes = 0
 
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
@@ -144,6 +147,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			logger.Error("Failed to fetch docker repo token", zap.Error(err))
 		}
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
+			definition.ProviderSpecificConfig = messages.DigitalOceanDefaultOpts[launchedNodes%5]
+			launchedNodes++
 			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
 			definition.ProviderSpecificConfig["docker_auth"] = token
 			return definition
@@ -155,13 +160,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	chain, chainErr := petrichain.CreateChain(
 		ctx, logger, p, chainConfig,
 		petritypes.ChainOptions{
-			NodeCreator: node.CreateNode,
-			NodeOptions: petritypes.NodeOptions{
-				NodeDefinitionModifier: func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-					definition.ProviderSpecificConfig = req.ProviderSpecificOptions
-					return definition
-				},
-			},
+			NodeCreator:  node.CreateNode,
+			NodeOptions:  nodeOptions,
 			WalletConfig: walletConfig,
 		},
 	)
@@ -183,6 +183,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,
+		NodeOptions:   nodeOptions,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
@@ -298,6 +299,9 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
+	deleg := new(big.Int)
+	deleg.SetString("10000000000000000000000000", 10)
+	genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
 
 	config := petritypes.ChainConfig{
 		Name:          req.Name,
@@ -322,12 +326,14 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomClientConfig:    req.CustomClientConfig,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
+		GenesisDelegation:     deleg,
+		GenesisBalance:        genBal,
 	}
 	walletConfig := CosmosWalletConfig
 
 	if req.IsEvmChain {
 		config.Denom = evmDenom
-		chainID := defaultEvmChainID
+		chainID := DefaultEvmChainID
 		config.IsEVMChain = true
 		config.ChainId = chainID
 		config.CoinType = "60"

@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/skip-mev/catalyst/pkg/types"
+	cosmos "github.com/skip-mev/catalyst/chains/cosmos"
+	types2 "github.com/skip-mev/catalyst/chains/cosmos/types"
+	"github.com/skip-mev/catalyst/chains/ethereum"
+	"github.com/skip-mev/catalyst/chains/ethereum/types"
+	catchaintypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
@@ -49,34 +53,51 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec types.LoadTestSpec, mnemonics []string) ([]byte, error) {
+	loadTestSpec catchaintypes.LoadTestSpec, mnemonics []string,
+) ([]byte, error) {
 	chainConfig := chain.GetConfig()
-	loadTestSpec.GasDenom = chainConfig.Denom
-	loadTestSpec.Bech32Prefix = chainConfig.Bech32Prefix
-	loadTestSpec.ChainID = chainID
 
-	validators := chain.GetValidators()
-	var nodes []types.NodeAddress
-	for _, v := range validators {
-		grpcAddr, err := v.GetIP(ctx)
-		grpcAddr = grpcAddr + ":9090"
+	var nodes []string
+	for _, v := range chain.GetValidators() {
+		ipAddr, err := v.GetIP(ctx)
 		if err != nil {
 			return nil, err
 		}
-
-		rpcAddr, err := v.GetIP(ctx)
-		rpcAddr = rpcAddr + ":26657"
-		if err != nil {
-			return nil, err
-		}
-
-		nodes = append(nodes, types.NodeAddress{
-			GRPC: grpcAddr,
-			RPC:  fmt.Sprintf("http://%s", rpcAddr),
-		})
+		nodes = append(nodes, ipAddr)
 	}
 
-	loadTestSpec.NodesAddresses = nodes
+	var catalystChainConfig catchaintypes.ChainConfig
+	switch loadTestSpec.Kind {
+	case ethereum.Kind:
+		nodeAddresses := make([]types.NodeAddress, 0, len(nodes))
+		for _, addr := range nodes {
+			nodeAddresses = append(nodeAddresses, types.NodeAddress{
+				RPC:       "http://" + addr + ":8545",
+				Websocket: "ws://" + addr + ":8546",
+			})
+		}
+		catalystChainConfig = types.ChainConfig{
+			NodesAddresses: nodeAddresses,
+		}
+	case cosmos.Kind:
+		nodeAddresses := make([]types2.NodeAddress, 0, len(nodes))
+		for _, addr := range nodes {
+			nodeAddresses = append(nodeAddresses, types2.NodeAddress{
+				GRPC: addr + ":9090",
+				RPC:  "http://" + addr + ":26657",
+			})
+		}
+		catalystChainConfig = types2.ChainConfig{
+			GasDenom:       chainConfig.Denom,
+			Bech32Prefix:   chainConfig.Bech32Prefix,
+			NodesAddresses: nodeAddresses,
+		}
+	default:
+		return nil, fmt.Errorf("unknown load test spec kind: %v", loadTestSpec.Kind)
+	}
+	loadTestSpec.ChainCfg = catalystChainConfig
+	loadTestSpec.ChainID = chainID
+
 	loadTestSpec.Mnemonics = mnemonics
 
 	err := loadTestSpec.Validate()
@@ -118,11 +139,11 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:0.0.0-beta.4",
 			UID:   "100",
 			GID:   "100",
 		},
-		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts,
+		ProviderSpecificConfig: messages.DigitalOceanDefaultOpts[0],
 		Command:                []string{"/tmp/catalyst/loadtest.yml"},
 		DataDir:                "/tmp/catalyst",
 		Environment: map[string]string{
@@ -166,7 +187,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to read result file")
 			}
 
-			var result types.LoadTestResult
+			var result catchaintypes.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to parse result file")
 			}

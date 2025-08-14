@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	types2 "github.com/skip-mev/petri/core/v3/types"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
@@ -51,15 +52,12 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore chain: %w", err)
 	}
 
-	var mnemonics []string
-	var addresses []string
-	var walletsMutex sync.Mutex
-
+	mnemonics := make([]string, req.NumWallets)
+	addresses := make([]string, req.NumWallets)
 	faucetWallet := chain.GetFaucetWallet()
 
 	var wg sync.WaitGroup
-
-	for i := 0; i < req.NumWallets; i++ {
+	for i := range req.NumWallets {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -68,11 +66,8 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
 			}
-
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
+			mnemonics[i] = w.Mnemonic()
+			addresses[i] = w.FormattedAddress()
 		}()
 	}
 
@@ -89,30 +84,8 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
-	for i := 0; i <= req.NumWallets/walletFundChunkSize; i++ {
-		command := []string{
-			chainConfig.BinaryName,
-			"tx", "bank", "multi-send",
-			faucetWallet.FormattedAddress(),
-		}
-		first := i * walletFundChunkSize
-		last := first + walletFundChunkSize
-		if last > len(addresses) {
-			last = len(addresses)
-		}
-
-		command = append(command, addresses[first:last]...)
-		command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
-			"--chain-id", chainConfig.ChainId,
-			"--keyring-backend", "test",
-			"--from", "faucet",
-			"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
-			"--gas", "auto",
-			"--gas-adjustment", "1.5",
-			"--yes",
-			"--home", chainConfig.HomeDir,
-		)
-
+	commands := getFundWalletCommands(chainConfig, req.NumWallets, faucetWallet, addresses)
+	for _, command := range commands {
 		stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
 		if err != nil || exitCode != 0 {
 			logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
@@ -146,4 +119,40 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	return messages.CreateWalletsResponse{
 		Mnemonics: mnemonics,
 	}, nil
+}
+
+func getFundWalletCommands(chainConfig types2.ChainConfig, numWallets int, faucet types2.WalletI, addresses []string) [][]string {
+	commands := make([][]string, 0)
+	for i := 0; i <= numWallets/walletFundChunkSize; i++ {
+		command := []string{
+			chainConfig.BinaryName,
+			"tx", "bank", "multi-send",
+			faucet.FormattedAddress(),
+		}
+		first := i * walletFundChunkSize
+		last := first + walletFundChunkSize
+		if last > len(addresses) {
+			last = len(addresses)
+		}
+
+		receivers := addresses[first:last]
+
+		if len(receivers) == 0 {
+			return commands
+		}
+
+		command = append(command, receivers...)
+		command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
+			"--chain-id", chainConfig.ChainId,
+			"--keyring-backend", "test",
+			"--from", "faucet",
+			"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
+			"--gas", "auto",
+			"--gas-adjustment", "1.5",
+			"--yes",
+			"--home", chainConfig.HomeDir,
+		)
+		commands = append(commands, command)
+	}
+	return commands
 }
