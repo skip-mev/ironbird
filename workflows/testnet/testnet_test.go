@@ -414,6 +414,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = false
+	doReq.ChainConfig.NumOfNodes = 0
+	doReq.ChainConfig.NumOfValidators = 1
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
