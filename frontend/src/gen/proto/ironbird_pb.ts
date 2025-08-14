@@ -55,6 +55,11 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
    */
   numWallets = 0;
 
+  /**
+   * @generated from field: bool launch_load_balancer = 10;
+   */
+  launchLoadBalancer = false;
+
   constructor(data?: PartialMessage<CreateWorkflowRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -72,6 +77,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 7, name: "long_running_testnet", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 8, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 10, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {

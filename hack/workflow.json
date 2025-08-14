@@ -29,5 +29,6 @@
     ]
   },
   "LongRunningTestnet": true,
-  "NumWallets": 100
+  "NumWallets": 100,
+  "LaunchLoadBalancer": false
 }

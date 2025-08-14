@@ -413,6 +413,9 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.LaunchLoadBalancer = false
+	doReq.ChainConfig.NumOfNodes = 0
+	doReq.ChainConfig.NumOfValidators = 1
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -420,6 +423,26 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 0)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalancer() {
+	s.setupMockActivitiesDigitalOcean()
+
+	doReq := simappReq
+	doReq.Repo = "ironbird-cometbft"
+	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
+	doReq.RunnerType = messages.DigitalOcean
+	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.LaunchLoadBalancer = true
+
+	s.env.ExecuteWorkflow(Workflow, doReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {

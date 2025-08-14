@@ -54,6 +54,7 @@ export interface TestnetWorkflowRequest {
   RunnerType: string;
   LoadTestSpec?: LoadTestSpec;
   LongRunningTestnet: boolean;
+  LaunchLoadBalancer: boolean;
   TestnetDuration: string;
   NumWallets: number;
 }
