@@ -137,7 +137,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:0.0.0-beta.2",
+			Image: "ghcr.io/skip-mev/catalyst:0.0.0-beta.4",
 			UID:   "100",
 			GID:   "100",
 		},
