@@ -32,6 +32,7 @@ type CreateWorkflowRequest struct {
 	LongRunningTestnet bool                   `protobuf:"varint,7,opt,name=long_running_testnet,json=longRunningTestnet,proto3" json:"long_running_testnet,omitempty"`
 	TestnetDuration    string                 `protobuf:"bytes,8,opt,name=testnet_duration,json=testnetDuration,proto3" json:"testnet_duration,omitempty"`
 	NumWallets         int32                  `protobuf:"varint,9,opt,name=num_wallets,json=numWallets,proto3" json:"num_wallets,omitempty"`
+	LaunchLoadBalancer bool                   `protobuf:"varint,10,opt,name=launch_load_balancer,json=launchLoadBalancer,proto3" json:"launch_load_balancer,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -127,6 +128,13 @@ func (x *CreateWorkflowRequest) GetNumWallets() int32 {
 		return x.NumWallets
 	}
 	return 0
+}
+
+func (x *CreateWorkflowRequest) GetLaunchLoadBalancer() bool {
+	if x != nil {
+		return x.LaunchLoadBalancer
+	}
+	return false
 }
 
 type GenesisKV struct {
@@ -1389,7 +1397,7 @@ var File_server_proto_ironbird_proto protoreflect.FileDescriptor
 
 const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
-	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xfe\x02\n" +
+	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xb0\x03\n" +
 	"\x15CreateWorkflowRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x1e\n" +
@@ -1403,7 +1411,9 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x14long_running_testnet\x18\a \x01(\bR\x12longRunningTestnet\x12)\n" +
 	"\x10testnet_duration\x18\b \x01(\tR\x0ftestnetDuration\x12\x1f\n" +
 	"\vnum_wallets\x18\t \x01(\x05R\n" +
-	"numWallets\"3\n" +
+	"numWallets\x120\n" +
+	"\x14launch_load_balancer\x18\n" +
+	" \x01(\bR\x12launchLoadBalancer\"3\n" +
 	"\tGenesisKV\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\"p\n" +

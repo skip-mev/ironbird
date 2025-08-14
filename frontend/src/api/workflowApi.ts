@@ -87,6 +87,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     chainConfig: chainConfig,
     runnerType: request.RunnerType,
     longRunningTestnet: request.LongRunningTestnet,
+    launchLoadBalancer: request.LaunchLoadBalancer,
     testnetDuration: request.TestnetDuration || '',
     numWallets: request.NumWallets
   });
@@ -129,6 +130,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       IsEvmChain: workflow.config.IsEvmChain,
       RunnerType: workflow.config.runnerType,
       LongRunningTestnet: workflow.config.longRunningTestnet,
+      LaunchLoadBalancer: workflow.config.launchLoadBalancer,
       TestnetDuration: workflow.config.testnetDuration,
       NumWallets: workflow.config.numWallets,
       ChainConfig: {
