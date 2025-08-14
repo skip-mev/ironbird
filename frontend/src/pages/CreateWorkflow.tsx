@@ -48,6 +48,7 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '2h', // 2 hours
     NumWallets: 2500, // Default number of wallets
   };
@@ -67,12 +68,23 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '',
     NumWallets: 2500,
   });
 
   // Separate display states for better UX
   const [nodeInputValue, setNodeInputValue] = useState('');
+
+  // Auto-disable LaunchLoadBalancer when runner type changes away from DigitalOcean
+  useEffect(() => {
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      setFormData(prev => ({
+        ...prev,
+        LaunchLoadBalancer: false
+      }));
+    }
+  }, [formData.RunnerType, formData.LaunchLoadBalancer]);
 
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
@@ -98,6 +110,7 @@ const CreateWorkflow = () => {
         IsEvmChain: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
+        LaunchLoadBalancer: false,
         TestnetDuration: '',
         NumWallets: 2500,
       };
@@ -206,6 +219,12 @@ const CreateWorkflow = () => {
         newFormData.LongRunningTestnet = params.get('longRunningTestnet') === 'true';
         hasChanges = true;
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
+      }
+      
+      if (params.get('launchLoadBalancer')) {
+        newFormData.LaunchLoadBalancer = params.get('launchLoadBalancer') === 'true';
+        hasChanges = true;
+        console.log("Setting launchLoadBalancer:", newFormData.LaunchLoadBalancer);
       }
       
       if (params.get('isEvmChain')) {
@@ -371,6 +390,17 @@ const CreateWorkflow = () => {
       return;
     }
 
+    // Validate that LaunchLoadBalancer is only enabled for DigitalOcean runner
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      toast({
+        title: 'Validation Error',
+        description: 'Launch Load Balancer can only be enabled when using DigitalOcean as the runner type',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     const submissionData: TestnetWorkflowRequest = {
       Repo: formData.Repo,
       SHA: formData.SHA,
@@ -390,6 +420,7 @@ const CreateWorkflow = () => {
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
+      LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
@@ -770,6 +801,18 @@ const CreateWorkflow = () => {
               isChecked={formData.LongRunningTestnet}
               onChange={(e) => setFormData({ ...formData, LongRunningTestnet: e.target.checked })}
             />
+          </FormControl>
+
+          <FormControl display="flex" alignItems="center">
+            <FormLabel mb="0">Launch Load Balancer</FormLabel>
+            <Switch
+              isChecked={formData.LaunchLoadBalancer}
+              isDisabled={formData.RunnerType === 'Docker'}
+              onChange={(e) => setFormData({ ...formData, LaunchLoadBalancer: e.target.checked })}
+            />
+            <Tooltip label="Launch a load balancer for the testnet (only available for DigitalOcean runner)">
+              <InfoIcon ml={2} cursor="pointer" />
+            </Tooltip>
           </FormControl>
           
           {!formData.LongRunningTestnet && (
