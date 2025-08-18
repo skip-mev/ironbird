@@ -19,7 +19,7 @@ require (
 	github.com/moby/buildkit v0.18.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/skip-mev/catalyst v0.0.0-20250617172958-5684c2bc01b1
-	github.com/skip-mev/petri/core/v3 v3.1.6
+	github.com/skip-mev/petri/core/v3 v3.1.7
 	github.com/skip-mev/petri/cosmos/v3 v3.1.3
 	github.com/stretchr/testify v1.10.0
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184

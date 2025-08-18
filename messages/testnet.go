@@ -18,7 +18,7 @@ const (
 
 var (
 	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-		"image_id": "195881161"}
+		"image_id": "197014352"}
 )
 
 type RunnerType string
