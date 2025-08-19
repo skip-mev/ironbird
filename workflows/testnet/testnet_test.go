@@ -506,7 +506,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow("shutdown", nil)
+		s.env.SignalWorkflow(shutdownSignal, nil)
 		time.Sleep(5 * time.Second)
 		close(done)
 	}, 15*time.Second)
@@ -548,7 +548,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
 
 		time.Sleep(1 * time.Minute) // wait for new chain to startup
-		s.env.SignalWorkflow("shutdown", nil)
+		s.env.SignalWorkflow(shutdownSignal, nil)
 		time.Sleep(10 * time.Second)
 		close(done)
 	}()
