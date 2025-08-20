@@ -904,6 +904,11 @@ export class Workflow extends Message<Workflow> {
    */
   wallets?: WalletInfo;
 
+  /**
+   * @generated from field: string provider = 19;
+   */
+  provider = "";
+
   constructor(data?: PartialMessage<Workflow>) {
     super();
     proto3.util.initPartial(data, this);
@@ -921,6 +926,7 @@ export class Workflow extends Message<Workflow> {
     { no: 7, name: "config", kind: "message", T: CreateWorkflowRequest },
     { no: 17, name: "load_test_spec", kind: "message", T: LoadTestSpec },
     { no: 18, name: "wallets", kind: "message", T: WalletInfo },
+    { no: 19, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Workflow {
@@ -969,6 +975,11 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
    */
   sha = "";
 
+  /**
+   * @generated from field: string provider = 6;
+   */
+  provider = "";
+
   constructor(data?: PartialMessage<WorkflowSummary>) {
     super();
     proto3.util.initPartial(data, this);
@@ -982,6 +993,7 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
     { no: 3, name: "start_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "repo", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowSummary {
@@ -1035,6 +1047,11 @@ export class UpdateWorkflowDataRequest extends Message<UpdateWorkflowDataRequest
    */
   wallets?: WalletInfo;
 
+  /**
+   * @generated from field: string provider = 7;
+   */
+  provider = "";
+
   constructor(data?: PartialMessage<UpdateWorkflowDataRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1049,6 +1066,7 @@ export class UpdateWorkflowDataRequest extends Message<UpdateWorkflowDataRequest
     { no: 4, name: "nodes", kind: "message", T: Node, repeated: true },
     { no: 5, name: "validators", kind: "message", T: Node, repeated: true },
     { no: 6, name: "wallets", kind: "message", T: WalletInfo },
+    { no: 7, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateWorkflowDataRequest {

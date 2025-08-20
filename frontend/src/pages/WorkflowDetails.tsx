@@ -400,6 +400,14 @@ const WorkflowDetails = () => {
               </Box>
               <Box>
                 <Text fontWeight="bold" color="gray.600" fontSize="sm">
+                  Provider
+                </Text>
+                <Badge colorScheme="blue" variant="subtle" size="lg">
+                  {workflow.Provider || 'Unknown'}
+                </Badge>
+              </Box>
+              <Box>
+                <Text fontWeight="bold" color="gray.600" fontSize="sm">
                   Status
                 </Text>
                 <Badge 

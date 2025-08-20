@@ -137,6 +137,7 @@ message Workflow {
     CreateWorkflowRequest config = 7;
     LoadTestSpec load_test_spec = 17;
     WalletInfo wallets = 18;
+    string provider = 19;
 }
 
 message WorkflowSummary {
@@ -145,6 +146,7 @@ message WorkflowSummary {
     string start_time = 3;
     string repo = 4;
     string sha = 5;
+    string provider = 6;
 }
 
 message UpdateWorkflowDataRequest {
@@ -154,6 +156,7 @@ message UpdateWorkflowDataRequest {
     repeated Node nodes = 4;
     repeated Node validators = 5;
     WalletInfo wallets = 6;
+    string provider = 7;
 }
 
 message WorkflowListResponse {

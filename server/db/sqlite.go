@@ -147,7 +147,7 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
-		    load_test_spec, created_at, updated_at
+		    load_test_spec, provider, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
@@ -165,6 +165,7 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		&workflow.Status,
 		&configJSON,
 		&loadTestSpecJSON,
+		&workflow.Provider,
 		&workflow.CreatedAt,
 		&workflow.UpdatedAt,
 	)
@@ -264,6 +265,11 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 		args = append(args, *update.Status)
 	}
 
+	if update.Provider != nil {
+		setParts = append(setParts, "provider = ?")
+		args = append(args, *update.Provider)
+	}
+
 	if len(setParts) == 0 {
 		return fmt.Errorf("no fields to update")
 	}
@@ -305,7 +311,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
-		    load_test_spec, created_at, updated_at
+		    load_test_spec, provider, created_at, updated_at
 		FROM workflows
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -332,6 +338,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			&workflow.Status,
 			&configJSON,
 			&loadTestSpecJSON,
+			&workflow.Provider,
 			&workflow.CreatedAt,
 			&workflow.UpdatedAt,
 		)

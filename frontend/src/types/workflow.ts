@@ -91,6 +91,7 @@ export interface WorkflowStatus {
   wallets?: WalletInfo;
   config?: TestnetWorkflowRequest;
   loadTestSpec?: any;
+  Provider?: string;
 }
 
 export interface WorkflowResponse {
