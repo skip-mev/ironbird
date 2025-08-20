@@ -135,7 +135,13 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		if err != nil {
 			return nil, err
 		}
-		workflowReq.CosmosLoadTestSpec = &loadTestSpec
+
+		switch loadTestSpec.Kind {
+		case "evm":
+			workflowReq.EthereumLoadTestSpec = &loadTestSpec
+		case "cosmos":
+			workflowReq.CosmosLoadTestSpec = &loadTestSpec
+		}
 	}
 
 	if err := workflowReq.Validate(); err != nil {

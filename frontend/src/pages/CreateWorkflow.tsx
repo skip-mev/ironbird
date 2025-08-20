@@ -509,6 +509,8 @@ const CreateWorkflow = () => {
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
+      EthereumLoadTestSpec: formData.LoadTestSpec?.kind === 'eth' ? formData.LoadTestSpec : undefined,
+      CosmosLoadTestSpec: formData.LoadTestSpec?.kind === 'cosmos' ? formData.LoadTestSpec : undefined,
       LongRunningTestnet: formData.LongRunningTestnet,
       LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
@@ -941,11 +943,16 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
+                      kind: 'cosmos',
                       NumOfBlocks: 100,
                       NumOfTxs: 1000,
                       msgs: [],
                       unordered_txs: false,
                       tx_timeout: '',
+                      send_interval: '',
+                      num_batches: 0,
+                      gas_denom: '',
+                      bech32_prefix: '',
                     }
                   });
                   setHasLoadTest(true);
@@ -1080,11 +1087,16 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
+          kind: 'cosmos',
           NumOfBlocks: 100,
           NumOfTxs: 1000,
           msgs: [],
           unordered_txs: false,
           tx_timeout: '',
+          send_interval: '',
+          num_batches: 0,
+          gas_denom: '',
+          bech32_prefix: '',
         }}
         onSave={handleLoadTestSave}
       />
