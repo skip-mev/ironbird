@@ -3,7 +3,7 @@ package messages
 import (
 	"fmt"
 
-	catalysttypes "github.com/skip-mev/catalyst/chains/types"
+	ctlttypes "github.com/skip-mev/catalyst/chains/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
@@ -78,8 +78,8 @@ type TestnetWorkflowRequest struct {
 	RunnerType  RunnerType
 
 	// TODO: support both specs. for now they are separate and ethereum will work. not cosmos on this branch.
-	EthereumLoadTestSpec *catalysttypes.LoadTestSpec
-	CosmosLoadTestSpec   *catalysttypes.LoadTestSpec
+	EthereumLoadTestSpec *ctlttypes.LoadTestSpec
+	CosmosLoadTestSpec   *ctlttypes.LoadTestSpec
 
 	LongRunningTestnet bool
 	LaunchLoadBalancer bool

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	types2 "github.com/skip-mev/catalyst/chains/cosmos/types"
-	"github.com/skip-mev/catalyst/chains/ethereum/types"
-	catchaintypes "github.com/skip-mev/catalyst/chains/types"
+	ctltcosmos "github.com/skip-mev/catalyst/chains/cosmos/types"
+	ctlteth "github.com/skip-mev/catalyst/chains/ethereum/types"
+	ctltypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
@@ -51,7 +51,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
-	loadTestSpec catchaintypes.LoadTestSpec, mnemonics []string,
+	loadTestSpec ctltypes.LoadTestSpec, mnemonics []string,
 ) ([]byte, error) {
 	chainConfig := chain.GetConfig()
 
@@ -64,28 +64,28 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 		nodes = append(nodes, ipAddr)
 	}
 
-	var catalystChainConfig catchaintypes.ChainConfig
+	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
 	case "evm":
-		nodeAddresses := make([]types.NodeAddress, 0, len(nodes))
+		nodeAddresses := make([]ctlteth.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
-			nodeAddresses = append(nodeAddresses, types.NodeAddress{
+			nodeAddresses = append(nodeAddresses, ctlteth.NodeAddress{
 				RPC:       "http://" + addr + ":8545",
 				Websocket: "ws://" + addr + ":8546",
 			})
 		}
-		catalystChainConfig = types.ChainConfig{
+		catalystChainConfig = ctlteth.ChainConfig{
 			NodesAddresses: nodeAddresses,
 		}
 	case "cosmos":
-		nodeAddresses := make([]types2.NodeAddress, 0, len(nodes))
+		nodeAddresses := make([]ctltcosmos.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
-			nodeAddresses = append(nodeAddresses, types2.NodeAddress{
+			nodeAddresses = append(nodeAddresses, ctltcosmos.NodeAddress{
 				GRPC: addr + ":9090",
 				RPC:  "http://" + addr + ":26657",
 			})
 		}
-		catalystChainConfig = types2.ChainConfig{
+		catalystChainConfig = ctltcosmos.ChainConfig{
 			GasDenom:       chainConfig.Denom,
 			Bech32Prefix:   chainConfig.Bech32Prefix,
 			NodesAddresses: nodeAddresses,
@@ -185,7 +185,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to read result file")
 			}
 
-			var result catchaintypes.LoadTestResult
+			var result ctltypes.LoadTestResult
 			if err := json.Unmarshal(resultBytes, &result); err != nil {
 				return handleLoadTestError(ctx, logger, p, chain, err, "failed to parse result file")
 			}
