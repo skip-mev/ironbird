@@ -135,6 +135,55 @@ export class GenesisKV extends Message<GenesisKV> {
 }
 
 /**
+ * @generated from message skip.ironbird.RegionConfig
+ */
+export class RegionConfig extends Message<RegionConfig> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * @generated from field: uint64 num_of_nodes = 2;
+   */
+  numOfNodes = protoInt64.zero;
+
+  /**
+   * @generated from field: uint64 num_of_validators = 3;
+   */
+  numOfValidators = protoInt64.zero;
+
+  constructor(data?: PartialMessage<RegionConfig>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.RegionConfig";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "num_of_nodes", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+    { no: 3, name: "num_of_validators", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RegionConfig {
+    return new RegionConfig().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RegionConfig {
+    return new RegionConfig().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RegionConfig {
+    return new RegionConfig().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RegionConfig | PlainMessage<RegionConfig> | undefined, b: RegionConfig | PlainMessage<RegionConfig> | undefined): boolean {
+    return proto3.util.equals(RegionConfig, a, b);
+  }
+}
+
+/**
  * @generated from message skip.ironbird.ChainConfig
  */
 export class ChainConfig extends Message<ChainConfig> {
@@ -188,6 +237,11 @@ export class ChainConfig extends Message<ChainConfig> {
    */
   setPersistentPeers = false;
 
+  /**
+   * @generated from field: repeated skip.ironbird.RegionConfig region_configs = 11;
+   */
+  regionConfigs: RegionConfig[] = [];
+
   constructor(data?: PartialMessage<ChainConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -206,6 +260,7 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 8, name: "custom_client_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "set_seed_node", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 10, name: "set_persistent_peers", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 11, name: "region_configs", kind: "message", T: RegionConfig, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChainConfig {

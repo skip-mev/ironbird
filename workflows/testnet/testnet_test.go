@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/ironbird/activities/walletcreator"
 
@@ -56,6 +57,7 @@ var (
 		},
 		LoadTestSpec: &catalysttypes.LoadTestSpec{
 			Name:        "e2e-test",
+			ChainID:     "stake-1",
 			Description: "e2e test",
 			NumOfBlocks: 5,
 			NumOfTxs:    100,
@@ -256,9 +258,24 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 			return loadTestActivities.RunLoadTest(ctx, req)
 		})
 
+	s.env.OnActivity(testnetActivity.CreateProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
+			return testnetActivity.CreateProvider(ctx, req)
+		})
+
+	s.env.OnActivity(testnetActivity.LaunchTestnet, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.LaunchTestnetRequest) (messages.LaunchTestnetResponse, error) {
+			return testnetActivity.LaunchTestnet(ctx, req)
+		})
+
 	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 			return testnetActivity.TeardownProvider(ctx, req)
+		})
+
+	s.env.OnActivity(walletCreatorActivities.CreateWallets, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.CreateWalletsRequest) (messages.CreateWalletsResponse, error) {
+			return walletCreatorActivities.CreateWallets(ctx, req)
 		})
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
@@ -413,6 +430,18 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
+		{
+			Name:          "nyc1",
+			NumValidators: 1,
+			NumNodes:      1,
+		},
+		{
+			Name:          "fra1",
+			NumValidators: 1,
+			NumNodes:      0,
+		},
+	}
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -498,7 +527,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 
 		time.Sleep(1 * time.Minute) // wait for new chain to startup
 		s.env.SignalWorkflow("shutdown", nil)
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 		close(done)
 	}()
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
@@ -506,7 +535,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 2)
+	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchTestnet", 2)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)

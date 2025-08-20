@@ -3,12 +3,19 @@ export interface GenesisModification {
   value: any;
 }
 
+export interface RegionConfig {
+  name: string;
+  numOfNodes: number;
+  numOfValidators: number;
+}
+
 export interface ChainConfig {
   Name: string;
   Image: string;
+  NumOfNodes?: number;
+  NumOfValidators?: number;
   GenesisModifications: GenesisModification[];
-  NumOfNodes: number;
-  NumOfValidators: number;
+  RegionConfigs?: RegionConfig[];
   AppConfig?: Record<string, any>;       
   ConsensusConfig?: Record<string, any>; 
   ClientConfig?: Record<string, any>;

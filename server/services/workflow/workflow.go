@@ -13,6 +13,7 @@ import (
 	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"go.temporal.io/api/enums/v1"
 	temporalclient "go.temporal.io/sdk/client"
@@ -65,6 +66,16 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
 			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
 			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
+		}
+
+		if req.ChainConfig.RegionConfigs != nil {
+			for _, rc := range req.ChainConfig.RegionConfigs {
+				chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, petritypes.RegionConfig{
+					Name:          rc.Name,
+					NumNodes:      int(rc.NumOfNodes),
+					NumValidators: int(rc.NumOfValidators),
+				})
+			}
 		}
 
 		if !chainConfig.SetSeedNode && !chainConfig.SetPersistentPeers {
@@ -200,14 +211,22 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 
 	chainConfig := &pb.ChainConfig{
 		Name:                  workflow.Config.ChainConfig.Name,
+		Image:                 workflow.Config.ChainConfig.Image,
 		NumOfNodes:            workflow.Config.ChainConfig.NumOfNodes,
 		NumOfValidators:       workflow.Config.ChainConfig.NumOfValidators,
-		Image:                 workflow.Config.ChainConfig.Image,
 		SetSeedNode:           workflow.Config.ChainConfig.SetSeedNode,
 		SetPersistentPeers:    workflow.Config.ChainConfig.SetPersistentPeers,
 		CustomAppConfig:       marshalJSONConfig(workflow.Config.ChainConfig.CustomAppConfig),
 		CustomConsensusConfig: marshalJSONConfig(workflow.Config.ChainConfig.CustomConsensusConfig),
 		CustomClientConfig:    marshalJSONConfig(workflow.Config.ChainConfig.CustomClientConfig),
+	}
+
+	for _, rc := range workflow.Config.ChainConfig.RegionConfigs {
+		chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, &pb.RegionConfig{
+			Name:            rc.Name,
+			NumOfNodes:      uint64(rc.NumNodes),
+			NumOfValidators: uint64(rc.NumValidators),
+		})
 	}
 
 	if workflow.Config.ChainConfig.GenesisModifications != nil {

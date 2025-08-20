@@ -59,10 +59,7 @@ const WorkflowDetails = () => {
     if (workflow) {
       // Add more detailed logging for debugging the gray screen issue
       if (workflow.loadTestSpec) {
-        try {
-          // Safely stringify the LoadTestSpec to check for circular references or other issues
-          const loadTestSpecString = JSON.stringify(workflow.loadTestSpec);
-          
+        try {          
           // Normalize the LoadTestSpec structure to match the expected interface
           // Use type assertion to avoid TypeScript errors
           const loadTestSpec = workflow.loadTestSpec as any;
@@ -178,6 +175,10 @@ const WorkflowDetails = () => {
   const handleCloneWorkflow = () => {
     if (!workflow) return;
     
+    console.log("Cloning workflow:", workflow);
+    console.log("Workflow config:", workflow.config);
+    console.log("Chain config:", workflow.config?.ChainConfig);
+    
     // Create query parameters with workflow data
     const params = new URLSearchParams();
     
@@ -208,20 +209,33 @@ const WorkflowDetails = () => {
       
       // Chain config
       if (workflow.config.ChainConfig) {
+        console.log("ChainConfig exists:", workflow.config.ChainConfig);
+        console.log("ChainConfig.Name:", workflow.config.ChainConfig.Name);
+        
         if (workflow.config.ChainConfig.Name) {
+          console.log("Adding chainName parameter:", workflow.config.ChainConfig.Name);
           params.append('chainName', workflow.config.ChainConfig.Name);
+        } else {
+          console.log("ChainConfig.Name is empty or undefined");
         }
         
         if (workflow.config.ChainConfig.Image) {
           params.append('image', workflow.config.ChainConfig.Image);
         }
         
-        if (workflow.config.ChainConfig.NumOfNodes) {
+        // Handle NumOfNodes and NumOfValidators for Docker deployments
+        if (workflow.config.ChainConfig.NumOfNodes !== undefined) {
           params.append('numOfNodes', workflow.config.ChainConfig.NumOfNodes.toString());
         }
         
-        if (workflow.config.ChainConfig.NumOfValidators) {
+        if (workflow.config.ChainConfig.NumOfValidators !== undefined) {
           params.append('numOfValidators', workflow.config.ChainConfig.NumOfValidators.toString());
+        }
+        
+        // Handle regional configurations for DigitalOcean deployments
+        if (workflow.config.ChainConfig.RegionConfigs && 
+            workflow.config.ChainConfig.RegionConfigs.length > 0) {
+          params.append('regionConfigs', JSON.stringify(workflow.config.ChainConfig.RegionConfigs));
         }
 
         // Genesis modifications
@@ -447,73 +461,175 @@ const WorkflowDetails = () => {
                 </CardHeader>
                 <Collapse in={isNodesExpanded}>
                   <CardBody>
-                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                      {workflow.Nodes.map((node) => (
-                        <Box 
-                          key={node.Name} 
-                          bg="surface" 
-                          p={4} 
-                          borderRadius="md" 
-                          border="1px"
-                          borderColor="divider"
-                        >
-                          <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
-                            {node.Name}
-                          </Text>
-                          <Stack spacing={2}>
-                            <HStack>
-                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                RPC:
-                              </Text>
-                              <Link 
-                                href={node.RPC} 
-                                target="_blank" 
-                                color="blue.500"
-                                fontSize="sm"
-                                fontFamily="mono"
-                                textDecoration="underline"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
-                              >
-                                {node.RPC}
-                                <Icon as={ExternalLinkIcon} boxSize={3} />
-                              </Link>
-                            </HStack>
-                            <HStack>
-                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                LCD:
-                              </Text>
-                              <Text 
-                                color="blue.500"
-                                fontSize="sm"
-                                fontFamily="mono"
-                                textDecoration="underline"
-                                cursor="default"
-                              >
-                                {node.LCD}
-                              </Text>
-                            </HStack>
-                            {node.GRPC && (
+                    {workflow.config?.RunnerType === 'DigitalOcean' ? (
+                      // Regional view for DigitalOcean
+                      (() => {
+                        // Group nodes by region (extract region from node name)
+                        const nodesByRegion = workflow.Nodes.reduce((acc, node) => {
+                          const regionMatch = node.Name.match(/-([a-z]{3}\d)$/);
+                          const region = regionMatch ? regionMatch[1] : 'unknown';
+                          if (!acc[region]) acc[region] = [];
+                          acc[region].push(node);
+                          return acc;
+                        }, {} as Record<string, typeof workflow.Nodes>);
+
+                        const regionLabels = {
+                          'nyc1': 'New York (nyc1)',
+                          'sfo2': 'San Francisco (sfo2)',
+                          'ams3': 'Amsterdam (ams3)',
+                          'fra1': 'Frankfurt (fra1)',
+                          'sgp1': 'Singapore (sgp1)',
+                        };
+
+                        return (
+                          <VStack spacing={6} align="stretch">
+                            {Object.entries(nodesByRegion).map(([region, nodes]) => (
+                              <Box key={region}>
+                                <Text fontWeight="bold" fontSize="lg" mb={3} color="purple.600">
+                                  {regionLabels[region as keyof typeof regionLabels] || region} - {nodes.length} node{nodes.length !== 1 ? 's' : ''}
+                                </Text>
+                                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                                  {nodes.map((node) => (
+                                    <Box 
+                                      key={node.Name} 
+                                      bg="surface" 
+                                      p={4} 
+                                      borderRadius="md" 
+                                      border="1px"
+                                      borderColor="divider"
+                                    >
+                                      <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                                        {node.Name}
+                                      </Text>
+                                      <Stack spacing={2}>
+                                        <HStack>
+                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            RPC:
+                                          </Text>
+                                          <Link 
+                                            href={node.RPC} 
+                                            target="_blank" 
+                                            color="blue.500"
+                                            fontSize="sm"
+                                            fontFamily="mono"
+                                            textDecoration="underline"
+                                            display="flex"
+                                            alignItems="center"
+                                            gap={1}
+                                          >
+                                            {node.RPC}
+                                            <Icon as={ExternalLinkIcon} boxSize={3} />
+                                          </Link>
+                                        </HStack>
+                                        <HStack>
+                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            LCD:
+                                          </Text>
+                                          <Text 
+                                            color="blue.500"
+                                            fontSize="sm"
+                                            fontFamily="mono"
+                                            textDecoration="underline"
+                                            cursor="default"
+                                          >
+                                            {node.LCD}
+                                          </Text>
+                                        </HStack>
+                                        {node.GRPC && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                              gRPC:
+                                            </Text>
+                                            <Text 
+                                              fontFamily="mono"
+                                              fontSize="sm"
+                                              color="blue.500"
+                                              textDecoration="underline"
+                                              cursor="default"
+                                            >
+                                              {node.GRPC}
+                                            </Text>
+                                          </HStack>
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  ))}
+                                </SimpleGrid>
+                              </Box>
+                            ))}
+                          </VStack>
+                        );
+                      })()
+                    ) : (
+                      // Original flat view for Docker
+                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                        {workflow.Nodes.map((node) => (
+                          <Box 
+                            key={node.Name} 
+                            bg="surface" 
+                            p={4} 
+                            borderRadius="md" 
+                            border="1px"
+                            borderColor="divider"
+                          >
+                            <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                              {node.Name}
+                            </Text>
+                            <Stack spacing={2}>
                               <HStack>
                                 <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                  gRPC:
+                                  RPC:
+                                </Text>
+                                <Link 
+                                  href={node.RPC} 
+                                  target="_blank" 
+                                  color="blue.500"
+                                  fontSize="sm"
+                                  fontFamily="mono"
+                                  textDecoration="underline"
+                                  display="flex"
+                                  alignItems="center"
+                                  gap={1}
+                                >
+                                  {node.RPC}
+                                  <Icon as={ExternalLinkIcon} boxSize={3} />
+                                </Link>
+                              </HStack>
+                              <HStack>
+                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  LCD:
                                 </Text>
                                 <Text 
-                                  fontFamily="mono"
-                                  fontSize="sm"
                                   color="blue.500"
+                                  fontSize="sm"
+                                  fontFamily="mono"
                                   textDecoration="underline"
                                   cursor="default"
                                 >
-                                  {node.GRPC}
+                                  {node.LCD}
                                 </Text>
                               </HStack>
-                            )}
-                          </Stack>
-                        </Box>
-                      ))}
-                    </SimpleGrid>
+                              {node.GRPC && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                    gRPC:
+                                  </Text>
+                                  <Text 
+                                    fontFamily="mono"
+                                    fontSize="sm"
+                                    color="blue.500"
+                                    textDecoration="underline"
+                                    cursor="default"
+                                  >
+                                    {node.GRPC}
+                                  </Text>
+                                </HStack>
+                              )}
+                            </Stack>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    )}
                   </CardBody>
                 </Collapse>
               </Card>
@@ -534,73 +650,175 @@ const WorkflowDetails = () => {
                 </CardHeader>
                 <Collapse in={isValidatorsExpanded}>
                   <CardBody>
-                    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-                      {workflow.Validators.map((validator) => (
-                        <Box 
-                          key={validator.Name} 
-                          bg="surface" 
-                          p={4} 
-                          borderRadius="md" 
-                          border="1px"
-                          borderColor="divider"
-                        >
-                          <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
-                            {validator.Name}
-                          </Text>
-                          <Stack spacing={2}>
-                            <HStack>
-                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                RPC:
-                              </Text>
-                              <Link 
-                                href={validator.RPC} 
-                                target="_blank" 
-                                color="blue.500"
-                                fontSize="sm"
-                                fontFamily="mono"
-                                textDecoration="underline"
-                                display="flex"
-                                alignItems="center"
-                                gap={1}
-                              >
-                                {validator.RPC}
-                                <Icon as={ExternalLinkIcon} boxSize={3} />
-                              </Link>
-                            </HStack>
-                            <HStack>
-                              <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                LCD:
-                              </Text>
-                              <Text 
-                                color="blue.500"
-                                fontSize="sm"
-                                fontFamily="mono"
-                                textDecoration="underline"
-                                cursor="default"
-                              >
-                                {validator.LCD}
-                              </Text>
-                            </HStack>
-                            {validator.GRPC && (
+                    {workflow.config?.RunnerType === 'DigitalOcean' ? (
+                      // Regional view for DigitalOcean
+                      (() => {
+                        // Group validators by region (extract region from validator name)
+                        const validatorsByRegion = workflow.Validators.reduce((acc, validator) => {
+                          const regionMatch = validator.Name.match(/-([a-z]{3}\d)$/);
+                          const region = regionMatch ? regionMatch[1] : 'unknown';
+                          if (!acc[region]) acc[region] = [];
+                          acc[region].push(validator);
+                          return acc;
+                        }, {} as Record<string, typeof workflow.Validators>);
+
+                        const regionLabels = {
+                          'nyc1': 'New York (nyc1)',
+                          'sfo2': 'San Francisco (sfo2)',
+                          'ams3': 'Amsterdam (ams3)',
+                          'fra1': 'Frankfurt (fra1)',
+                          'sgp1': 'Singapore (sgp1)',
+                        };
+
+                        return (
+                          <VStack spacing={6} align="stretch">
+                            {Object.entries(validatorsByRegion).map(([region, validators]) => (
+                              <Box key={region}>
+                                <Text fontWeight="bold" fontSize="lg" mb={3} color="purple.600">
+                                  {regionLabels[region as keyof typeof regionLabels] || region} - {validators.length} validator{validators.length !== 1 ? 's' : ''}
+                                </Text>
+                                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                                  {validators.map((validator) => (
+                                    <Box 
+                                      key={validator.Name} 
+                                      bg="surface" 
+                                      p={4} 
+                                      borderRadius="md" 
+                                      border="1px"
+                                      borderColor="divider"
+                                    >
+                                      <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                                        {validator.Name}
+                                      </Text>
+                                      <Stack spacing={2}>
+                                        <HStack>
+                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            RPC:
+                                          </Text>
+                                          <Link 
+                                            href={validator.RPC} 
+                                            target="_blank" 
+                                            color="blue.500"
+                                            fontSize="sm"
+                                            fontFamily="mono"
+                                            textDecoration="underline"
+                                            display="flex"
+                                            alignItems="center"
+                                            gap={1}
+                                          >
+                                            {validator.RPC}
+                                            <Icon as={ExternalLinkIcon} boxSize={3} />
+                                          </Link>
+                                        </HStack>
+                                        <HStack>
+                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            LCD:
+                                          </Text>
+                                          <Text 
+                                            color="blue.500"
+                                            fontSize="sm"
+                                            fontFamily="mono"
+                                            textDecoration="underline"
+                                            cursor="default"
+                                          >
+                                            {validator.LCD}
+                                          </Text>
+                                        </HStack>
+                                        {validator.GRPC && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                              gRPC:
+                                            </Text>
+                                            <Text 
+                                              fontFamily="mono"
+                                              fontSize="sm"
+                                              color="blue.500"
+                                              textDecoration="underline"
+                                              cursor="default"
+                                            >
+                                              {validator.GRPC}
+                                            </Text>
+                                          </HStack>
+                                        )}
+                                      </Stack>
+                                    </Box>
+                                  ))}
+                                </SimpleGrid>
+                              </Box>
+                            ))}
+                          </VStack>
+                        );
+                      })()
+                    ) : (
+                      // Original flat view for Docker
+                      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                        {workflow.Validators.map((validator) => (
+                          <Box 
+                            key={validator.Name} 
+                            bg="surface" 
+                            p={4} 
+                            borderRadius="md" 
+                            border="1px"
+                            borderColor="divider"
+                          >
+                            <Text fontWeight="bold" fontSize="lg" mb={3} color="blue.600">
+                              {validator.Name}
+                            </Text>
+                            <Stack spacing={2}>
                               <HStack>
                                 <Text fontWeight="semibold" minW="60px" fontSize="sm">
-                                  gRPC:
+                                  RPC:
+                                </Text>
+                                <Link 
+                                  href={validator.RPC} 
+                                  target="_blank" 
+                                  color="blue.500"
+                                  fontSize="sm"
+                                  fontFamily="mono"
+                                  textDecoration="underline"
+                                  display="flex"
+                                  alignItems="center"
+                                  gap={1}
+                                >
+                                  {validator.RPC}
+                                  <Icon as={ExternalLinkIcon} boxSize={3} />
+                                </Link>
+                              </HStack>
+                              <HStack>
+                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  LCD:
                                 </Text>
                                 <Text 
-                                  fontFamily="mono"
-                                  fontSize="sm"
                                   color="blue.500"
+                                  fontSize="sm"
+                                  fontFamily="mono"
                                   textDecoration="underline"
                                   cursor="default"
                                 >
-                                  {validator.GRPC}
+                                  {validator.LCD}
                                 </Text>
                               </HStack>
-                            )}
-                          </Stack>
-                        </Box>
-                      ))}
-                    </SimpleGrid>
+                              {validator.GRPC && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                    gRPC:
+                                  </Text>
+                                  <Text 
+                                    fontFamily="mono"
+                                    fontSize="sm"
+                                    color="blue.500"
+                                    textDecoration="underline"
+                                    cursor="default"
+                                  >
+                                    {validator.GRPC}
+                                  </Text>
+                                </HStack>
+                              )}
+                            </Stack>
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    )}
                   </CardBody>
                 </Collapse>
               </Card>
