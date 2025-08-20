@@ -425,11 +425,8 @@ const WorkflowDetails = () => {
 
         {/* Testnet Setup Card - shown when testnet is still being set up */}
         {workflow.Status === 'running' && 
-          ((!workflow.Nodes || workflow.Nodes.length === 0) || 
-           (!workflow.Validators || workflow.Validators.length === 0) ||
-           (workflow.Nodes.length === 3 && 
-            workflow.Nodes[0].Name === 'validator-0' && 
-            workflow.Nodes[0].RPC === 'http://validator-0:26657')) ? (
+          (!workflow.Nodes || workflow.Nodes.length === 0) && 
+          (!workflow.Validators || workflow.Validators.length === 0) ? (
           <Card>
             <CardHeader>
               <Heading size="md">Testnet Setup</Heading>
@@ -933,25 +930,57 @@ const WorkflowDetails = () => {
               <Heading size="md">Monitoring Dashboards</Heading>
             </CardHeader>
             <CardBody>
-              <Stack spacing={3}>
-                {Object.entries(workflow.Monitoring).map(([name, url]) => (
-                  <HStack key={name} spacing={3}>
-                    <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
-                      {name}
+              <Stack spacing={4}>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md" mb={3}>
+                    Monitoring Dashboards
+                  </Text>
+                  <Stack spacing={3}>
+                    {Object.entries(workflow.Monitoring).map(([name, url]) => (
+                      <HStack key={name} spacing={3}>
+                        <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
+                          {name}
+                        </Text>
+                        <Link 
+                          href={url} 
+                          target="_blank" 
+                          color="blue.500"
+                          display="flex"
+                          alignItems="center"
+                          gap={2}
+                        >
+                          {url}
+                          <Icon as={ExternalLinkIcon} boxSize={4} />
+                        </Link>
+                      </HStack>
+                    ))}
+                  </Stack>
+                </Box>
+
+                {/* Profiling Data Section */}
+                {workflow.config?.RunnerType !== 'Docker' && (
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="md" mb={3}>
+                      Profiling Data
                     </Text>
-                    <Link 
-                      href={url} 
-                      target="_blank" 
-                      color="blue.500"
-                      display="flex"
-                      alignItems="center"
-                      gap={2}
-                    >
-                      {url}
-                      <Icon as={ExternalLinkIcon} boxSize={4} />
-                    </Link>
-                  </HStack>
-                ))}
+                    <HStack spacing={3}>
+                      <Text fontWeight="semibold" minW="100px">
+                        Pyroscope
+                      </Text>
+                      <Link 
+                        href={`https://skipprotocol.grafana.net/a/grafana-pyroscope-app/explore?searchText=&panelType=time-series&layout=grid&hideNoData=off&explorationType=flame-graph&var-serviceName=ironbird&var-profileMetricId=goroutine:goroutine:count:goroutine:count&var-spanSelector=undefined&var-dataSource=grafanacloud-profiles&var-filters=provider%7C%3D%7C${workflow.Provider || 'unknown'}&var-filtersBaseline=&var-filtersComparison=&var-groupBy=&from=now-5m&to=now&maxNodes=16384&diffFrom=&diffTo=&diffFrom-2=&diffTo-2=`}
+                        target="_blank" 
+                        color="blue.500"
+                        display="flex"
+                        alignItems="center"
+                        gap={2}
+                      >
+                        View Profiling Data
+                        <Icon as={ExternalLinkIcon} boxSize={4} />
+                      </Link>
+                    </HStack>
+                  </Box>
+                )}
               </Stack>
             </CardBody>
           </Card>
