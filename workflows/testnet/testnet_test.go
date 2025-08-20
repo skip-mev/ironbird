@@ -481,7 +481,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.EthereumLoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
 
@@ -501,7 +501,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.EthereumLoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 

@@ -63,8 +63,6 @@ const (
 	DefaultEvmChainID = "262144"
 )
 
-var launchedNodes = 0
-
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
