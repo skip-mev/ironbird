@@ -527,7 +527,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 
 		time.Sleep(1 * time.Minute) // wait for new chain to startup
 		s.env.SignalWorkflow("shutdown", nil)
-		time.Sleep(15 * time.Second)
+		time.Sleep(10 * time.Second)
 		close(done)
 	}()
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
