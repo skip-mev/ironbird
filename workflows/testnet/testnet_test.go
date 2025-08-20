@@ -57,6 +57,7 @@ var (
 			SetPersistentPeers: true,
 		},
 		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
+			Kind:        "cosmos",
 			Name:        "e2e-test",
 			ChainID:     "stake-1",
 			Description: "e2e test",
