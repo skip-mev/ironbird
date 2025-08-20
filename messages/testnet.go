@@ -79,6 +79,7 @@ type TestnetWorkflowRequest struct {
 	RunnerType         RunnerType
 	LoadTestSpec       *catalysttypes.LoadTestSpec
 	LongRunningTestnet bool
+	LaunchLoadBalancer bool
 	TestnetDuration    string
 	NumWallets         int
 }
@@ -106,6 +107,10 @@ func (r TestnetWorkflowRequest) Validate() error {
 
 	if !r.ChainConfig.SetSeedNode && !r.ChainConfig.SetPersistentPeers {
 		return fmt.Errorf("at least one of SetSeedNode or SetPersistentPeers must be set to true")
+	}
+
+	if r.RunnerType == Docker && r.LaunchLoadBalancer {
+		return fmt.Errorf("load balancer is not supported for docker runners")
 	}
 
 	return nil

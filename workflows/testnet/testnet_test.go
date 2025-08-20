@@ -430,6 +430,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.LaunchLoadBalancer = false
 	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
 		{
 			Name:          "nyc1",
@@ -449,6 +450,26 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 0)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalancer() {
+	s.setupMockActivitiesDigitalOcean()
+
+	doReq := simappReq
+	doReq.Repo = "ironbird-cometbft"
+	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
+	doReq.RunnerType = messages.DigitalOcean
+	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.LaunchLoadBalancer = true
+
+	s.env.ExecuteWorkflow(Workflow, doReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
@@ -485,7 +506,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow("shutdown", nil)
+		s.env.SignalWorkflow(shutdownSignal, nil)
 		time.Sleep(5 * time.Second)
 		close(done)
 	}, 15*time.Second)
@@ -511,6 +532,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
+	dockerReq.LoadTestSpec = nil
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"
@@ -526,7 +548,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
 
 		time.Sleep(1 * time.Minute) // wait for new chain to startup
-		s.env.SignalWorkflow("shutdown", nil)
+		s.env.SignalWorkflow(shutdownSignal, nil)
 		time.Sleep(10 * time.Second)
 		close(done)
 	}()

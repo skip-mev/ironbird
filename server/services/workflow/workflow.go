@@ -51,6 +51,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
+		LaunchLoadBalancer: req.LaunchLoadBalancer,
 		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int(req.NumWallets),
 	}
@@ -127,6 +128,11 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	if req.LoadTestSpec != nil {
 		loadTestSpec := s.convertProtoLoadTestSpec(req.LoadTestSpec)
 		workflowReq.LoadTestSpec = &loadTestSpec
+	}
+
+	if err := workflowReq.Validate(); err != nil {
+		s.logger.Error("workflow request validation failed", zap.Error(err))
+		return nil, fmt.Errorf("workflow request validation failed: %w", err)
 	}
 
 	options := temporalclient.StartWorkflowOptions{
@@ -260,6 +266,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		IsEvmChain:         workflow.Config.IsEvmChain,
 		RunnerType:         string(workflow.Config.RunnerType),
 		LongRunningTestnet: workflow.Config.LongRunningTestnet,
+		LaunchLoadBalancer: workflow.Config.LaunchLoadBalancer,
 		TestnetDuration:    workflow.Config.TestnetDuration,
 		NumWallets:         int32(workflow.Config.NumWallets),
 		ChainConfig:        chainConfig,

@@ -298,9 +298,11 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		return err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
-	if err != nil {
-		return err
+	if req.LaunchLoadBalancer {
+		providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
+		if err != nil {
+			return err
+		}
 	}
 
 	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)

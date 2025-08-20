@@ -48,6 +48,7 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '2h', // 2 hours
     NumWallets: 2500, // Default number of wallets
   };
@@ -68,6 +69,7 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '',
     NumWallets: 2500,
   });
@@ -85,6 +87,16 @@ const CreateWorkflow = () => {
       setNodeInputValue(formData.ChainConfig.NumOfNodes?.toString() || '');
     }
   }, [formData.ChainConfig.NumOfNodes, location.search]);
+
+  // Auto-disable LaunchLoadBalancer when runner type changes away from DigitalOcean
+  useEffect(() => {
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      setFormData(prev => ({
+        ...prev,
+        LaunchLoadBalancer: false
+      }));
+    }
+  }, [formData.RunnerType, formData.LaunchLoadBalancer]);
 
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
@@ -110,6 +122,7 @@ const CreateWorkflow = () => {
         IsEvmChain: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
+        LaunchLoadBalancer: false,
         TestnetDuration: '',
         NumWallets: 2500,
       };
@@ -222,6 +235,12 @@ const CreateWorkflow = () => {
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
+      if (params.get('launchLoadBalancer')) {
+        newFormData.LaunchLoadBalancer = params.get('launchLoadBalancer') === 'true';
+        hasChanges = true;
+        console.log("Setting launchLoadBalancer:", newFormData.LaunchLoadBalancer);
+      }
+
       if (params.get('isEvmChain')) {
         newFormData.IsEvmChain = params.get('isEvmChain') === 'true';
         hasChanges = true;
@@ -308,7 +327,7 @@ const CreateWorkflow = () => {
           console.error('Failed to parse region configs', e);
         }
       }
-      
+
       // After all parameters are parsed, ensure proper initialization based on runner type
       if (newFormData.RunnerType === 'DigitalOcean') {
         // If DigitalOcean is selected but no regional configs were provided, initialize defaults
@@ -336,7 +355,7 @@ const CreateWorkflow = () => {
         hasChanges = true;
         console.log("Configured for Docker deployment");
       }
-      
+
       // Update form data only if there were changes
       if (hasChanges) {
         console.log("Updating form data with:", newFormData);
@@ -408,7 +427,7 @@ const CreateWorkflow = () => {
         });
         return;
       }
-      
+
       const totalValidators = formData.ChainConfig.RegionConfigs.reduce((sum, rc) => sum + rc.numOfValidators, 0);
       if (totalValidators === 0) {
         toast({
@@ -460,7 +479,16 @@ const CreateWorkflow = () => {
       return;
     }
 
-    // Calculate totals from region configs if multi-region is enabled (these totals are used in submission data below)
+    // Validate that LaunchLoadBalancer is only enabled for DigitalOcean runner
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      toast({
+        title: 'Validation Error',
+        description: 'Launch Load Balancer can only be enabled when using DigitalOcean as the runner type',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
 
     const submissionData: TestnetWorkflowRequest = {
       Repo: formData.Repo,
@@ -482,6 +510,7 @@ const CreateWorkflow = () => {
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
+      LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
@@ -583,7 +612,7 @@ const CreateWorkflow = () => {
                 onChange={(e) => {
                   const newRunnerType = e.target.value;
                   let updatedFormData = { ...formData, RunnerType: newRunnerType };
-                  
+
                   if (newRunnerType === 'DigitalOcean') {
                     // Initialize regional configs for DigitalOcean
                     const defaultRegions = ['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'];
@@ -604,7 +633,7 @@ const CreateWorkflow = () => {
                       updatedFormData.ChainConfig.NumOfValidators = 0;
                     }
                   }
-                  
+
                   setFormData(updatedFormData);
                 }}
                 bg="surface"
@@ -660,7 +689,7 @@ const CreateWorkflow = () => {
                     Total: {formData.ChainConfig.RegionConfigs?.reduce((sum, rc) => sum + rc.numOfNodes, 0) || 0} nodes, {formData.ChainConfig.RegionConfigs?.reduce((sum, rc) => sum + rc.numOfValidators, 0) || 0} validators
                   </Text>
                 </HStack>
-                
+
                 <VStack spacing={3} align="stretch">
                   {['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'].map((region) => {
                     const regionLabels: Record<string, string> = {
@@ -671,14 +700,14 @@ const CreateWorkflow = () => {
                       'sgp1': 'Singapore (sgp1)',
                     };
                     const config = formData.ChainConfig.RegionConfigs?.find(rc => rc.name === region) || { name: region, numOfNodes: 0, numOfValidators: 0 };
-                    
+
                     return (
                       <Box key={region} p={3} border="1px solid" borderColor="divider" borderRadius="md">
                         <HStack spacing={4}>
                           <Text fontWeight="bold" fontSize="sm" minW="150px" color="text">
                             {regionLabels[region]}
                           </Text>
-                          
+
                           <FormControl flex="1">
                             <FormLabel fontSize="xs">Nodes</FormLabel>
                             <NumberInput
@@ -788,7 +817,7 @@ const CreateWorkflow = () => {
           </FormControl>
             </>
           )}
-          
+
           <FormControl>
             <FormLabel>Chain Configurations</FormLabel>
             <VStack spacing={3} align="start">
@@ -987,7 +1016,19 @@ const CreateWorkflow = () => {
               onChange={(e) => setFormData({ ...formData, LongRunningTestnet: e.target.checked })}
             />
           </FormControl>
-          
+
+          <FormControl display="flex" alignItems="center">
+            <FormLabel mb="0">Launch Load Balancer</FormLabel>
+            <Switch
+              isChecked={formData.LaunchLoadBalancer}
+              isDisabled={formData.RunnerType === 'Docker'}
+              onChange={(e) => setFormData({ ...formData, LaunchLoadBalancer: e.target.checked })}
+            />
+            <Tooltip label="Launch a load balancer for the testnet (only available for DigitalOcean runner)">
+              <InfoIcon ml={2} cursor="pointer" />
+            </Tooltip>
+          </FormControl>
+
           {!formData.LongRunningTestnet && (
             <FormControl>
               <FormLabel>Testnet Duration (Hours)</FormLabel>

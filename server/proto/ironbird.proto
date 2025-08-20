@@ -28,6 +28,7 @@ message CreateWorkflowRequest {
     bool long_running_testnet = 7;
     string testnet_duration = 8;
     int32 num_wallets = 9;
+    bool launch_load_balancer = 10;
 }
 
 message GenesisKV {

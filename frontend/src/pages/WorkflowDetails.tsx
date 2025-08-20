@@ -198,6 +198,11 @@ const WorkflowDetails = () => {
         params.append('longRunningTestnet', workflow.config.LongRunningTestnet ? 'true' : 'false');
       }
       
+      // Launch load balancer flag
+      if (workflow.config.LaunchLoadBalancer !== undefined) {
+        params.append('launchLoadBalancer', workflow.config.LaunchLoadBalancer ? 'true' : 'false');
+      }
+      
       if (workflow.config.TestnetDuration) {
         params.append('testnetDuration', workflow.config.TestnetDuration);
       }
