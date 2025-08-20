@@ -66,7 +66,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 	var catalystChainConfig catchaintypes.ChainConfig
 	switch loadTestSpec.Kind {
-	case "cosmos":
+	case "evm":
 		nodeAddresses := make([]types.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
 			nodeAddresses = append(nodeAddresses, types.NodeAddress{
@@ -77,7 +77,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 		catalystChainConfig = types.ChainConfig{
 			NodesAddresses: nodeAddresses,
 		}
-	case "evm":
+	case "cosmos":
 		nodeAddresses := make([]types2.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
 			nodeAddresses = append(nodeAddresses, types2.NodeAddress{
@@ -137,7 +137,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:0.0.0-beta.4",
+			Image: "ghcr.io/skip-mev/catalyst:latest",
 			UID:   "100",
 			GID:   "100",
 		},

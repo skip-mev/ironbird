@@ -56,7 +56,7 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		CosmosLoadTestSpec: &cosmostypes.LoadTestSpec{
+		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
 			Name:        "e2e-test",
 			ChainID:     "stake-1",
 			Description: "e2e test",
@@ -175,7 +175,7 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		CosmosLoadTestSpec: &cosmostypes.LoadTestSpec{
+		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
 			Name:        "e2e-test",
 			Description: "e2e test",
 			NumOfBlocks: 5,
@@ -533,7 +533,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
-	dockerReq.LoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"

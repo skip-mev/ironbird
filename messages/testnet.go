@@ -78,13 +78,13 @@ type TestnetWorkflowRequest struct {
 	RunnerType  RunnerType
 
 	// TODO: support both specs. for now they are separate and ethereum will work. not cosmos on this branch.
-	EthereumLoadTestSpec *ethereumtypes.LoadTestSpec
-	CosmosLoadTestSpec   *cosmostypes.LoadTestSpec
+	EthereumLoadTestSpec *catalysttypes.LoadTestSpec
+	CosmosLoadTestSpec   *catalysttypes.LoadTestSpec
 
-	LongRunningTestnet   bool
+	LongRunningTestnet bool
 	LaunchLoadBalancer bool
-	TestnetDuration      string
-	NumWallets           int
+	TestnetDuration    string
+	NumWallets         int
 }
 
 func (r TestnetWorkflowRequest) Validate() error {

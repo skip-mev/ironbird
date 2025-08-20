@@ -135,7 +135,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		if err != nil {
 			return nil, err
 		}
-		workflowReq.LoadTestSpec = &loadTestSpec
+		workflowReq.CosmosLoadTestSpec = &loadTestSpec
 	}
 
 	if err := workflowReq.Validate(); err != nil {

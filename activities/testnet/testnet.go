@@ -327,12 +327,9 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomClientConfig:    req.CustomClientConfig,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
-<<<<<<< HEAD
 		RegionConfig:          req.RegionConfigs,
-=======
 		GenesisDelegation:     deleg,
 		GenesisBalance:        genBal,
->>>>>>> 8bf7d38 (Update)
 	}
 	walletConfig := CosmosWalletConfig
 
