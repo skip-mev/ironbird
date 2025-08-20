@@ -194,6 +194,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	response := &pb.Workflow{
 		WorkflowId: req.WorkflowId,
 		Status:     status,
+		Provider:   workflow.Provider,
 	}
 
 	response.Nodes = workflow.Nodes
@@ -304,6 +305,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 			StartTime:  startTime,
 			Repo:       workflow.Config.Repo,
 			Sha:        workflow.Config.SHA,
+			Provider:   workflow.Provider,
 		})
 	}
 
@@ -380,6 +382,10 @@ func (s *Service) UpdateWorkflowData(ctx context.Context, req *pb.UpdateWorkflow
 
 	if req.Wallets != nil {
 		update.Wallets = req.Wallets
+	}
+
+	if req.Provider != "" {
+		update.Provider = &req.Provider
 	}
 
 	if err := s.db.UpdateWorkflow(req.WorkflowId, update); err != nil {

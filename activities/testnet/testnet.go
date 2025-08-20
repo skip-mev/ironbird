@@ -98,7 +98,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
+func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, provider string, logger *zap.Logger) {
 	if a.GRPCClient == nil {
 		logger.Warn("GRPCClient is nil, skipping workflow data update")
 		return
@@ -113,6 +113,7 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 		Nodes:      nodes,
 		Validators: validators,
 		Monitoring: monitoringLinks,
+		Provider:   provider,
 	}
 
 	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
@@ -234,7 +235,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.Validators = testnetValidators
 
 	if a.GRPCClient != nil {
-		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, logger)
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, string(req.RunnerType), logger)
 	}
 
 	go func() {

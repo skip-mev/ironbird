@@ -46,6 +46,7 @@ type Workflow struct {
 	Status          WorkflowStatus                  `json:"status" db:"status"`
 	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
 	LoadTestSpec    json.RawMessage                 `json:"load_test_spec" db:"load_test_spec"`
+	Provider        string                          `json:"provider" db:"provider"`
 	CreatedAt       time.Time                       `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time                       `json:"updated_at" db:"updated_at"`
 }
@@ -57,6 +58,7 @@ type WorkflowUpdate struct {
 	Wallets         *pb.WalletInfo     `json:"wallets,omitempty"`
 	MonitoringLinks *map[string]string `json:"monitoring_links,omitempty"`
 	Status          *WorkflowStatus    `json:"status,omitempty"`
+	Provider        *string            `json:"provider,omitempty"`
 }
 
 func (w *Workflow) NodesJSON() ([]byte, error) {

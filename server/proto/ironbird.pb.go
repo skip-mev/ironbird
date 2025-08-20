@@ -1084,6 +1084,7 @@ type Workflow struct {
 	Config        *CreateWorkflowRequest `protobuf:"bytes,7,opt,name=config,proto3" json:"config,omitempty"`
 	LoadTestSpec  *LoadTestSpec          `protobuf:"bytes,17,opt,name=load_test_spec,json=loadTestSpec,proto3" json:"load_test_spec,omitempty"`
 	Wallets       *WalletInfo            `protobuf:"bytes,18,opt,name=wallets,proto3" json:"wallets,omitempty"`
+	Provider      string                 `protobuf:"bytes,19,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1181,6 +1182,13 @@ func (x *Workflow) GetWallets() *WalletInfo {
 	return nil
 }
 
+func (x *Workflow) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
 type WorkflowSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
@@ -1188,6 +1196,7 @@ type WorkflowSummary struct {
 	StartTime     string                 `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	Repo          string                 `protobuf:"bytes,4,opt,name=repo,proto3" json:"repo,omitempty"`
 	Sha           string                 `protobuf:"bytes,5,opt,name=sha,proto3" json:"sha,omitempty"`
+	Provider      string                 `protobuf:"bytes,6,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1257,6 +1266,13 @@ func (x *WorkflowSummary) GetSha() string {
 	return ""
 }
 
+func (x *WorkflowSummary) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
 type UpdateWorkflowDataRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	WorkflowId    string                 `protobuf:"bytes,1,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
@@ -1265,6 +1281,7 @@ type UpdateWorkflowDataRequest struct {
 	Nodes         []*Node                `protobuf:"bytes,4,rep,name=nodes,proto3" json:"nodes,omitempty"`
 	Validators    []*Node                `protobuf:"bytes,5,rep,name=validators,proto3" json:"validators,omitempty"`
 	Wallets       *WalletInfo            `protobuf:"bytes,6,opt,name=wallets,proto3" json:"wallets,omitempty"`
+	Provider      string                 `protobuf:"bytes,7,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1339,6 +1356,13 @@ func (x *UpdateWorkflowDataRequest) GetWallets() *WalletInfo {
 		return x.Wallets
 	}
 	return nil
+}
+
+func (x *UpdateWorkflowDataRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
 }
 
 type WorkflowListResponse struct {
@@ -1496,7 +1520,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x0efaucet_address\x18\x01 \x01(\tR\rfaucetAddress\x12'\n" +
 	"\x0ffaucet_mnemonic\x18\x02 \x01(\tR\x0efaucetMnemonic\x12%\n" +
 	"\x0euser_addresses\x18\x03 \x03(\tR\ruserAddresses\x12%\n" +
-	"\x0euser_mnemonics\x18\x04 \x03(\tR\ruserMnemonics\"\x9d\x04\n" +
+	"\x0euser_mnemonics\x18\x04 \x03(\tR\ruserMnemonics\"\xb9\x04\n" +
 	"\bWorkflow\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x16\n" +
@@ -1511,10 +1535,11 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"monitoring\x12<\n" +
 	"\x06config\x18\a \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x06config\x12A\n" +
 	"\x0eload_test_spec\x18\x11 \x01(\v2\x1b.skip.ironbird.LoadTestSpecR\floadTestSpec\x123\n" +
-	"\awallets\x18\x12 \x01(\v2\x19.skip.ironbird.WalletInfoR\awallets\x1a=\n" +
+	"\awallets\x18\x12 \x01(\v2\x19.skip.ironbird.WalletInfoR\awallets\x12\x1a\n" +
+	"\bprovider\x18\x13 \x01(\tR\bprovider\x1a=\n" +
 	"\x0fMonitoringEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xab\x01\n" +
 	"\x0fWorkflowSummary\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x16\n" +
@@ -1522,7 +1547,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
 	"start_time\x18\x03 \x01(\tR\tstartTime\x12\x12\n" +
 	"\x04repo\x18\x04 \x01(\tR\x04repo\x12\x10\n" +
-	"\x03sha\x18\x05 \x01(\tR\x03sha\"\xa6\x03\n" +
+	"\x03sha\x18\x05 \x01(\tR\x03sha\x12\x1a\n" +
+	"\bprovider\x18\x06 \x01(\tR\bprovider\"\xc2\x03\n" +
 	"\x19UpdateWorkflowDataRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12:\n" +
@@ -1534,7 +1560,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
 	"validators\x18\x05 \x03(\v2\x13.skip.ironbird.NodeR\n" +
 	"validators\x123\n" +
-	"\awallets\x18\x06 \x01(\v2\x19.skip.ironbird.WalletInfoR\awallets\x1a=\n" +
+	"\awallets\x18\x06 \x01(\v2\x19.skip.ironbird.WalletInfoR\awallets\x12\x1a\n" +
+	"\bprovider\x18\a \x01(\tR\bprovider\x1a=\n" +
 	"\x0fMonitoringEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"j\n" +
