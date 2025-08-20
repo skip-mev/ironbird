@@ -235,7 +235,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.Validators = testnetValidators
 
 	if a.GRPCClient != nil {
-		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, string(req.RunnerType), logger)
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
 	}
 
 	go func() {
