@@ -84,100 +84,6 @@ var (
 			}
 		},
 	}
-	gaiaReq = messages.TestnetWorkflowRequest{
-		Repo:            "gaia",
-		SHA:             "7c59858e697ad96ab432407ebc944edccec6281c",
-		IsEvmChain:      false,
-		RunnerType:      messages.Docker,
-		TestnetDuration: "1m",
-		ChainConfig: types.ChainsConfig{
-			Name: "gaia-devnet",
-			GenesisModifications: []petrichain.GenesisKV{
-				{
-					Key:   "app_state.staking.params.bond_denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.gov.deposit_params.min_deposit.0.denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.gov.params.min_deposit.0.denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.evm.params.evm_denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.mint.params.mint_denom",
-					Value: "uatom",
-				},
-				{
-					Key: "app_state.bank.denom_metadata",
-					Value: []map[string]interface{}{
-						{
-							"description": "The native staking token for evmd.",
-							"denom_units": []map[string]interface{}{
-								{
-									"denom":    "uatom",
-									"exponent": 0,
-									"aliases":  []string{"attotest"},
-								},
-								{
-									"denom":    "test",
-									"exponent": 18,
-									"aliases":  []string{},
-								},
-							},
-							"base":     "uatom",
-							"display":  "test",
-							"name":     "Test Token",
-							"symbol":   "TEST",
-							"uri":      "",
-							"uri_hash": "",
-						},
-					},
-				},
-				{
-					Key: "app_state.evm.params.active_static_precompiles",
-					Value: []string{
-						"0x0000000000000000000000000000000000000100",
-						"0x0000000000000000000000000000000000000400",
-						"0x0000000000000000000000000000000000000800",
-						"0x0000000000000000000000000000000000000801",
-						"0x0000000000000000000000000000000000000802",
-						"0x0000000000000000000000000000000000000803",
-						"0x0000000000000000000000000000000000000804",
-						"0x0000000000000000000000000000000000000805",
-					},
-				},
-				{
-					Key:   "app_state.erc20.params.native_precompiles",
-					Value: []string{"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-				},
-				{
-					Key: "app_state.erc20.token_pairs",
-					Value: []map[string]interface{}{
-						{
-							"contract_owner": 1,
-							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-							"denom":          "uatom",
-							"enabled":        true,
-						},
-					},
-				},
-				{
-					Key:   "consensus.params.block.max_gas",
-					Value: "75000000",
-				},
-			},
-			NumOfValidators:    1,
-			NumOfNodes:         1,
-			SetPersistentPeers: true,
-		},
-		NumWallets: 10,
-	}
 )
 
 func (s *TestnetWorkflowTestSuite) SetupTest() {
@@ -275,11 +181,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			originalTag := "ghcr.io/cosmos/simapp:v0.50"
 			newTag := "simapp-v53"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				// TODO: replace with main once feature branch is merged to main
-				originalTag = "ghcr.io/cosmos/gaia:feature-evm"
-				newTag = "gaia"
-			}
 
 			cmd := exec.Command("docker", "pull", originalTag)
 			output, err := cmd.CombinedOutput()
@@ -373,9 +274,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			tag := "ghcr.io/cosmos/simapp:v0.50"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
-			}
 			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -563,16 +461,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
-}
-
-func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
-	s.setupMockActivitiesDocker()
-	s.env.ExecuteWorkflow(Workflow, gaiaReq)
-
-	s.True(s.env.IsWorkflowCompleted())
-	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
