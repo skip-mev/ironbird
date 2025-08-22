@@ -458,6 +458,13 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = true
+	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
+		{
+			Name:          "nyc1",
+			NumValidators: 1,
+			NumNodes:      0,
+		},
+	}
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
