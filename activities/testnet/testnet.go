@@ -298,9 +298,6 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
-	deleg := new(big.Int)
-	deleg.SetString("10000000000000000000000000", 10)
-	genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
 
 	config := petritypes.ChainConfig{
 		Name:          req.Name,
@@ -326,8 +323,6 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
 		RegionConfig:          req.RegionConfigs,
-		GenesisDelegation:     deleg,
-		GenesisBalance:        genBal,
 	}
 	walletConfig := CosmosWalletConfig
 
@@ -354,6 +349,12 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		if evmConfig, ok := config.CustomAppConfig["evm"].(map[string]interface{}); ok {
 			evmConfig["evm-chain-id"] = chainID
 		}
+
+		deleg := new(big.Int)
+		deleg.SetString("10000000000000000000000000", 10)
+		genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
+		config.GenesisDelegation = deleg
+		config.GenesisBalance = genBal
 	}
 
 	return config, walletConfig

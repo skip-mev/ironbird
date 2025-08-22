@@ -534,7 +534,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
-	dockerReq.CosmosLoadTestSpec = nil
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"
