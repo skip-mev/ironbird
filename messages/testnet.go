@@ -77,7 +77,6 @@ type TestnetWorkflowRequest struct {
 	ChainConfig types.ChainsConfig
 	RunnerType  RunnerType
 
-	// TODO: support both specs. for now they are separate and ethereum will work. not cosmos on this branch.
 	EthereumLoadTestSpec *ctlttypes.LoadTestSpec
 	CosmosLoadTestSpec   *ctlttypes.LoadTestSpec
 
