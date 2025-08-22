@@ -176,15 +176,6 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
-			Name:        "e2e-test",
-			Description: "e2e test",
-			NumOfBlocks: 5,
-			NumOfTxs:    10,
-			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: cosmostypes.MsgSend},
-			},
-		},
 		NumWallets: 10,
 	}
 )
@@ -342,13 +333,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
+	walletCreatorActivity := &walletcreator.Activity{
+		DOToken:           doToken,
+		TailscaleSettings: tailscaleSettings,
+	}
 
-	walletCreatorActivities := &walletcreator.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
+	s.env.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
