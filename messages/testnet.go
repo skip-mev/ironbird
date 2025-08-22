@@ -116,6 +116,20 @@ func (r TestnetWorkflowRequest) Validate() error {
 		return fmt.Errorf("load balancer is not supported for docker runners")
 	}
 
+	if r.EthereumLoadTestSpec != nil && r.CosmosLoadTestSpec != nil {
+		return fmt.Errorf("only one of ethereum of cosmos load test can be specified")
+	}
+
+	if r.IsEvmChain {
+		if r.CosmosLoadTestSpec != nil {
+			return fmt.Errorf("can not run cosmos load tests for evm chain")
+		}
+	} else {
+		if r.EthereumLoadTestSpec != nil {
+			return fmt.Errorf("can not run ethereum load tests for cosmos chain")
+		}
+	}
+
 	return nil
 }
 

@@ -284,9 +284,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 			})
 
 		})
-	}
-
-	if req.CosmosLoadTestSpec != nil {
+	} else if req.CosmosLoadTestSpec != nil {
 		workflow.Go(ctx, func(ctx workflow.Context) {
 			var loadTestResp messages.RunLoadTestResponse
 			f := workflow.ExecuteActivity(
