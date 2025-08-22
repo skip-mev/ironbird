@@ -561,7 +561,20 @@ const CreateWorkflow = () => {
             <FormLabel color="text">Repository</FormLabel>
               <Select
                 value={formData.Repo}
-                onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+                onChange={(e) => {
+                  const newRepo = e.target.value;
+                  const updatedFormData = { ...formData, Repo: newRepo };
+                  
+                  // Update LoadTestSpec kind if it exists based on new repository
+                  if (updatedFormData.LoadTestSpec) {
+                    updatedFormData.LoadTestSpec = {
+                      ...updatedFormData.LoadTestSpec,
+                      kind: newRepo === 'evm' ? 'eth' : 'cosmos'
+                    };
+                  }
+                  
+                  setFormData(updatedFormData);
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -572,6 +585,7 @@ const CreateWorkflow = () => {
               <option value="gaia">Gaia</option>
               <option value="ironbird-cosmos-sdk">Ironbird Cosmos SDK</option>
               <option value="ironbird-cometbft">Ironbird CometBFT</option>
+              <option value="evm">EVM</option>
             </Select>
           </FormControl>
 
@@ -943,7 +957,7 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
-                      kind: 'cosmos',
+                      kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
                       NumOfBlocks: 100,
                       NumOfTxs: 1000,
                       msgs: [],
@@ -1087,7 +1101,7 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
-          kind: 'cosmos',
+          kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
           NumOfBlocks: 100,
           NumOfTxs: 1000,
           msgs: [],
@@ -1098,6 +1112,7 @@ const CreateWorkflow = () => {
           gas_denom: '',
           bech32_prefix: '',
         }}
+        selectedRepo={formData.Repo}
         onSave={handleLoadTestSave}
       />
       

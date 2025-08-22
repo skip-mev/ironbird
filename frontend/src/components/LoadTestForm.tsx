@@ -32,9 +32,10 @@ interface LoadTestFormProps {
   onClose: () => void;
   initialData: LoadTestSpec;
   onSave: (loadTestSpec: LoadTestSpec) => void;
+  selectedRepo?: string;
 }
 
-const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProps) => {
+const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: LoadTestFormProps) => {
   const [defaultValues, setDefaultValues] = useState<LoadTestSpec>(initialData);
   
   const [formData, setFormData] = useState<LoadTestSpec>({
@@ -57,8 +58,6 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
     type: MsgType.MsgSend,
     weight: 0.5,
     num_msgs: 1,
-    NumOfIterations: undefined,
-    CalldataSize: undefined,
   });
   const toast = useToast();
 
@@ -66,12 +65,23 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   useEffect(() => {
     // Update default values for placeholders
     setDefaultValues(initialData);
+    
+    // Determine the correct kind based on selected repo
+    let kind: 'cosmos' | 'eth' = 'cosmos';
+    if (selectedRepo === 'evm') {
+      kind = 'eth';
+    } else if (selectedRepo && selectedRepo !== 'evm') {
+      kind = 'cosmos';
+    } else {
+      kind = initialData.kind || 'cosmos';
+    }
+    
     // Initialize with empty form
     setFormData({
       name: '',
       description: '',
       chain_id: initialData.chain_id || '', // Keep chain_id from initialData
-      kind: initialData.kind || 'cosmos',
+      kind: kind,
       NumOfBlocks: 0,
       NumOfTxs: 0,
       msgs: [],
@@ -82,7 +92,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       gas_denom: '',
       bech32_prefix: '',
     });
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, selectedRepo]);
 
   const calculateTotalWeight = (): number => {
     if (!Array.isArray(formData.msgs)) {
@@ -239,8 +249,6 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       setNewMessage({
         type: MsgType.MsgCreateContract,
         num_msgs: 1,
-        NumOfIterations: undefined,
-        CalldataSize: undefined,
       });
     }
   };
@@ -287,19 +295,21 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               />
             </FormControl>
 
-            <FormControl isRequired>
-              <FormLabel color="text">Load Test Type</FormLabel>
-              <Select
-                value={formData.kind}
-                onChange={(e) => setFormData({ ...formData, kind: e.target.value as 'cosmos' | 'eth' })}
-                bg="surface"
-                color="text"
-                borderColor="divider"
-              >
-                <option value="cosmos">Cosmos</option>
-                <option value="eth">Ethereum</option>
-              </Select>
-            </FormControl>
+            {!selectedRepo && (
+              <FormControl isRequired>
+                <FormLabel color="text">Load Test Type</FormLabel>
+                <Select
+                  value={formData.kind}
+                  onChange={(e) => setFormData({ ...formData, kind: e.target.value as 'cosmos' | 'eth' })}
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                >
+                  <option value="cosmos">Cosmos</option>
+                  <option value="eth">Ethereum</option>
+                </Select>
+              </FormControl>
+            )}
 
             <FormControl>
               <FormLabel color="text">Number of Transactions</FormLabel>
@@ -462,12 +472,6 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                   <Text fontWeight="bold" color="text">{msg.type}</Text>
                   <HStack spacing={4}>
                     <Text fontSize="sm" color="text">Txs: {msg.num_msgs || msg.NumMsgs || 1}</Text>
-                    {msg.NumOfIterations && (
-                      <Text fontSize="sm" color="text">Iterations: {msg.NumOfIterations}</Text>
-                    )}
-                    {msg.CalldataSize && (
-                      <Text fontSize="sm" color="text">Calldata: {msg.CalldataSize}B</Text>
-                    )}
                   </HStack>
                 </VStack>
                 <IconButton
@@ -620,24 +624,22 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                         type: e.target.value as MsgType,
                         // Reset ethereum-specific fields
                         num_msgs: 1,
-                        NumOfIterations: undefined,
-                        CalldataSize: undefined
                       })}
                       bg="surface"
                       color="text"
                       borderColor="divider"
                     >
-                      <option value={MsgType.MsgCreateContract}>MsgCreateContract - Deploy contracts</option>
-                      <option value={MsgType.MsgWriteTo}>MsgWriteTo - Write to contract storage</option>
-                      <option value={MsgType.MsgCrossContractCall}>MsgCrossContractCall - Cross-contract calls</option>
-                      <option value={MsgType.MsgCallDataBlast}>MsgCallDataBlast - Large calldata payloads</option>
+                      <option value={MsgType.MsgCreateContract}>MsgCreateContract</option>
+                      <option value={MsgType.MsgWriteTo}>MsgWriteTo</option>
+                      <option value={MsgType.MsgCrossContractCall}>MsgCrossContractCall</option>
+                      <option value={MsgType.MsgCallDataBlast}>MsgCallDataBlast</option>
                     </Select>
-                    <FormHelperText color="textSecondary">
+                    {/* <FormHelperText color="textSecondary">
                       {newMessage.type === MsgType.MsgCreateContract && "Deploys smart contracts to test contract creation gas costs"}
                       {newMessage.type === MsgType.MsgWriteTo && "Makes contracts iterate and write to storage mappings"}
                       {newMessage.type === MsgType.MsgCrossContractCall && "Calls contract methods that invoke other contracts"}
                       {newMessage.type === MsgType.MsgCallDataBlast && "Sends large calldata payloads to test network limits"}
-                    </FormHelperText>
+                    </FormHelperText> */}
                   </FormControl>
 
                   <FormControl flex="1">
@@ -655,49 +657,6 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                     </NumberInput>
                   </FormControl>
                 </HStack>
-
-                {/* Ethereum-specific configuration fields */}
-                {(newMessage.type === MsgType.MsgWriteTo || newMessage.type === MsgType.MsgCrossContractCall) && (
-                  <FormControl>
-                    <FormLabel fontSize="sm" color="text">Number of Iterations</FormLabel>
-                    <NumberInput
-                      value={newMessage.NumOfIterations || 1}
-                      min={1}
-                      onChange={(_, value) => setNewMessage({ ...newMessage, NumOfIterations: value })}
-                    >
-                      <NumberInputField
-                        bg="surface"
-                        color="text"
-                        borderColor="divider"
-                        placeholder="Number of iterations for contract operations"
-                      />
-                    </NumberInput>
-                    <FormHelperText color="textSecondary">
-                      Number of iterations for contract write/call operations
-                    </FormHelperText>
-                  </FormControl>
-                )}
-
-                {newMessage.type === MsgType.MsgCallDataBlast && (
-                  <FormControl>
-                    <FormLabel fontSize="sm" color="text">Calldata Size (bytes)</FormLabel>
-                    <NumberInput
-                      value={newMessage.CalldataSize || 1024}
-                      min={1}
-                      onChange={(_, value) => setNewMessage({ ...newMessage, CalldataSize: value })}
-                    >
-                      <NumberInputField
-                        bg="surface"
-                        color="text"
-                        borderColor="divider"
-                        placeholder="Size of calldata in bytes"
-                      />
-                    </NumberInput>
-                    <FormHelperText color="textSecondary">
-                      Size of calldata to send to the contract (larger = more gas usage)
-                    </FormHelperText>
-                  </FormControl>
-                )}
 
                 <Button leftIcon={<AddIcon />} onClick={addMessage} alignSelf="flex-end">
                   Add Message
