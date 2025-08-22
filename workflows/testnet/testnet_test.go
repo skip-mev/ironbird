@@ -86,8 +86,8 @@ var (
 	}
 	gaiaReq = messages.TestnetWorkflowRequest{
 		Repo:            "gaia",
-		SHA:             "27397363ab7f28338c59542b0c99dfe736c7032c",
-		IsEvmChain:      true,
+		SHA:             "7c59858e697ad96ab432407ebc944edccec6281c",
+		IsEvmChain:      false,
 		RunnerType:      messages.Docker,
 		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
