@@ -74,7 +74,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
-	} else if req.LoadTestSpec == nil {
+	} else if req.CosmosLoadTestSpec == nil && req.EthereumLoadTestSpec == nil {
 		testnetDuration := defaultRuntime
 		if req.TestnetDuration != "" {
 			var err error
@@ -90,7 +90,6 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 		networkTimeout := max(testnetDuration, defaultRuntime)
 		f := workflow.NewTimer(ctx, networkTimeout)
 		selector.AddFuture(f, func(_ workflow.Future) {})
-
 	}
 }
 
@@ -141,7 +140,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
 	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
 	var providerState, chainState []byte
-	providerSpecificOptions := determineProviderOptions(req.RunnerType)
+	workflow.GetLogger(ctx).Info("launching testnet", zap.Any("req", req))
 
 	var createProviderResp messages.CreateProviderResponse
 	if err := workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
@@ -164,23 +163,23 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
 		messages.LaunchTestnetRequest{
-			Name:                    req.ChainConfig.Name,
-			Repo:                    req.Repo,
-			SHA:                     req.SHA,
-			IsEvmChain:              req.IsEvmChain,
-			Image:                   buildResult.FQDNTag,
-			BaseImage:               req.ChainConfig.Image,
-			GenesisModifications:    req.ChainConfig.GenesisModifications,
-			RunnerType:              req.RunnerType,
-			NumOfValidators:         req.ChainConfig.NumOfValidators,
-			NumOfNodes:              req.ChainConfig.NumOfNodes,
-			CustomAppConfig:         req.ChainConfig.CustomAppConfig,
-			CustomConsensusConfig:   req.ChainConfig.CustomConsensusConfig,
-			CustomClientConfig:      req.ChainConfig.CustomClientConfig,
-			SetSeedNode:             req.ChainConfig.SetSeedNode,
-			SetPersistentPeers:      req.ChainConfig.SetPersistentPeers,
-			ProviderSpecificOptions: providerSpecificOptions,
-			ProviderState:           providerState,
+			Name:                  req.ChainConfig.Name,
+			Repo:                  req.Repo,
+			SHA:                   req.SHA,
+			IsEvmChain:            req.IsEvmChain,
+			Image:                 buildResult.FQDNTag,
+			BaseImage:             req.ChainConfig.Image,
+			GenesisModifications:  req.ChainConfig.GenesisModifications,
+			RunnerType:            req.RunnerType,
+			NumOfValidators:       req.ChainConfig.NumOfValidators,
+			NumOfNodes:            req.ChainConfig.NumOfNodes,
+			RegionConfigs:         req.ChainConfig.RegionConfigs,
+			CustomAppConfig:       req.ChainConfig.CustomAppConfig,
+			CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
+			CustomClientConfig:    req.ChainConfig.CustomClientConfig,
+			SetSeedNode:           req.ChainConfig.SetSeedNode,
+			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+			ProviderState:         providerState,
 		}).Get(ctx, &testnetResp); err != nil {
 		return nil, providerState, nil, nil, err
 	}
@@ -259,43 +258,60 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
 	mnemonics []string, selector workflow.Selector) error {
-	if req.LoadTestSpec == nil {
-		return nil
-	}
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		var loadTestResp messages.RunLoadTestResponse
-		// req.EthereumLoadTestSpec.IsEvmChain = req.IsEvmChain
-		f := workflow.ExecuteActivity(
-			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
-			loadTestActivities.RunLoadTest,
-			messages.RunLoadTestRequest{
-				ChainState:    chainState,
-				ProviderState: providerState,
-				LoadTestSpec:  *req.LoadTestSpec,
-				RunnerType:    req.RunnerType,
-				IsEvmChain:    req.IsEvmChain,
-				Mnemonics:     mnemonics,
-			},
-		)
+	if req.EthereumLoadTestSpec != nil {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var loadTestResp messages.RunLoadTestResponse
+			f := workflow.ExecuteActivity(
+				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+				loadTestActivities.RunLoadTest,
+				messages.RunLoadTestRequest{
+					ChainState:    chainState,
+					ProviderState: providerState,
+					LoadTestSpec:  *req.EthereumLoadTestSpec,
+					RunnerType:    req.RunnerType,
+					IsEvmChain:    req.IsEvmChain,
+					Mnemonics:     mnemonics,
+				},
+			)
 
-		selector.AddFuture(f, func(f workflow.Future) {
-			activityErr := f.Get(ctx, &loadTestResp)
-			if activityErr != nil {
-				workflow.GetLogger(ctx).Error("load test activity failed", zap.Error(activityErr))
-			} else if loadTestResp.Result.Error != "" {
-				workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
-			}
+			selector.AddFuture(f, func(f workflow.Future) {
+				activityErr := f.Get(ctx, &loadTestResp)
+				if activityErr != nil {
+					workflow.GetLogger(ctx).Error("ethereum load test failed", zap.Error(activityErr))
+				} else if loadTestResp.Result.Error != "" {
+					workflow.GetLogger(ctx).Error("ethereum load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				}
+			})
+
 		})
+	} else if req.CosmosLoadTestSpec != nil {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var loadTestResp messages.RunLoadTestResponse
+			f := workflow.ExecuteActivity(
+				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+				loadTestActivities.RunLoadTest,
+				messages.RunLoadTestRequest{
+					ChainState:    chainState,
+					ProviderState: providerState,
+					LoadTestSpec:  *req.CosmosLoadTestSpec,
+					RunnerType:    req.RunnerType,
+					IsEvmChain:    req.IsEvmChain,
+					Mnemonics:     mnemonics,
+				},
+			)
 
-	})
+			selector.AddFuture(f, func(f workflow.Future) {
+				activityErr := f.Get(ctx, &loadTestResp)
+				if activityErr != nil {
+					workflow.GetLogger(ctx).Error("cosmos load test failed", zap.Error(activityErr))
+				} else if loadTestResp.Result.Error != "" {
+					workflow.GetLogger(ctx).Error("cosmos load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				}
+			})
 
-	return nil
-}
-
-func determineProviderOptions(runnerType messages.RunnerType) map[string]string {
-	if runnerType == messages.DigitalOcean {
-		return messages.DigitalOceanDefaultOpts[0]
+		})
 	}
+
 	return nil
 }
 
@@ -305,9 +321,11 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		return err
 	}
 
-	providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
-	if err != nil {
-		return err
+	if req.LaunchLoadBalancer {
+		providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
+		if err != nil {
+			return err
+		}
 	}
 
 	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)

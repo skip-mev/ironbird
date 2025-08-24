@@ -48,6 +48,7 @@ const CreateWorkflow = () => {
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '2h', // 2 hours
     NumWallets: 2500, // Default number of wallets
   };
@@ -62,17 +63,40 @@ const CreateWorkflow = () => {
       GenesisModifications: [],
       NumOfNodes: 0,
       NumOfValidators: 0,
+      RegionConfigs: [],
     },
     RunnerType: '',
     IsEvmChain: false,
     LoadTestSpec: undefined,
     LongRunningTestnet: false,
+    LaunchLoadBalancer: false,
     TestnetDuration: '',
     NumWallets: 2500,
   });
 
+
+
   // Separate display states for better UX
   const [nodeInputValue, setNodeInputValue] = useState('');
+
+  // Sync nodeInputValue with formData when not loading from URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    // Only sync if there are no URL parameters (not cloning)
+    if (!params.toString()) {
+      setNodeInputValue(formData.ChainConfig.NumOfNodes?.toString() || '');
+    }
+  }, [formData.ChainConfig.NumOfNodes, location.search]);
+
+  // Auto-disable LaunchLoadBalancer when runner type changes away from DigitalOcean
+  useEffect(() => {
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      setFormData(prev => ({
+        ...prev,
+        LaunchLoadBalancer: false
+      }));
+    }
+  }, [formData.RunnerType, formData.LaunchLoadBalancer]);
 
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
@@ -98,6 +122,7 @@ const CreateWorkflow = () => {
         IsEvmChain: false,
         LoadTestSpec: undefined,
         LongRunningTestnet: false,
+        LaunchLoadBalancer: false,
         TestnetDuration: '',
         NumWallets: 2500,
       };
@@ -134,8 +159,9 @@ const CreateWorkflow = () => {
         console.log("Setting image:", newFormData.ChainConfig.Image);
       }
       
-      if (params.get('numOfNodes')) {
-        const numNodes = parseInt(params.get('numOfNodes')!, 10);
+      const numOfNodesParam = params.get('numOfNodes');
+      if (numOfNodesParam !== null) {
+        const numNodes = parseInt(numOfNodesParam, 10);
         if (!isNaN(numNodes)) {
           newFormData.ChainConfig.NumOfNodes = numNodes;
           setNodeInputValue(numNodes.toString());
@@ -144,8 +170,9 @@ const CreateWorkflow = () => {
         }
       }
       
-      if (params.get('numOfValidators')) {
-        const numValidators = parseInt(params.get('numOfValidators')!, 10);
+      const numOfValidatorsParam = params.get('numOfValidators');
+      if (numOfValidatorsParam !== null) {
+        const numValidators = parseInt(numOfValidatorsParam, 10);
         if (!isNaN(numValidators)) {
           newFormData.ChainConfig.NumOfValidators = numValidators;
           hasChanges = true;
@@ -208,6 +235,12 @@ const CreateWorkflow = () => {
         console.log("Setting longRunningTestnet:", newFormData.LongRunningTestnet);
       }
       
+      if (params.get('launchLoadBalancer')) {
+        newFormData.LaunchLoadBalancer = params.get('launchLoadBalancer') === 'true';
+        hasChanges = true;
+        console.log("Setting launchLoadBalancer:", newFormData.LaunchLoadBalancer);
+      }
+
       if (params.get('isEvmChain')) {
         newFormData.IsEvmChain = params.get('isEvmChain') === 'true';
         hasChanges = true;
@@ -280,6 +313,49 @@ const CreateWorkflow = () => {
         }
       }
       
+      // Handle regional configurations for DigitalOcean
+      const regionConfigsParam = params.get('regionConfigs');
+      if (regionConfigsParam) {
+        try {
+          const regionConfigs = JSON.parse(regionConfigsParam);
+          if (Array.isArray(regionConfigs)) {
+            newFormData.ChainConfig.RegionConfigs = regionConfigs;
+            hasChanges = true;
+            console.log("Setting regionConfigs:", newFormData.ChainConfig.RegionConfigs);
+          }
+        } catch (e) {
+          console.error('Failed to parse region configs', e);
+        }
+      }
+
+      // After all parameters are parsed, ensure proper initialization based on runner type
+      if (newFormData.RunnerType === 'DigitalOcean') {
+        // If DigitalOcean is selected but no regional configs were provided, initialize defaults
+        if (!newFormData.ChainConfig.RegionConfigs || newFormData.ChainConfig.RegionConfigs.length === 0) {
+          const defaultRegions = ['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'];
+          newFormData.ChainConfig.RegionConfigs = defaultRegions.map(region => ({
+            name: region,
+            numOfNodes: 0,
+            numOfValidators: 0,
+          }));
+          hasChanges = true;
+          console.log("Initialized default regional configs for DigitalOcean");
+        }
+      } else if (newFormData.RunnerType === 'Docker') {
+        // For Docker, clear any regional configs and ensure single values are set
+        newFormData.ChainConfig.RegionConfigs = [];
+        // If numOfNodes wasn't set from URL, ensure it has a default
+        if (!params.get('numOfNodes')) {
+          newFormData.ChainConfig.NumOfNodes = 0;
+        }
+        // If numOfValidators wasn't set from URL, ensure it has a default
+        if (!params.get('numOfValidators')) {
+          newFormData.ChainConfig.NumOfValidators = 0;
+        }
+        hasChanges = true;
+        console.log("Configured for Docker deployment");
+      }
+
       // Update form data only if there were changes
       if (hasChanges) {
         console.log("Updating form data with:", newFormData);
@@ -329,8 +405,40 @@ const CreateWorkflow = () => {
       { name: 'Commit SHA', value: formData.SHA },
       { name: 'Chain Name', value: formData.ChainConfig.Name },
       { name: 'Runner Type', value: formData.RunnerType },
-      { name: 'Number of Validators', value: formData.ChainConfig.NumOfValidators }
     ];
+
+    // Add validator validation based on runner type
+    if (formData.RunnerType === 'Docker') {
+      // For Docker, require number of validators and nodes (can be 0)
+      if (formData.ChainConfig.NumOfValidators === undefined || formData.ChainConfig.NumOfValidators < 0) {
+        requiredFields.push({ name: 'Number of Validators', value: formData.ChainConfig.NumOfValidators || 0 });
+      }
+      if (formData.ChainConfig.NumOfNodes === undefined || formData.ChainConfig.NumOfNodes < 0) {
+        requiredFields.push({ name: 'Number of Nodes', value: formData.ChainConfig.NumOfNodes || 0 });
+      }
+    } else if (formData.RunnerType === 'DigitalOcean') {
+      // For DigitalOcean, always use regional configs and require at least one region with validators
+      if (!formData.ChainConfig.RegionConfigs || formData.ChainConfig.RegionConfigs.length === 0) {
+        toast({
+          title: 'Validation Error',
+          description: 'DigitalOcean deployment requires regional configuration',
+          status: 'error',
+          duration: 5000,
+        });
+        return;
+      }
+
+      const totalValidators = formData.ChainConfig.RegionConfigs.reduce((sum, rc) => sum + rc.numOfValidators, 0);
+      if (totalValidators === 0) {
+        toast({
+          title: 'Validation Error',
+          description: 'DigitalOcean deployment requires at least one region to have validators',
+          status: 'error',
+          duration: 5000,
+        });
+        return;
+      }
+    }
 
     // Add Chain Image to required fields if repo is cometbft or ironbird-cometbft
     if (formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') {
@@ -371,15 +479,27 @@ const CreateWorkflow = () => {
       return;
     }
 
+    // Validate that LaunchLoadBalancer is only enabled for DigitalOcean runner
+    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
+      toast({
+        title: 'Validation Error',
+        description: 'Launch Load Balancer can only be enabled when using DigitalOcean as the runner type',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+
     const submissionData: TestnetWorkflowRequest = {
       Repo: formData.Repo,
       SHA: formData.SHA,
       ChainConfig: {
         Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
-        GenesisModifications: formData.ChainConfig.GenesisModifications || [],
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
+        GenesisModifications: formData.ChainConfig.GenesisModifications || [],
+        RegionConfigs: formData.RunnerType === 'DigitalOcean' ? formData.ChainConfig.RegionConfigs : [],
         AppConfig: formData.ChainConfig.AppConfig,
         ConsensusConfig: formData.ChainConfig.ConsensusConfig,
         ClientConfig: formData.ChainConfig.ClientConfig,
@@ -389,7 +509,10 @@ const CreateWorkflow = () => {
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
+      EthereumLoadTestSpec: formData.LoadTestSpec?.kind === 'eth' ? formData.LoadTestSpec : undefined,
+      CosmosLoadTestSpec: formData.LoadTestSpec?.kind === 'cosmos' ? formData.LoadTestSpec : undefined,
       LongRunningTestnet: formData.LongRunningTestnet,
+      LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
@@ -438,7 +561,20 @@ const CreateWorkflow = () => {
             <FormLabel color="text">Repository</FormLabel>
               <Select
                 value={formData.Repo}
-                onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+                onChange={(e) => {
+                  const newRepo = e.target.value;
+                  const updatedFormData = { ...formData, Repo: newRepo };
+                  
+                  // Update LoadTestSpec kind if it exists based on new repository
+                  if (updatedFormData.LoadTestSpec) {
+                    updatedFormData.LoadTestSpec = {
+                      ...updatedFormData.LoadTestSpec,
+                      kind: newRepo === 'evm' ? 'eth' : 'cosmos'
+                    };
+                  }
+                  
+                  setFormData(updatedFormData);
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -449,6 +585,7 @@ const CreateWorkflow = () => {
               <option value="gaia">Gaia</option>
               <option value="ironbird-cosmos-sdk">Ironbird Cosmos SDK</option>
               <option value="ironbird-cometbft">Ironbird CometBFT</option>
+              <option value="evm">EVM</option>
             </Select>
           </FormControl>
 
@@ -484,11 +621,37 @@ const CreateWorkflow = () => {
               />
           </FormControl>
 
-          <FormControl isRequired>
+                    <FormControl isRequired>
             <FormLabel color="text">Runner Type</FormLabel>
               <Select
                 value={formData.RunnerType}
-                onChange={(e) => setFormData({ ...formData, RunnerType: e.target.value })}
+                onChange={(e) => {
+                  const newRunnerType = e.target.value;
+                  let updatedFormData = { ...formData, RunnerType: newRunnerType };
+
+                  if (newRunnerType === 'DigitalOcean') {
+                    // Initialize regional configs for DigitalOcean
+                    const defaultRegions = ['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'];
+                    const regionConfigs = defaultRegions.map(region => ({
+                      name: region,
+                      numOfNodes: 0,
+                      numOfValidators: 0,
+                    }));
+                    updatedFormData.ChainConfig.RegionConfigs = regionConfigs;
+                  } else if (newRunnerType === 'Docker') {
+                    // Clear regional configs for Docker and ensure single-region values exist
+                    updatedFormData.ChainConfig.RegionConfigs = [];
+                    // Set default values if not already set
+                    if (updatedFormData.ChainConfig.NumOfNodes === undefined) {
+                      updatedFormData.ChainConfig.NumOfNodes = 0;
+                    }
+                    if (updatedFormData.ChainConfig.NumOfValidators === undefined) {
+                      updatedFormData.ChainConfig.NumOfValidators = 0;
+                    }
+                  }
+
+                  setFormData(updatedFormData);
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -525,8 +688,104 @@ const CreateWorkflow = () => {
             </FormControl>
           )}
 
-          <FormControl>
-            <FormLabel color="text">Number of Nodes</FormLabel>
+
+
+          {formData.RunnerType === 'DigitalOcean' && (
+            <Box
+              p={4}
+              border="1px solid"
+              borderColor="divider"
+              borderRadius="md"
+              bg="surface"
+            >
+              <VStack spacing={4} align="stretch">
+                <HStack justify="space-between">
+                  <Text fontWeight="bold" color="text">Region Configuration</Text>
+                  <Text fontSize="sm" color="textSecondary">
+                    Total: {formData.ChainConfig.RegionConfigs?.reduce((sum, rc) => sum + rc.numOfNodes, 0) || 0} nodes, {formData.ChainConfig.RegionConfigs?.reduce((sum, rc) => sum + rc.numOfValidators, 0) || 0} validators
+                  </Text>
+                </HStack>
+
+                <VStack spacing={3} align="stretch">
+                  {['nyc1', 'sfo2', 'ams3', 'fra1', 'sgp1'].map((region) => {
+                    const regionLabels: Record<string, string> = {
+                      'nyc1': 'New York (nyc1)',
+                      'sfo2': 'San Francisco (sfo2)',
+                      'ams3': 'Amsterdam (ams3)',
+                      'fra1': 'Frankfurt (fra1)',
+                      'sgp1': 'Singapore (sgp1)',
+                    };
+                    const config = formData.ChainConfig.RegionConfigs?.find(rc => rc.name === region) || { name: region, numOfNodes: 0, numOfValidators: 0 };
+
+                    return (
+                      <Box key={region} p={3} border="1px solid" borderColor="divider" borderRadius="md">
+                        <HStack spacing={4}>
+                          <Text fontWeight="bold" fontSize="sm" minW="150px" color="text">
+                            {regionLabels[region]}
+                          </Text>
+
+                          <FormControl flex="1">
+                            <FormLabel fontSize="xs">Nodes</FormLabel>
+                            <NumberInput
+                              value={config.numOfNodes}
+                              min={0}
+                              size="sm"
+                              onChange={(_, value) => {
+                                const updatedConfigs = formData.ChainConfig.RegionConfigs?.map(rc =>
+                                  rc.name === region ? { ...rc, numOfNodes: value || 0 } : rc
+                                ) || [];
+                                setFormData({
+                                  ...formData,
+                                  ChainConfig: {
+                                    ...formData.ChainConfig,
+                                    RegionConfigs: updatedConfigs,
+                                  },
+                                });
+                              }}
+                            >
+                              <NumberInputField />
+                            </NumberInput>
+                          </FormControl>
+
+                          <FormControl flex="1">
+                            <FormLabel fontSize="xs">Validators</FormLabel>
+                            <NumberInput
+                              value={config.numOfValidators}
+                              min={0}
+                              size="sm"
+                              onChange={(_, value) => {
+                                const updatedConfigs = formData.ChainConfig.RegionConfigs?.map(rc =>
+                                  rc.name === region ? { ...rc, numOfValidators: value || 0 } : rc
+                                ) || [];
+                                setFormData({
+                                  ...formData,
+                                  ChainConfig: {
+                                    ...formData.ChainConfig,
+                                    RegionConfigs: updatedConfigs,
+                                  },
+                                });
+                              }}
+                            >
+                              <NumberInputField />
+                            </NumberInput>
+                          </FormControl>
+
+                          <Text fontSize="xs" color="textSecondary" minW="80px">
+                            Total: {config.numOfNodes + config.numOfValidators}
+                          </Text>
+                        </HStack>
+                      </Box>
+                    );
+                  })}
+                </VStack>
+              </VStack>
+            </Box>
+          )}
+
+          {formData.RunnerType === 'Docker' && (
+            <>
+              <FormControl>
+                <FormLabel color="text">Number of Nodes</FormLabel>
               <Input
                 type="number"
                 min={0}
@@ -545,15 +804,15 @@ const CreateWorkflow = () => {
                 bg="surface"
                 color="text"
                 borderColor="divider"
-                placeholder={defaultValues.ChainConfig.NumOfNodes.toString()}
+                placeholder={defaultValues.ChainConfig.NumOfNodes?.toString() || "4"}
               />
           </FormControl>
 
-          <FormControl isRequired>
+          <FormControl>
             <FormLabel color="text">Number of Validators</FormLabel>
               <NumberInput
                 value={formData.ChainConfig.NumOfValidators || ''}
-                min={1}
+                min={0}
                 onChange={(_, value) =>
                   setFormData({
                     ...formData,
@@ -568,11 +827,13 @@ const CreateWorkflow = () => {
                   bg="surface" 
                   color="text" 
                   borderColor="divider" 
-                  placeholder={defaultValues.ChainConfig.NumOfValidators.toString()}
+                  placeholder={defaultValues.ChainConfig.NumOfValidators?.toString() || "3"}
                 />
             </NumberInput>
           </FormControl>
-          
+            </>
+          )}
+
           <FormControl>
             <FormLabel>Chain Configurations</FormLabel>
             <VStack spacing={3} align="start">
@@ -696,11 +957,16 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
+                      kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
                       NumOfBlocks: 100,
                       NumOfTxs: 1000,
                       msgs: [],
                       unordered_txs: false,
                       tx_timeout: '',
+                      send_interval: '',
+                      num_batches: 0,
+                      gas_denom: '',
+                      bech32_prefix: '',
                     }
                   });
                   setHasLoadTest(true);
@@ -771,7 +1037,19 @@ const CreateWorkflow = () => {
               onChange={(e) => setFormData({ ...formData, LongRunningTestnet: e.target.checked })}
             />
           </FormControl>
-          
+
+          <FormControl display="flex" alignItems="center">
+            <FormLabel mb="0">Launch Load Balancer</FormLabel>
+            <Switch
+              isChecked={formData.LaunchLoadBalancer}
+              isDisabled={formData.RunnerType === 'Docker'}
+              onChange={(e) => setFormData({ ...formData, LaunchLoadBalancer: e.target.checked })}
+            />
+            <Tooltip label="Launch a load balancer for the testnet (only available for DigitalOcean runner)">
+              <InfoIcon ml={2} cursor="pointer" />
+            </Tooltip>
+          </FormControl>
+
           {!formData.LongRunningTestnet && (
             <FormControl>
               <FormLabel>Testnet Duration (Hours)</FormLabel>
@@ -823,12 +1101,18 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
+          kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
           NumOfBlocks: 100,
           NumOfTxs: 1000,
           msgs: [],
           unordered_txs: false,
           tx_timeout: '',
+          send_interval: '',
+          num_batches: 0,
+          gas_denom: '',
+          bech32_prefix: '',
         }}
+        selectedRepo={formData.Repo}
         onSave={handleLoadTestSave}
       />
       

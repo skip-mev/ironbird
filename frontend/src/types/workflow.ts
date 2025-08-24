@@ -3,12 +3,19 @@ export interface GenesisModification {
   value: any;
 }
 
+export interface RegionConfig {
+  name: string;
+  numOfNodes: number;
+  numOfValidators: number;
+}
+
 export interface ChainConfig {
   Name: string;
   Image: string;
+  NumOfNodes?: number;
+  NumOfValidators?: number;
   GenesisModifications: GenesisModification[];
-  NumOfNodes: number;
-  NumOfValidators: number;
+  RegionConfigs?: RegionConfig[];
   AppConfig?: Record<string, any>;       
   ConsensusConfig?: Record<string, any>; 
   ClientConfig?: Record<string, any>;
@@ -18,9 +25,15 @@ export interface ChainConfig {
 
 // Define message types as string literals
 export const MsgType = {
+  // Cosmos message types
   MsgSend: "MsgSend",
   MsgMultiSend: "MsgMultiSend",
-  MsgArr: "MsgArr"
+  MsgArr: "MsgArr",
+  // Ethereum message types
+  MsgCreateContract: "MsgCreateContract",
+  MsgWriteTo: "MsgWriteTo",
+  MsgCrossContractCall: "MsgCrossContractCall",
+  MsgCallDataBlast: "MsgCallDataBlast"
 } as const;
 
 // Type for message types
@@ -28,22 +41,32 @@ export type MsgType = typeof MsgType[keyof typeof MsgType];
 
 export interface Message {
   type: MsgType;
-  weight: number;
-  NumMsgs?: number;
-  ContainedType?: MsgType;
-  NumOfRecipients?: number;
+  weight?: number; // Used by Cosmos (for weighted distribution)
+  NumMsgs?: number; // Number of messages in MsgArr (Cosmos) or transactions (Ethereum)
+  ContainedType?: MsgType; // Type of contained messages for MsgArr (Cosmos)
+  NumOfRecipients?: number; // Number of recipients for MsgMultiSend (Cosmos)
+  // Ethereum-specific fields
+  num_msgs?: number; // Number of transactions to create (Ethereum)
+  NumOfIterations?: number; // Number of iterations for contract operations (Ethereum)
+  CalldataSize?: number; // Size of calldata for large payload tests (Ethereum)
 }
 
 export interface LoadTestSpec {
   name: string;
   description: string;
   chain_id: string;
+  kind: 'cosmos' | 'eth'; // Load test type
   NumOfBlocks: number;
   NumOfTxs: number;
   msgs: Message[];
   unordered_txs: boolean;
   tx_timeout: string;
-  isEvmChain?: boolean;
+  // Ethereum-specific fields
+  send_interval?: string;
+  num_batches?: number;
+  // Cosmos-specific fields
+  gas_denom?: string;
+  bech32_prefix?: string;
 }
 
 export interface TestnetWorkflowRequest {
@@ -53,7 +76,10 @@ export interface TestnetWorkflowRequest {
   ChainConfig: ChainConfig;
   RunnerType: string;
   LoadTestSpec?: LoadTestSpec;
+  EthereumLoadTestSpec?: LoadTestSpec;
+  CosmosLoadTestSpec?: LoadTestSpec;
   LongRunningTestnet: boolean;
+  LaunchLoadBalancer: boolean;
   TestnetDuration: string;
   NumWallets: number;
 }
@@ -83,6 +109,7 @@ export interface WorkflowStatus {
   wallets?: WalletInfo;
   config?: TestnetWorkflowRequest;
   loadTestSpec?: any;
+  Provider?: string;
 }
 
 export interface WorkflowResponse {

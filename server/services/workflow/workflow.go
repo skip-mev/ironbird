@@ -16,6 +16,7 @@ import (
 	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
+	petritypes "github.com/skip-mev/petri/core/v3/types"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"go.temporal.io/api/enums/v1"
 	temporalclient "go.temporal.io/sdk/client"
@@ -55,6 +56,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
+		LaunchLoadBalancer: req.LaunchLoadBalancer,
 		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int(req.NumWallets),
 	}
@@ -70,6 +72,16 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
 			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
 			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
+		}
+
+		if req.ChainConfig.RegionConfigs != nil {
+			for _, rc := range req.ChainConfig.RegionConfigs {
+				chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, petritypes.RegionConfig{
+					Name:          rc.Name,
+					NumNodes:      int(rc.NumOfNodes),
+					NumValidators: int(rc.NumOfValidators),
+				})
+			}
 		}
 
 		if !chainConfig.SetSeedNode && !chainConfig.SetPersistentPeers {
@@ -123,7 +135,18 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		if err != nil {
 			return nil, err
 		}
-		workflowReq.LoadTestSpec = &loadTestSpec
+
+		switch loadTestSpec.Kind {
+		case "evm":
+			workflowReq.EthereumLoadTestSpec = &loadTestSpec
+		case "cosmos":
+			workflowReq.CosmosLoadTestSpec = &loadTestSpec
+		}
+	}
+
+	if err := workflowReq.Validate(); err != nil {
+		s.logger.Error("workflow request validation failed", zap.Error(err))
+		return nil, fmt.Errorf("workflow request validation failed: %w", err)
 	}
 
 	options := temporalclient.StartWorkflowOptions{
@@ -185,6 +208,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	response := &pb.Workflow{
 		WorkflowId: req.WorkflowId,
 		Status:     status,
+		Provider:   workflow.Provider,
 	}
 
 	response.Nodes = workflow.Nodes
@@ -212,14 +236,22 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 
 	chainConfig := &pb.ChainConfig{
 		Name:                  workflow.Config.ChainConfig.Name,
+		Image:                 workflow.Config.ChainConfig.Image,
 		NumOfNodes:            workflow.Config.ChainConfig.NumOfNodes,
 		NumOfValidators:       workflow.Config.ChainConfig.NumOfValidators,
-		Image:                 workflow.Config.ChainConfig.Image,
 		SetSeedNode:           workflow.Config.ChainConfig.SetSeedNode,
 		SetPersistentPeers:    workflow.Config.ChainConfig.SetPersistentPeers,
 		CustomAppConfig:       marshalJSONConfig(workflow.Config.ChainConfig.CustomAppConfig),
 		CustomConsensusConfig: marshalJSONConfig(workflow.Config.ChainConfig.CustomConsensusConfig),
 		CustomClientConfig:    marshalJSONConfig(workflow.Config.ChainConfig.CustomClientConfig),
+	}
+
+	for _, rc := range workflow.Config.ChainConfig.RegionConfigs {
+		chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, &pb.RegionConfig{
+			Name:            rc.Name,
+			NumOfNodes:      uint64(rc.NumNodes),
+			NumOfValidators: uint64(rc.NumValidators),
+		})
 	}
 
 	if workflow.Config.ChainConfig.GenesisModifications != nil {
@@ -253,6 +285,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		IsEvmChain:         workflow.Config.IsEvmChain,
 		RunnerType:         string(workflow.Config.RunnerType),
 		LongRunningTestnet: workflow.Config.LongRunningTestnet,
+		LaunchLoadBalancer: workflow.Config.LaunchLoadBalancer,
 		TestnetDuration:    workflow.Config.TestnetDuration,
 		NumWallets:         int32(workflow.Config.NumWallets),
 		ChainConfig:        chainConfig,
@@ -290,6 +323,7 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 			StartTime:  startTime,
 			Repo:       workflow.Config.Repo,
 			Sha:        workflow.Config.SHA,
+			Provider:   workflow.Provider,
 		})
 	}
 
@@ -366,6 +400,10 @@ func (s *Service) UpdateWorkflowData(ctx context.Context, req *pb.UpdateWorkflow
 
 	if req.Wallets != nil {
 		update.Wallets = req.Wallets
+	}
+
+	if req.Provider != "" {
+		update.Provider = &req.Provider
 	}
 
 	if err := s.db.UpdateWorkflow(req.WorkflowId, update); err != nil {

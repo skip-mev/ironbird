@@ -71,5 +71,6 @@
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 99
+  "num_wallets": 10,
+  "LaunchLoadBalancer": false
 }

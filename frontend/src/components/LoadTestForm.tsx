@@ -32,25 +32,32 @@ interface LoadTestFormProps {
   onClose: () => void;
   initialData: LoadTestSpec;
   onSave: (loadTestSpec: LoadTestSpec) => void;
+  selectedRepo?: string;
 }
 
-const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProps) => {
+const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: LoadTestFormProps) => {
   const [defaultValues, setDefaultValues] = useState<LoadTestSpec>(initialData);
   
   const [formData, setFormData] = useState<LoadTestSpec>({
     name: '',
     description: '',
     chain_id: '',
+    kind: 'cosmos',
     NumOfBlocks: 0,
     NumOfTxs: 0,
     msgs: [],
     unordered_txs: false,
     tx_timeout: '',
+    send_interval: '',
+    num_batches: 0,
+    gas_denom: '',
+    bech32_prefix: '',
   });
   
   const [newMessage, setNewMessage] = useState<Message>({
     type: MsgType.MsgSend,
     weight: 0.5,
+    num_msgs: 1,
   });
   const toast = useToast();
 
@@ -58,25 +65,41 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   useEffect(() => {
     // Update default values for placeholders
     setDefaultValues(initialData);
+    
+    // Determine the correct kind based on selected repo
+    let kind: 'cosmos' | 'eth' = 'cosmos';
+    if (selectedRepo === 'evm') {
+      kind = 'eth';
+    } else if (selectedRepo && selectedRepo !== 'evm') {
+      kind = 'cosmos';
+    } else {
+      kind = initialData.kind || 'cosmos';
+    }
+    
     // Initialize with empty form
     setFormData({
       name: '',
       description: '',
       chain_id: initialData.chain_id || '', // Keep chain_id from initialData
+      kind: kind,
       NumOfBlocks: 0,
       NumOfTxs: 0,
       msgs: [],
       unordered_txs: false,
       tx_timeout: '',
+      send_interval: '',
+      num_batches: 0,
+      gas_denom: '',
+      bech32_prefix: '',
     });
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, selectedRepo]);
 
   const calculateTotalWeight = (): number => {
     if (!Array.isArray(formData.msgs)) {
       return 0; // Or handle as an error, though 0 is safe for toFixed()
     }
     return formData.msgs.reduce((total, msg) => {
-      const weight = Number(msg.weight); // Ensure msg.weight is treated as a number
+      const weight = msg.weight ? Number(msg.weight) : 0; // Handle undefined weight
       return total + (isNaN(weight) ? 0 : weight); // Add 0 if weight is NaN
     }, 0);
   };
@@ -110,8 +133,8 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       return;
     }
 
-    // Validate total weight should be exactly 1.0 if there are any messages
-    if (formData.msgs.length > 0) {
+    // Validate total weight should be exactly 1.0 if there are any Cosmos messages
+    if (formData.kind === 'cosmos' && formData.msgs.length > 0) {
       const totalWeight = calculateTotalWeight();
       if (Math.abs(totalWeight - 1.0) > 0.001) { // Allow small rounding errors
         toast({
@@ -155,11 +178,22 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
   };
 
   const addMessage = () => {
-    // Basic validation
-    if (newMessage.weight <= 0 || newMessage.weight > 1) {
+    // Basic validation for Cosmos messages (weight required)
+    if (formData.kind === 'cosmos' && (newMessage.weight <= 0 || newMessage.weight > 1)) {
       toast({
         title: 'Validation Error',
         description: 'Weight must be between 0 and 1',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+    
+    // Basic validation for Ethereum messages (num_msgs required)
+    if (formData.kind === 'eth' && (!newMessage.num_msgs || newMessage.num_msgs <= 0)) {
+      toast({
+        title: 'Validation Error',
+        description: 'Number of messages must be greater than 0',
         status: 'error',
         duration: 3000,
       });
@@ -177,24 +211,26 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       return;
     }
 
-    // Check for duplicate message type
-    const duplicateType = formData.msgs.find(msg => 
-      msg.type === newMessage.type && 
-      // For MsgArr, we also need to check containedType
-      (msg.type !== MsgType.MsgArr || 
-        (msg.type === MsgType.MsgArr && msg.ContainedType === newMessage.ContainedType))
-    );
+    // Check for duplicate message type (only for Cosmos messages with MsgArr special case)
+    if (formData.kind === 'cosmos') {
+      const duplicateType = formData.msgs.find(msg => 
+        msg.type === newMessage.type && 
+        // For MsgArr, we also need to check containedType
+        (msg.type !== MsgType.MsgArr || 
+          (msg.type === MsgType.MsgArr && msg.ContainedType === newMessage.ContainedType))
+      );
 
-    if (duplicateType) {
-      toast({
-        title: 'Validation Error',
-        description: newMessage.type === MsgType.MsgArr 
-          ? `A message with type ${newMessage.type} and contained type ${newMessage.ContainedType} already exists` 
-          : `A message with type ${newMessage.type} already exists`,
-        status: 'error',
-        duration: 3000,
-      });
-      return;
+      if (duplicateType) {
+        toast({
+          title: 'Validation Error',
+          description: newMessage.type === MsgType.MsgArr 
+            ? `A message with type ${newMessage.type} and contained type ${newMessage.ContainedType} already exists` 
+            : `A message with type ${newMessage.type} already exists`,
+          status: 'error',
+          duration: 3000,
+        });
+        return;
+      }
     }
 
     const updatedMessages = [...formData.msgs, { ...newMessage }];
@@ -203,11 +239,18 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
       msgs: updatedMessages,
     });
 
-    // Reset new message form
-    setNewMessage({
-      type: MsgType.MsgSend,
-      weight: 0.5,
-    });
+    // Reset new message form based on load test type
+    if (formData.kind === 'cosmos') {
+      setNewMessage({
+        type: MsgType.MsgSend,
+        weight: 0.5,
+      });
+    } else {
+      setNewMessage({
+        type: MsgType.MsgCreateContract,
+        num_msgs: 1,
+      });
+    }
   };
 
   const removeMessage = (index: number) => {
@@ -252,6 +295,22 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               />
             </FormControl>
 
+            {!selectedRepo && (
+              <FormControl isRequired>
+                <FormLabel color="text">Load Test Type</FormLabel>
+                <Select
+                  value={formData.kind}
+                  onChange={(e) => setFormData({ ...formData, kind: e.target.value as 'cosmos' | 'eth' })}
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                >
+                  <option value="cosmos">Cosmos</option>
+                  <option value="eth">Ethereum</option>
+                </Select>
+              </FormControl>
+            )}
+
             <FormControl>
               <FormLabel color="text">Number of Transactions</FormLabel>
               <NumberInput
@@ -268,21 +327,83 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               </NumberInput>
             </FormControl>
 
-            <FormControl>
-              <FormLabel color="text">Number of Blocks</FormLabel>
-              <NumberInput
-                value={formData.NumOfBlocks || ''}
-                min={1}
-                onChange={(_, value) => setFormData({ ...formData, NumOfBlocks: value })}
-              >
-                <NumberInputField 
-                  bg="surface"
-                  color="text"
-                  borderColor="divider"
-                  placeholder={defaultValues.NumOfBlocks?.toString() || "100"}
-                />
-              </NumberInput>
-            </FormControl>
+            {formData.kind === 'cosmos' && (
+              <FormControl>
+                <FormLabel color="text">Number of Blocks</FormLabel>
+                <NumberInput
+                  value={formData.NumOfBlocks || ''}
+                  min={1}
+                  onChange={(_, value) => setFormData({ ...formData, NumOfBlocks: value })}
+                >
+                  <NumberInputField 
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                    placeholder={defaultValues.NumOfBlocks?.toString() || "100"}
+                  />
+                </NumberInput>
+              </FormControl>
+            )}
+
+            {formData.kind === 'eth' && (
+              <>
+                <FormControl>
+                  <FormLabel color="text">Send Interval</FormLabel>
+                  <Input
+                    value={formData.send_interval}
+                    onChange={(e) => setFormData({ ...formData, send_interval: e.target.value })}
+                    placeholder="1.5s"
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="text">Number of Batches</FormLabel>
+                  <NumberInput
+                    value={formData.num_batches || ''}
+                    min={1}
+                    onChange={(_, value) => setFormData({ ...formData, num_batches: value })}
+                  >
+                    <NumberInputField 
+                      bg="surface"
+                      color="text"
+                      borderColor="divider"
+                      placeholder="15"
+                    />
+                  </NumberInput>
+                </FormControl>
+              </>
+            )}
+
+            {formData.kind === 'cosmos' && (
+              <>
+                <FormControl>
+                  <FormLabel color="text">Gas Denom</FormLabel>
+                  <Input
+                    value={formData.gas_denom}
+                    onChange={(e) => setFormData({ ...formData, gas_denom: e.target.value })}
+                    placeholder="stake"
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                  />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="text">Bech32 Prefix</FormLabel>
+                  <Input
+                    value={formData.bech32_prefix}
+                    onChange={(e) => setFormData({ ...formData, bech32_prefix: e.target.value })}
+                    placeholder="cosmos"
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                  />
+                </FormControl>
+              </>
+            )}
 
             <FormControl display="flex" alignItems="center">
               <FormLabel mb="0" color="text">Unordered Transactions</FormLabel>
@@ -307,11 +428,22 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               </FormControl>
             )}
             
-            <Divider my={2} borderColor="divider" />
+            {formData.kind === 'cosmos' && (
+              <>
+                <Divider my={2} borderColor="divider" />
+                <Text fontWeight="bold" color="text">Message Types</Text>
+              </>
+            )}
 
-            <Text fontWeight="bold" color="text">Message Types</Text>
+            {formData.kind === 'eth' && (
+              <>
+                <Divider my={2} borderColor="divider" />
+                <Text fontWeight="bold" color="text">Ethereum Message Types</Text>
+              </>
+            )}
             
-            {formData.msgs.map((msg, index) => (
+            {/* Display Cosmos messages */}
+            {formData.kind === 'cosmos' && formData.msgs.map((msg, index) => (
               <HStack key={index} p={2} bg="surface" borderRadius="md" boxShadow="sm">
                 <Text flex="1" color="text">{msg.type}</Text>
                 <Text color="text">Weight: {msg.weight}</Text>
@@ -333,6 +465,25 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
               </HStack>
             ))}
             
+            {/* Display Ethereum messages */}
+            {formData.kind === 'eth' && formData.msgs.map((msg, index) => (
+              <HStack key={index} p={2} bg="surface" borderRadius="md" boxShadow="sm">
+                <VStack align="start" flex="1">
+                  <Text fontWeight="bold" color="text">{msg.type}</Text>
+                  <HStack spacing={4}>
+                    <Text fontSize="sm" color="text">Txs: {msg.num_msgs || msg.NumMsgs || 1}</Text>
+                  </HStack>
+                </VStack>
+                <IconButton
+                  aria-label="Remove message"
+                  size="sm"
+                  icon={<DeleteIcon />}
+                  onClick={() => removeMessage(index)}
+                />
+              </HStack>
+            ))}
+            
+            {formData.kind === 'cosmos' && (
             <FormControl>
               <VStack spacing={3} align="stretch">
                 <HStack>
@@ -457,6 +608,62 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave }: LoadTestFormProp
                 </Button>
               </VStack>
             </FormControl>
+            )}
+            
+            {/* Ethereum message configuration */}
+            {formData.kind === 'eth' && (
+            <FormControl>
+              <VStack spacing={3} align="stretch">
+                <HStack>
+                  <FormControl flex="1">
+                    <FormLabel fontSize="sm" color="text">Type</FormLabel>
+                    <Select
+                      value={newMessage.type}
+                      onChange={(e) => setNewMessage({ 
+                        ...newMessage, 
+                        type: e.target.value as MsgType,
+                        // Reset ethereum-specific fields
+                        num_msgs: 1,
+                      })}
+                      bg="surface"
+                      color="text"
+                      borderColor="divider"
+                    >
+                      <option value={MsgType.MsgCreateContract}>MsgCreateContract</option>
+                      <option value={MsgType.MsgWriteTo}>MsgWriteTo</option>
+                      <option value={MsgType.MsgCrossContractCall}>MsgCrossContractCall</option>
+                      <option value={MsgType.MsgCallDataBlast}>MsgCallDataBlast</option>
+                    </Select>
+                    {/* <FormHelperText color="textSecondary">
+                      {newMessage.type === MsgType.MsgCreateContract && "Deploys smart contracts to test contract creation gas costs"}
+                      {newMessage.type === MsgType.MsgWriteTo && "Makes contracts iterate and write to storage mappings"}
+                      {newMessage.type === MsgType.MsgCrossContractCall && "Calls contract methods that invoke other contracts"}
+                      {newMessage.type === MsgType.MsgCallDataBlast && "Sends large calldata payloads to test network limits"}
+                    </FormHelperText> */}
+                  </FormControl>
+
+                  <FormControl flex="1">
+                    <FormLabel fontSize="sm" color="text">Number of Transactions</FormLabel>
+                    <NumberInput
+                      value={newMessage.num_msgs || 1}
+                      min={1}
+                      onChange={(_, value) => setNewMessage({ ...newMessage, num_msgs: value })}
+                    >
+                      <NumberInputField
+                        bg="surface"
+                        color="text"
+                        borderColor="divider"
+                      />
+                    </NumberInput>
+                  </FormControl>
+                </HStack>
+
+                <Button leftIcon={<AddIcon />} onClick={addMessage} alignSelf="flex-end">
+                  Add Message
+                </Button>
+              </VStack>
+            </FormControl>
+            )}
             
           </VStack>
         </ModalBody>

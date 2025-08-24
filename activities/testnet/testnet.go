@@ -63,8 +63,6 @@ const (
 	DefaultEvmChainID = "262144"
 )
 
-var launchedNodes = 0
-
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
@@ -101,7 +99,7 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	return messages.TeardownProviderResponse{}, err
 }
 
-func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, logger *zap.Logger) {
+func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, nodes []*pb.Node, validators []*pb.Node, chainID string, startTime time.Time, provider string, logger *zap.Logger) {
 	if a.GRPCClient == nil {
 		logger.Warn("GRPCClient is nil, skipping workflow data update")
 		return
@@ -116,6 +114,7 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 		Nodes:      nodes,
 		Validators: validators,
 		Monitoring: monitoringLinks,
+		Provider:   provider,
 	}
 
 	_, err := a.GRPCClient.UpdateWorkflowData(ctx, updateReq)
@@ -147,9 +146,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			logger.Error("Failed to fetch docker repo token", zap.Error(err))
 		}
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-			definition.ProviderSpecificConfig = messages.DigitalOceanDefaultOpts[launchedNodes%5]
-			launchedNodes++
-			definition.ProviderSpecificConfig = req.ProviderSpecificOptions
+			if definition.ProviderSpecificConfig == nil {
+				definition.ProviderSpecificConfig = make(map[string]string)
+			}
 			definition.ProviderSpecificConfig["docker_auth"] = token
 			return definition
 		}
@@ -238,7 +237,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.Validators = testnetValidators
 
 	if a.GRPCClient != nil {
-		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, logger)
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
 	}
 
 	go func() {
@@ -299,9 +298,6 @@ func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Lo
 func constructChainConfig(req messages.LaunchTestnetRequest,
 	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
-	deleg := new(big.Int)
-	deleg.SetString("10000000000000000000000000", 10)
-	genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
 
 	config := petritypes.ChainConfig{
 		Name:          req.Name,
@@ -327,8 +323,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		CustomClientConfig:    req.CustomClientConfig,
 		SetPersistentPeers:    req.SetPersistentPeers,
 		SetSeedNode:           req.SetSeedNode,
-		GenesisDelegation:     deleg,
-		GenesisBalance:        genBal,
+		RegionConfig:          req.RegionConfigs,
 	}
 	walletConfig := CosmosWalletConfig
 
@@ -355,6 +350,12 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		if evmConfig, ok := config.CustomAppConfig["evm"].(map[string]interface{}); ok {
 			evmConfig["evm-chain-id"] = chainID
 		}
+
+		deleg := new(big.Int)
+		deleg.SetString("10000000000000000000000000", 10)
+		genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
+		config.GenesisDelegation = deleg
+		config.GenesisBalance = genBal
 	}
 
 	return config, walletConfig

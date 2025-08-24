@@ -29,11 +29,18 @@ message CreateWorkflowRequest {
     bool long_running_testnet = 8;
     string testnet_duration = 9;
     int32 num_wallets = 10;
+    bool launch_load_balancer = 11;
 }
 
 message GenesisKV {
     string key = 1;
     string value = 2;
+}
+
+message RegionConfig {
+    string name = 1;
+    uint64 num_of_nodes = 2;
+    uint64 num_of_validators = 3;
 }
 
 message ChainConfig {
@@ -47,6 +54,7 @@ message ChainConfig {
     string custom_client_config = 8;
     bool set_seed_node = 9;
     bool set_persistent_peers = 10;
+    repeated RegionConfig region_configs = 11;
 }
 
 
@@ -102,6 +110,7 @@ message Workflow {
     CreateWorkflowRequest config = 7;
     string load_test_spec = 17;
     WalletInfo wallets = 18;
+    string provider = 19;
 }
 
 message WorkflowSummary {
@@ -110,6 +119,7 @@ message WorkflowSummary {
     string start_time = 3;
     string repo = 4;
     string sha = 5;
+    string provider = 6;
 }
 
 message UpdateWorkflowDataRequest {
@@ -119,6 +129,7 @@ message UpdateWorkflowDataRequest {
     repeated Node nodes = 4;
     repeated Node validators = 5;
     WalletInfo wallets = 6;
+    string provider = 7;
 }
 
 message WorkflowListResponse {
