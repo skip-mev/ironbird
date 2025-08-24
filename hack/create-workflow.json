@@ -8,6 +8,7 @@
     "num_of_validators": 5,
     "image": "evm",
     "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"50ms\"}}",
+    "custom_app_config": "{\"json-rpc\":{\"enable-profiling\":true}}",
     "custom_client_config": "{\"chain-id\":\"262144\"}",
     "set_persistent_peers": true,
     "genesis_modifications":

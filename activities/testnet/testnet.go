@@ -310,6 +310,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		NumValidators: int(req.NumOfValidators),
 		NumNodes:      int(req.NumOfNodes),
 		BinaryName:    chainImage.BinaryName,
+		Entrypoint:    chainImage.Entrypoint,
 		Image: provider.ImageDefinition{
 			Image: req.Image,
 			UID:   chainImage.UID,
