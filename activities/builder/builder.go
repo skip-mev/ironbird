@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -167,6 +168,15 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	fs := staticfs.NewFS()
 
 	fs.Add("Dockerfile", &fstypes.Stat{Mode: 0644}, dockerfileContent)
+
+	for _, additionalFile := range image.AdditionalFiles {
+		baseName := filepath.Base(additionalFile)
+		fileContent, err := os.ReadFile(additionalFile)
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to read file %s: %w", additionalFile, err)
+		}
+		fs.Add(baseName, &fstypes.Stat{Mode: 0644}, fileContent)
+	}
 
 	authProvider := authprovider.NewDockerAuthProvider(&configfile.ConfigFile{
 		AuthConfigs: map[string]configtypes.AuthConfig{
