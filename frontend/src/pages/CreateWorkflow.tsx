@@ -509,6 +509,8 @@ const CreateWorkflow = () => {
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
+      EthereumLoadTestSpec: formData.LoadTestSpec?.kind === 'eth' ? formData.LoadTestSpec : undefined,
+      CosmosLoadTestSpec: formData.LoadTestSpec?.kind === 'cosmos' ? formData.LoadTestSpec : undefined,
       LongRunningTestnet: formData.LongRunningTestnet,
       LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
@@ -559,7 +561,20 @@ const CreateWorkflow = () => {
             <FormLabel color="text">Repository</FormLabel>
               <Select
                 value={formData.Repo}
-                onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+                onChange={(e) => {
+                  const newRepo = e.target.value;
+                  const updatedFormData = { ...formData, Repo: newRepo };
+                  
+                  // Update LoadTestSpec kind if it exists based on new repository
+                  if (updatedFormData.LoadTestSpec) {
+                    updatedFormData.LoadTestSpec = {
+                      ...updatedFormData.LoadTestSpec,
+                      kind: newRepo === 'evm' ? 'eth' : 'cosmos'
+                    };
+                  }
+                  
+                  setFormData(updatedFormData);
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -570,6 +585,7 @@ const CreateWorkflow = () => {
               <option value="gaia">Gaia</option>
               <option value="ironbird-cosmos-sdk">Ironbird Cosmos SDK</option>
               <option value="ironbird-cometbft">Ironbird CometBFT</option>
+              <option value="evm">EVM</option>
             </Select>
           </FormControl>
 
@@ -941,11 +957,16 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
+                      kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
                       NumOfBlocks: 100,
                       NumOfTxs: 1000,
                       msgs: [],
                       unordered_txs: false,
                       tx_timeout: '',
+                      send_interval: '',
+                      num_batches: 0,
+                      gas_denom: '',
+                      bech32_prefix: '',
                     }
                   });
                   setHasLoadTest(true);
@@ -1080,12 +1101,18 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
+          kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
           NumOfBlocks: 100,
           NumOfTxs: 1000,
           msgs: [],
           unordered_txs: false,
           tx_timeout: '',
+          send_interval: '',
+          num_batches: 0,
+          gas_denom: '',
+          bech32_prefix: '',
         }}
+        selectedRepo={formData.Repo}
         onSave={handleLoadTestSave}
       />
       

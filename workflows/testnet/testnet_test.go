@@ -20,7 +20,8 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
@@ -55,14 +56,15 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
+		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
+			Kind:        "cosmos",
 			Name:        "e2e-test",
 			ChainID:     "stake-1",
 			Description: "e2e test",
 			NumOfBlocks: 5,
 			NumOfTxs:    100,
 			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
+				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
 		NumWallets: 20,
@@ -81,109 +83,6 @@ var (
 				log.Println("Chain update completed successfully")
 			}
 		},
-	}
-	gaiaReq = messages.TestnetWorkflowRequest{
-		Repo:            "gaia",
-		SHA:             "27397363ab7f28338c59542b0c99dfe736c7032c",
-		IsEvmChain:      true,
-		RunnerType:      messages.Docker,
-		TestnetDuration: "1m",
-		ChainConfig: types.ChainsConfig{
-			Name: "gaia-devnet",
-			GenesisModifications: []petrichain.GenesisKV{
-				{
-					Key:   "app_state.staking.params.bond_denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.gov.deposit_params.min_deposit.0.denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.gov.params.min_deposit.0.denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.evm.params.evm_denom",
-					Value: "uatom",
-				},
-				{
-					Key:   "app_state.mint.params.mint_denom",
-					Value: "uatom",
-				},
-				{
-					Key: "app_state.bank.denom_metadata",
-					Value: []map[string]interface{}{
-						{
-							"description": "The native staking token for evmd.",
-							"denom_units": []map[string]interface{}{
-								{
-									"denom":    "uatom",
-									"exponent": 0,
-									"aliases":  []string{"attotest"},
-								},
-								{
-									"denom":    "test",
-									"exponent": 18,
-									"aliases":  []string{},
-								},
-							},
-							"base":     "uatom",
-							"display":  "test",
-							"name":     "Test Token",
-							"symbol":   "TEST",
-							"uri":      "",
-							"uri_hash": "",
-						},
-					},
-				},
-				{
-					Key: "app_state.evm.params.active_static_precompiles",
-					Value: []string{
-						"0x0000000000000000000000000000000000000100",
-						"0x0000000000000000000000000000000000000400",
-						"0x0000000000000000000000000000000000000800",
-						"0x0000000000000000000000000000000000000801",
-						"0x0000000000000000000000000000000000000802",
-						"0x0000000000000000000000000000000000000803",
-						"0x0000000000000000000000000000000000000804",
-						"0x0000000000000000000000000000000000000805",
-					},
-				},
-				{
-					Key:   "app_state.erc20.params.native_precompiles",
-					Value: []string{"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-				},
-				{
-					Key: "app_state.erc20.token_pairs",
-					Value: []map[string]interface{}{
-						{
-							"contract_owner": 1,
-							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-							"denom":          "uatom",
-							"enabled":        true,
-						},
-					},
-				},
-				{
-					Key:   "consensus.params.block.max_gas",
-					Value: "75000000",
-				},
-			},
-			NumOfValidators:    1,
-			NumOfNodes:         1,
-			SetPersistentPeers: true,
-		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
-			Name:        "e2e-test",
-			Description: "e2e test",
-			NumOfBlocks: 5,
-			NumOfTxs:    10,
-			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
-			},
-		},
-		NumWallets: 10,
 	}
 )
 
@@ -282,11 +181,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			originalTag := "ghcr.io/cosmos/simapp:v0.50"
 			newTag := "simapp-v53"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				// TODO: replace with main once feature branch is merged to main
-				originalTag = "ghcr.io/cosmos/gaia:feature-evm"
-				newTag = "gaia"
-			}
 
 			cmd := exec.Command("docker", "pull", originalTag)
 			output, err := cmd.CombinedOutput()
@@ -340,13 +234,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
+	walletCreatorActivity := &walletcreator.Activity{
+		DOToken:           doToken,
+		TailscaleSettings: tailscaleSettings,
+	}
 
-	walletCreatorActivities := &walletcreator.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
+	s.env.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
@@ -377,9 +274,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			tag := "ghcr.io/cosmos/simapp:v0.50"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
-			}
 			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -462,6 +356,13 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = true
+	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
+		{
+			Name:          "nyc1",
+			NumValidators: 1,
+			NumNodes:      0,
+		},
+	}
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -480,7 +381,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
 
@@ -500,7 +401,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 
@@ -532,7 +433,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
-	dockerReq.LoadTestSpec = nil
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"
@@ -561,16 +461,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
-}
-
-func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
-	s.setupMockActivitiesDocker()
-	s.env.ExecuteWorkflow(Workflow, gaiaReq)
-
-	s.True(s.env.IsWorkflowCompleted())
-	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
