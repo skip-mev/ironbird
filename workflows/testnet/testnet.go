@@ -156,7 +156,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	var testnetResp messages.LaunchTestnetResponse
 	activityOptions := workflow.ActivityOptions{
-		HeartbeatTimeout:    time.Minute * 10,
+		HeartbeatTimeout:    time.Hour * 1,
 		StartToCloseTimeout: time.Hour * 24 * 365,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
