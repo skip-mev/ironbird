@@ -22,6 +22,8 @@ import (
 
 const (
 	walletFundChunkSize = 100
+	maxRetries          = 3
+	baseRetryDelay      = 1 * time.Second
 )
 
 type Activity struct {
@@ -85,13 +87,24 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 
 	chainConfig := chain.GetConfig()
 	commands := getFundWalletCommands(chainConfig, req.NumWallets, faucetWallet, addresses)
+
 	for _, command := range commands {
-		stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
-		if err != nil || exitCode != 0 {
-			logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
-			return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+		for retry := 0; retry < maxRetries; retry++ {
+			if retry > 0 {
+				time.Sleep(baseRetryDelay)
+			}
+
+			stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
+			if err == nil && exitCode == 0 {
+				logger.Info("fund result", zap.String("stdout", stdout))
+				break
+			}
+
+			if retry == maxRetries-1 {
+				logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
+				return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+			}
 		}
-		logger.Info("fund result", zap.String("stdout", stdout))
 	}
 	time.Sleep(5 * time.Second)
 
@@ -141,12 +154,22 @@ func getFundWalletCommands(chainConfig types2.ChainConfig, numWallets int, fauce
 			return commands
 		}
 
+		var gasPrices string
+		var amount string
+		if chainConfig.IsEVMChain == true {
+			amount = "10000000000000000"
+			gasPrices = "770000000"
+		} else {
+			amount = "1000000000"
+			gasPrices = "160000"
+		}
+
 		command = append(command, receivers...)
-		command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
+		command = append(command, fmt.Sprintf("%s%s", amount, chainConfig.Denom),
 			"--chain-id", chainConfig.ChainId,
 			"--keyring-backend", "test",
 			"--from", "faucet",
-			"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
+			"--gas-prices", fmt.Sprintf("%s%s", gasPrices, chainConfig.Denom),
 			"--gas", "auto",
 			"--gas-adjustment", "1.5",
 			"--yes",

@@ -137,7 +137,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		}
 
 		switch loadTestSpec.Kind {
-		case "evm":
+		case "eth":
 			workflowReq.EthereumLoadTestSpec = &loadTestSpec
 		case "cosmos":
 			workflowReq.CosmosLoadTestSpec = &loadTestSpec

@@ -36,7 +36,7 @@ interface GenesisModificationsModalProps {
 const generateSampleEvmModifications = (): GenesisModification[] => [
   {
     key: "app_state.staking.params.bond_denom",
-    value: "uatom"
+    value: "atest"
   },
   {
     key: "app_state.gov.params.expedited_voting_period",
@@ -52,7 +52,7 @@ const generateSampleEvmModifications = (): GenesisModification[] => [
   },
   {
     key: "app_state.gov.params.expedited_min_deposit.0.denom",
-    value: "uatom"
+    value: "atest"
   },
   {
     key: "app_state.gov.params.min_deposit.0.amount",
@@ -60,69 +60,27 @@ const generateSampleEvmModifications = (): GenesisModification[] => [
   },
   {
     key: "app_state.gov.params.min_deposit.0.denom",
-    value: "uatom"
+    value: "atest"
   },
   {
     key: "app_state.evm.params.evm_denom",
-    value: "uatom"
+    value: "atest"
   },
   {
     key: "app_state.mint.params.mint_denom",
-    value: "uatom"
+    value: "atest"
   },
   {
     key: "app_state.bank.denom_metadata",
-    value: [
-      {
-        "description": "The native staking token for evmd.",
-        "denom_units": [
-          {
-            "denom": "uatom",
-            "exponent": 0,
-            "aliases": ["attotest"]
-          },
-          {
-            "denom": "test",
-            "exponent": 18,
-            "aliases": []
-          }
-        ],
-        "base": "uatom",
-        "display": "atom",
-        "name": "ATOM",
-        "symbol": "ATOM",
-        "uri": "",
-        "uri_hash": ""
-      }
-    ]
+    value: "[{\"description\":\"The native staking token for evmd.\",\"denom_units\":[{\"denom\":\"atest\",\"exponent\":0,\"aliases\":[\"attotest\"]},{\"denom\":\"test\",\"exponent\":18,\"aliases\":[]}],\"base\":\"atest\",\"display\":\"test\",\"name\":\"Test Token\",\"symbol\":\"TEST\",\"uri\":\"\",\"uri_hash\":\"\"}]"
   },
   {
     key: "app_state.evm.params.active_static_precompiles",
-    value: [
-      "0x0000000000000000000000000000000000000100",
-      "0x0000000000000000000000000000000000000400",
-      "0x0000000000000000000000000000000000000800",
-      "0x0000000000000000000000000000000000000801",
-      "0x0000000000000000000000000000000000000802",
-      "0x0000000000000000000000000000000000000803",
-      "0x0000000000000000000000000000000000000804",
-      "0x0000000000000000000000000000000000000805"
-    ]
-  },
-  {
-    key: "app_state.erc20.params.native_precompiles",
-    value: ["0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"]
+    value: "[\"0x0000000000000000000000000000000000000100\",\"0x0000000000000000000000000000000000000400\",\"0x0000000000000000000000000000000000000800\",\"0x0000000000000000000000000000000000000801\",\"0x0000000000000000000000000000000000000802\",\"0x0000000000000000000000000000000000000803\",\"0x0000000000000000000000000000000000000804\",\"0x0000000000000000000000000000000000000805\"]"
   },
   {
     key: "app_state.erc20.token_pairs",
-    value: [
-      {
-        "contract_owner": 1,
-        "erc20_address": "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        "denom": "uatom",
-        "enabled": true
-      }
-    ]
+    value: "[{\"contract_owner\": 1,\"erc20_address\": \"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\",\"denom\": \"atest\",\"enabled\": true}]"
   },
   {
     key: "consensus.params.block.max_gas",
@@ -413,7 +371,7 @@ const GenesisModificationsModal = ({
                     </Text>
                     <HStack spacing={1}>
                       <IconButton
-                        aria-label="Copy EVM config"
+                        aria-label="Copy EVMD config"
                         icon={<CopyIcon />}
                         size="xs"
                         onClick={() => copyToClipboard(generateSampleEvmModifications(), 'EVM')}
@@ -428,9 +386,6 @@ const GenesisModificationsModal = ({
                       </Button>
                     </HStack>
                   </HStack>
-                  <Text fontSize="xs" color="gray.500" mb={3}>
-                    Complete EVM configuration with all necessary modifications for EVM-compatible chains
-                  </Text>
                   <Box
                     h="400px"
                     overflowY="auto"
@@ -440,10 +395,12 @@ const GenesisModificationsModal = ({
                   >
                     <Code
                       fontSize="xs"
-                      whiteSpace="pre"
+                      whiteSpace="pre-wrap"
                       display="block"
                       bg="transparent"
                       color="gray.800"
+                      overflowWrap="break-word"
+                      wordBreak="break-all"
                     >
                       {JSON.stringify(generateSampleEvmModifications(), null, 2)}
                     </Code>

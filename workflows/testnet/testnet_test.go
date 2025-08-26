@@ -3,6 +3,8 @@ package testnet
 import (
 	"context"
 	"fmt"
+	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
+
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/ironbird/activities/walletcreator"
@@ -84,6 +86,124 @@ var (
 			}
 		},
 	}
+	evmReq = messages.TestnetWorkflowRequest{
+		TestnetDuration: "20m",
+		Repo:            "evm",
+		IsEvmChain:      true,
+		SHA:             "2d3df2ba510c978d785f2151132e9ed70e1605ec",
+		RunnerType:      messages.Docker,
+		ChainConfig: types.ChainsConfig{
+			Name:  "evmd",
+			Image: "",
+			GenesisModifications: []petrichain.GenesisKV{
+				{
+					Key:   "app_state.staking.params.bond_denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.gov.params.expedited_voting_period",
+					Value: "120s",
+				},
+				{
+					Key:   "app_state.gov.params.voting_period",
+					Value: "300s",
+				},
+				{
+					Key:   "app_state.gov.params.expedited_min_deposit.0.amount",
+					Value: "1",
+				},
+				{
+					Key:   "app_state.gov.params.expedited_min_deposit.0.denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.gov.params.min_deposit.0.amount",
+					Value: "1",
+				},
+				{
+					Key:   "app_state.gov.params.min_deposit.0.denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.evm.params.evm_denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.mint.params.mint_denom",
+					Value: "atest",
+				},
+				{
+					Key: "app_state.bank.denom_metadata",
+					Value: []map[string]interface{}{
+						{
+							"description": "The native staking token for evmd.",
+							"denom_units": []map[string]interface{}{
+								{
+									"denom":    "atest",
+									"exponent": 0,
+									"aliases":  []string{"attotest"},
+								},
+								{
+									"denom":    "test",
+									"exponent": 18,
+									"aliases":  []string{},
+								},
+							},
+							"base":     "atest",
+							"display":  "test",
+							"name":     "Test Token",
+							"symbol":   "TEST",
+							"uri":      "",
+							"uri_hash": "",
+						},
+					},
+				},
+				{
+					Key: "app_state.evm.params.active_static_precompiles",
+					Value: []string{
+						"0x0000000000000000000000000000000000000100",
+						"0x0000000000000000000000000000000000000400",
+						"0x0000000000000000000000000000000000000800",
+						"0x0000000000000000000000000000000000000801",
+						"0x0000000000000000000000000000000000000802",
+						"0x0000000000000000000000000000000000000803",
+						"0x0000000000000000000000000000000000000804",
+						"0x0000000000000000000000000000000000000805",
+					},
+				},
+				{
+					Key: "app_state.erc20.token_pairs",
+					Value: []map[string]interface{}{
+						{
+							"contract_owner": 1,
+							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+							"denom":          "atest",
+							"enabled":        true,
+						},
+					},
+				},
+				{
+					Key:   "consensus.params.block.max_gas",
+					Value: "75000000",
+				},
+			},
+			NumOfValidators:    1,
+			NumOfNodes:         0,
+			SetPersistentPeers: true,
+		},
+		EthereumLoadTestSpec: &catalysttypes.LoadTestSpec{
+			Kind:        "eth",
+			Name:        "e2e-test",
+			ChainID:     "262144",
+			Description: "e2e test",
+			NumOfBlocks: 5,
+			NumOfTxs:    100,
+			Msgs: []catalysttypes.LoadTestMsg{
+				{NumMsgs: 20, Type: ethtypes.MsgCreateContract},
+			},
+		},
+		NumWallets: 5,
+	}
 )
 
 func (s *TestnetWorkflowTestSuite) SetupTest() {
@@ -107,6 +227,8 @@ func (s *TestnetWorkflowTestSuite) SetupTest() {
 		log.Println("buildkitd container already exists")
 	}
 
+	cosmostypes.Register()
+	ethtypes.Register()
 	s.env = s.NewTestWorkflowEnvironment()
 	s.env.SetTestTimeout(2 * time.Hour)
 }
@@ -179,25 +301,40 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-			originalTag := "ghcr.io/cosmos/simapp:v0.50"
-			newTag := "simapp-v53"
+			if req.Repo == "evm" {
+				evmTag := "public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:test-1main-evm-e01cc5077dc05796362af724fe0c9281c478f94a"
 
-			cmd := exec.Command("docker", "pull", originalTag)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return messages.BuildDockerImageResponse{}, err
+				cmd := exec.Command("docker", "pull", evmTag)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to pull EVM Docker image: %w, output: %s", err, output)
+				}
+
+				return messages.BuildDockerImageResponse{
+					FQDNTag: evmTag,
+					Logs:    output,
+				}, nil
+			} else {
+				originalTag := "ghcr.io/cosmos/simapp:v0.50"
+				newTag := "simapp-v53"
+
+				cmd := exec.Command("docker", "pull", originalTag)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, err
+				}
+
+				tagCmd := exec.Command("docker", "tag", originalTag, newTag)
+				tagOutput, err := tagCmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, err
+				}
+
+				return messages.BuildDockerImageResponse{
+					FQDNTag: newTag,
+					Logs:    append(output, tagOutput...),
+				}, nil
 			}
-
-			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
-			tagOutput, err := tagCmd.CombinedOutput()
-			if err != nil {
-				return messages.BuildDockerImageResponse{}, err
-			}
-
-			return messages.BuildDockerImageResponse{
-				FQDNTag: newTag,
-				Logs:    append(output, tagOutput...),
-			}, nil
 		})
 }
 
@@ -371,6 +508,17 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 1)
+}
+
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowEVM() {
+	s.setupMockActivitiesDocker()
+
+	s.env.ExecuteWorkflow(Workflow, evmReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {

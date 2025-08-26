@@ -66,7 +66,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 
 	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
-	case "evm":
+	case "eth":
 		nodeAddresses := make([]ctlteth.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
 			nodeAddresses = append(nodeAddresses, ctlteth.NodeAddress{

@@ -32,12 +32,14 @@ RUN apk add --no-cache build-base jq curl
 RUN apk add --no-cache tini
 RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot
+RUN mkdir -p /home/nonroot && chown nonroot:nonroot /home/nonroot
 ARG IMG_TAG
 COPY evmd-entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 COPY --from=evmd-builder  /src/app/build/evmd /usr/bin/evmd
 EXPOSE 26656 26657 1317 9090 26660 8545
 USER nonroot
+WORKDIR /home/nonroot
 RUN test -x /sbin/tini && test -x /usr/bin/entrypoint.sh
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/bin/entrypoint.sh"]

@@ -16,10 +16,10 @@ const convertLoadTestSpecToYaml = (spec: LoadTestSpec): string => {
     description: spec.description,
     kind: spec.kind,
     chain_id: spec.chain_id,
-    num_of_blocks: spec.NumOfBlocks,
-    num_of_txs: spec.NumOfTxs,
+    ...(spec.NumOfBlocks && { num_of_blocks: spec.NumOfBlocks }),
+    ...(spec.NumOfTxs && { num_of_txs: spec.NumOfTxs }),
     unordered_txs: spec.unordered_txs,
-    tx_timeout: spec.tx_timeout,
+    ...(spec.tx_timeout && { tx_timeout: spec.tx_timeout }),
     msgs: spec.msgs.map(msg => ({
       type: msg.type,
       weight: msg.weight || 0, // Ethereum uses weight: 0
@@ -32,12 +32,12 @@ const convertLoadTestSpecToYaml = (spec: LoadTestSpec): string => {
     })),
     // Add conditional fields based on kind
     ...(spec.kind === 'eth' && {
-      send_interval: spec.send_interval,
-      num_batches: spec.num_batches
+      ...(spec.send_interval && { send_interval: spec.send_interval }),
+      ...(spec.num_batches && { num_batches: spec.num_batches })
     }),
     ...(spec.kind === 'cosmos' && {
-      gas_denom: spec.gas_denom,
-      bech32_prefix: spec.bech32_prefix
+      ...(spec.gas_denom && { gas_denom: spec.gas_denom }),
+      ...(spec.bech32_prefix && { bech32_prefix: spec.bech32_prefix })
     }),
     chain_config: {} // This will be populated by the server
   };

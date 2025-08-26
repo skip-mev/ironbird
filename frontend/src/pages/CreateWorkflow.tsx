@@ -130,9 +130,10 @@ const CreateWorkflow = () => {
       let hasChanges = false;
       
       if (params.get('repo')) {
-        newFormData.Repo = params.get('repo')!;
+        const repo = params.get('repo')!;
+        newFormData.Repo = repo;
+        newFormData.IsEvmChain = repo === 'evm';
         hasChanges = true;
-        console.log("Setting repo:", newFormData.Repo);
       }
       
       if (params.get('sha')) {
@@ -241,7 +242,7 @@ const CreateWorkflow = () => {
         console.log("Setting launchLoadBalancer:", newFormData.LaunchLoadBalancer);
       }
 
-      if (params.get('isEvmChain')) {
+      if (params.get('isEvmChain') && !params.get('repo')) {
         newFormData.IsEvmChain = params.get('isEvmChain') === 'true';
         hasChanges = true;
         console.log("Setting evm flag:", newFormData.IsEvmChain);
@@ -286,6 +287,7 @@ const CreateWorkflow = () => {
             name: parsedLoadTestSpec.Name || parsedLoadTestSpec.name || "",
             description: parsedLoadTestSpec.Description || parsedLoadTestSpec.description || "",
             chain_id: parsedLoadTestSpec.ChainID || parsedLoadTestSpec.chain_id || "",
+            kind: parsedLoadTestSpec.Kind || parsedLoadTestSpec.kind || (newFormData.Repo === 'evm' ? 'eth' : 'cosmos'),
             NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || 0,
             NumOfTxs: parsedLoadTestSpec.NumOfTxs || 0,
             msgs: Array.isArray(parsedLoadTestSpec.Msgs) 
@@ -516,7 +518,6 @@ const CreateWorkflow = () => {
       TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
-
     createWorkflowMutation.mutate(submissionData);
   };
   
@@ -563,8 +564,12 @@ const CreateWorkflow = () => {
                 value={formData.Repo}
                 onChange={(e) => {
                   const newRepo = e.target.value;
-                  const updatedFormData = { ...formData, Repo: newRepo };
-                  
+                  const updatedFormData = { 
+                    ...formData, 
+                    Repo: newRepo,
+                    IsEvmChain: newRepo === 'evm'
+                  };
+                                    
                   // Update LoadTestSpec kind if it exists based on new repository
                   if (updatedFormData.LoadTestSpec) {
                     updatedFormData.LoadTestSpec = {
@@ -1000,8 +1005,23 @@ const CreateWorkflow = () => {
                 />
               </Flex>
               <Text color="text">Name: {formData.LoadTestSpec.name}</Text>
-              <Text color="text">Transactions: {formData.LoadTestSpec.NumOfTxs}</Text>
-              <Text color="text">Blocks: {formData.LoadTestSpec.NumOfBlocks}</Text>
+              <Text color="text">Type: {formData.LoadTestSpec.kind === 'eth' ? 'Ethereum' : 'Cosmos'}</Text>
+              {formData.LoadTestSpec.kind === 'cosmos' && (
+                <>
+                  <Text color="text">Transactions: {formData.LoadTestSpec.NumOfTxs}</Text>
+                  <Text color="text">Blocks: {formData.LoadTestSpec.NumOfBlocks}</Text>
+                </>
+              )}
+              {formData.LoadTestSpec.kind === 'eth' && (
+                <>
+                  {formData.LoadTestSpec.send_interval && (
+                    <Text color="text">Send Interval: {formData.LoadTestSpec.send_interval}</Text>
+                  )}
+                  {formData.LoadTestSpec.num_batches && (
+                    <Text color="text">Batches: {formData.LoadTestSpec.num_batches}</Text>
+                  )}
+                </>
+              )}
               {formData.LoadTestSpec.unordered_txs && (
                 <>
                   <Text color="text">Unordered Transactions: Yes</Text>

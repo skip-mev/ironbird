@@ -109,9 +109,15 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
     const requiredFields = [
       { name: 'Test Name', value: formData.name },
       { name: 'Description', value: formData.description },
-      { name: 'Number of Transactions', value: formData.NumOfTxs },
-      { name: 'Number of Blocks', value: formData.NumOfBlocks }
     ];
+
+    // Add type-specific required fields
+    if (formData.kind === 'cosmos') {
+      requiredFields.push(
+        { name: 'Number of Transactions', value: formData.NumOfTxs?.toString() || '' },
+        { name: 'Number of Blocks', value: formData.NumOfBlocks?.toString() || '' }
+      );
+    }
 
     // Add Transaction Timeout if unordered_txs is true
     if (formData.unordered_txs) {
@@ -120,7 +126,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
 
     // Check for empty required fields
     const emptyFields = requiredFields.filter(field => 
-      field.value === '' || field.value === 0 || field.value === undefined
+      field.value === '' || field.value === '0' || field.value === undefined || field.value === null
     );
 
     if (emptyFields.length > 0) {
@@ -179,7 +185,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
 
   const addMessage = () => {
     // Basic validation for Cosmos messages (weight required)
-    if (formData.kind === 'cosmos' && (newMessage.weight <= 0 || newMessage.weight > 1)) {
+    if (formData.kind === 'cosmos' && (newMessage.weight === undefined || newMessage.weight <= 0 || newMessage.weight > 1)) {
       toast({
         title: 'Validation Error',
         description: 'Weight must be between 0 and 1',
@@ -311,21 +317,23 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
               </FormControl>
             )}
 
-            <FormControl>
-              <FormLabel color="text">Number of Transactions</FormLabel>
-              <NumberInput
-              value={formData.NumOfTxs || ''}
-              min={1}
-              onChange={(_, value) => setFormData({ ...formData, NumOfTxs: value })}
-              >
-                <NumberInputField 
-                  bg="surface"
-                  color="text"
-                  borderColor="divider"
-                  placeholder={defaultValues.NumOfTxs?.toString() || "1000"}
-                />
-              </NumberInput>
-            </FormControl>
+            {formData.kind === 'cosmos' && (
+              <FormControl>
+                <FormLabel color="text">Number of Transactions</FormLabel>
+                <NumberInput
+                value={formData.NumOfTxs || ''}
+                min={1}
+                onChange={(_, value) => setFormData({ ...formData, NumOfTxs: value })}
+                >
+                  <NumberInputField 
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                    placeholder={defaultValues.NumOfTxs?.toString() || "1000"}
+                  />
+                </NumberInput>
+              </FormControl>
+            )}
 
             {formData.kind === 'cosmos' && (
               <FormControl>

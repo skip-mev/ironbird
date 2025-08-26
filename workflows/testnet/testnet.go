@@ -109,6 +109,8 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		switch req.Repo {
 		case "gaia":
 			req.ChainConfig.Image = req.Repo
+		case "evm":
+			req.ChainConfig.Image = req.Repo
 		default:
 			// for SDK testing default to simapp
 			// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
