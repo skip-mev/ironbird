@@ -156,7 +156,7 @@ func getFundWalletCommands(chainConfig types2.ChainConfig, numWallets int, fauce
 
 		var gasPrices string
 		var amount string
-		if chainConfig.IsEVMChain == true {
+		if chainConfig.IsEVMChain {
 			amount = "10000000000000000"
 			gasPrices = "770000000"
 		} else {
