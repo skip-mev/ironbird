@@ -9,8 +9,11 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
 	"github.com/skip-mev/ironbird/workflows/testnet"
+	"gopkg.in/yaml.v3"
 
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/server/db"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
@@ -28,6 +31,8 @@ type Service struct {
 }
 
 func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclient.Client) *Service {
+	cosmostypes.Register()
+	ethtypes.Register()
 	return &Service{
 		db:             database,
 		logger:         logger,
@@ -125,9 +130,18 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		workflowReq.ChainConfig = chainConfig
 	}
 
-	if req.LoadTestSpec != nil {
-		loadTestSpec := s.convertProtoLoadTestSpec(req.LoadTestSpec)
-		workflowReq.LoadTestSpec = &loadTestSpec
+	if len(req.EncodedLoadTestSpec) != 0 {
+		loadTestSpec, err := decodeLoadTestSpec(req.EncodedLoadTestSpec)
+		if err != nil {
+			return nil, err
+		}
+
+		switch loadTestSpec.Kind {
+		case "eth":
+			workflowReq.EthereumLoadTestSpec = &loadTestSpec
+		case "cosmos":
+			workflowReq.CosmosLoadTestSpec = &loadTestSpec
+		}
 	}
 
 	if err := workflowReq.Validate(); err != nil {
@@ -212,7 +226,11 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	if workflow.LoadTestSpec != nil {
 		var loadTestSpec catalysttypes.LoadTestSpec
 		if err := json.Unmarshal(workflow.LoadTestSpec, &loadTestSpec); err == nil {
-			response.LoadTestSpec = s.convertCatalystLoadTestSpecToProto(&loadTestSpec)
+			encodedSpec, err := encodeLoadTestSpec(loadTestSpec)
+			if err != nil {
+				return nil, err
+			}
+			response.LoadTestSpec = encodedSpec
 		}
 	}
 
@@ -447,30 +465,6 @@ func (s *Service) UpdateWorkflowStatuses() {
 	}
 }
 
-func (s *Service) convertProtoLoadTestSpec(spec *pb.LoadTestSpec) catalysttypes.LoadTestSpec {
-	if spec == nil {
-		return catalysttypes.LoadTestSpec{}
-	}
-
-	result := catalysttypes.LoadTestSpec{
-		Name:         spec.Name,
-		Description:  spec.Description,
-		ChainID:      spec.ChainId,
-		NumOfTxs:     int(spec.NumOfTxs),
-		NumOfBlocks:  int(spec.NumOfBlocks),
-		GasDenom:     spec.GasDenom,
-		Bech32Prefix: spec.Bech32Prefix,
-		UnorderedTxs: spec.UnorderedTxs,
-		TxTimeout:    time.Duration(spec.TxTimeout),
-	}
-
-	result.NodesAddresses = convertProtoNodeAddresses(spec.NodesAddresses)
-	result.Mnemonics = spec.Mnemonics
-	result.Msgs = convertProtoLoadTestMsgs(spec.Msgs)
-
-	return result
-}
-
 func isNumericString(s string) bool {
 	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
 		s = s[1 : len(s)-1]
@@ -487,30 +481,6 @@ func isNumericString(s string) bool {
 	return isNumeric
 }
 
-func (s *Service) convertCatalystLoadTestSpecToProto(spec *catalysttypes.LoadTestSpec) *pb.LoadTestSpec {
-	if spec == nil {
-		return nil
-	}
-
-	result := &pb.LoadTestSpec{
-		Name:         spec.Name,
-		Description:  spec.Description,
-		ChainId:      spec.ChainID,
-		NumOfTxs:     int32(spec.NumOfTxs),
-		NumOfBlocks:  int32(spec.NumOfBlocks),
-		GasDenom:     spec.GasDenom,
-		Bech32Prefix: spec.Bech32Prefix,
-		UnorderedTxs: spec.UnorderedTxs,
-		TxTimeout:    int64(spec.TxTimeout.Seconds()),
-	}
-
-	result.NodesAddresses = convertCatalystNodeAddresses(spec.NodesAddresses)
-	result.Mnemonics = spec.Mnemonics
-	result.Msgs = convertCatalystLoadTestMsgs(spec.Msgs)
-
-	return result
-}
-
 func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
 	if protoNodes == nil {
 		return nil
@@ -524,72 +494,6 @@ func convertProtoNodes(protoNodes []*pb.Node) []pb.Node {
 			Rpc:     protoNodes[i].Rpc,
 			Lcd:     protoNodes[i].Lcd,
 			Grpc:    protoNodes[i].Grpc,
-		})
-	}
-	return result
-}
-
-func convertProtoNodeAddresses(protoAddrs []*pb.NodeAddress) []catalysttypes.NodeAddress {
-	if protoAddrs == nil {
-		return nil
-	}
-
-	var result []catalysttypes.NodeAddress
-	for _, addr := range protoAddrs {
-		result = append(result, catalysttypes.NodeAddress{
-			GRPC: addr.Grpc,
-			RPC:  addr.Rpc,
-		})
-	}
-	return result
-}
-
-func convertCatalystNodeAddresses(addrs []catalysttypes.NodeAddress) []*pb.NodeAddress {
-	if addrs == nil {
-		return nil
-	}
-
-	var result []*pb.NodeAddress
-	for _, addr := range addrs {
-		result = append(result, &pb.NodeAddress{
-			Grpc: addr.GRPC,
-			Rpc:  addr.RPC,
-		})
-	}
-	return result
-}
-
-func convertProtoLoadTestMsgs(protoMsgs []*pb.LoadTestMsg) []catalysttypes.LoadTestMsg {
-	if protoMsgs == nil {
-		return nil
-	}
-
-	var result []catalysttypes.LoadTestMsg
-	for _, msg := range protoMsgs {
-		result = append(result, catalysttypes.LoadTestMsg{
-			Weight:          float64(msg.Weight),
-			Type:            catalysttypes.MsgType(msg.Type),
-			NumMsgs:         int(msg.NumMsgs),
-			ContainedType:   catalysttypes.MsgType(msg.ContainedType),
-			NumOfRecipients: int(msg.NumOfRecipients),
-		})
-	}
-	return result
-}
-
-func convertCatalystLoadTestMsgs(msgs []catalysttypes.LoadTestMsg) []*pb.LoadTestMsg {
-	if msgs == nil {
-		return nil
-	}
-
-	var result []*pb.LoadTestMsg
-	for _, msg := range msgs {
-		result = append(result, &pb.LoadTestMsg{
-			Weight:          float32(msg.Weight),
-			Type:            msg.Type.String(),
-			NumMsgs:         int32(msg.NumMsgs),
-			ContainedType:   msg.ContainedType.String(),
-			NumOfRecipients: int32(msg.NumOfRecipients),
 		})
 	}
 	return result
@@ -626,4 +530,15 @@ func marshalJSONConfig(config map[string]interface{}) string {
 	}
 
 	return ""
+}
+
+func decodeLoadTestSpec(s string) (catalysttypes.LoadTestSpec, error) {
+	spec := catalysttypes.LoadTestSpec{}
+	err := yaml.Unmarshal([]byte(s), &spec)
+	return spec, err
+}
+
+func encodeLoadTestSpec(s catalysttypes.LoadTestSpec) (string, error) {
+	bz, err := yaml.Marshal(s)
+	return string(bz), err
 }

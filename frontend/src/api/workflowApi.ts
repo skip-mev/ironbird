@@ -3,43 +3,47 @@ import type { TestnetWorkflowRequest, WorkflowResponse, WorkflowStatus, LoadTest
 import { 
   CreateWorkflowRequest, 
   ChainConfig, 
-  LoadTestSpec as GrpcLoadTestSpec,
-  LoadTestMsg,
   GenesisKV,
   RegionConfig
 } from '../gen/proto/ironbird_pb.js';
 import { protoInt64 } from "@bufbuild/protobuf";
 
-// Helper function to convert frontend LoadTestSpec to gRPC LoadTestSpec
-const convertToGrpcLoadTestSpec = (spec: LoadTestSpec): GrpcLoadTestSpec => {
-  const grpcSpec = new GrpcLoadTestSpec({
+// Helper function to convert frontend LoadTestSpec to YAML string
+const convertLoadTestSpecToYaml = (spec: LoadTestSpec): string => {
+  // Convert the frontend LoadTestSpec to YAML format for the server
+  const yamlSpec = {
     name: spec.name,
     description: spec.description,
-    isEvmChain: spec.isEvmChain || false,
-    chainId: spec.chain_id,
-    numOfBlocks: spec.NumOfBlocks,
-    numOfTxs: spec.NumOfTxs || 0,
-    nodesAddresses: [],
-    mnemonics: [],
-    gasDenom: "",
-    bech32Prefix: "",
-    msgs: [],
-    unorderedTxs: spec.unordered_txs,
-    txTimeout: protoInt64.parse(spec.tx_timeout || "30")
-  });
-  
-  // Add messages
-  if (spec.msgs && spec.msgs.length > 0) {
-    grpcSpec.msgs = spec.msgs.map(msg => new LoadTestMsg({
-      weight: msg.weight,
+    kind: spec.kind,
+    chain_id: spec.chain_id,
+    ...(spec.NumOfBlocks && { num_of_blocks: spec.NumOfBlocks }),
+    ...(spec.NumOfTxs && { num_of_txs: spec.NumOfTxs }),
+    unordered_txs: spec.unordered_txs,
+    ...(spec.tx_timeout && { tx_timeout: spec.tx_timeout }),
+    msgs: spec.msgs.map(msg => ({
       type: msg.type,
-      numMsgs: msg.NumMsgs || 1,
-      containedType: msg.ContainedType || "",
-      numOfRecipients: msg.NumOfRecipients || 1
-    }));
-  }
+      weight: msg.weight || 0, // Ethereum uses weight: 0
+      num_msgs: msg.num_msgs || msg.NumMsgs || 1,
+      contained_type: msg.ContainedType,
+      num_of_recipients: msg.NumOfRecipients,
+      // Ethereum-specific fields
+      num_of_iterations: msg.NumOfIterations,
+      calldata_size: msg.CalldataSize
+    })),
+    // Add conditional fields based on kind
+    ...(spec.kind === 'eth' && {
+      ...(spec.send_interval && { send_interval: spec.send_interval }),
+      ...(spec.num_batches && { num_batches: spec.num_batches })
+    }),
+    ...(spec.kind === 'cosmos' && {
+      ...(spec.gas_denom && { gas_denom: spec.gas_denom }),
+      ...(spec.bech32_prefix && { bech32_prefix: spec.bech32_prefix })
+    }),
+    chain_config: {} // This will be populated by the server
+  };
   
-  return grpcSpec;
+  // Convert to YAML string (simplified - in practice you'd use a YAML library)
+  return JSON.stringify(yamlSpec, null, 2);
 };
 
 // Helper function to convert frontend TestnetWorkflowRequest to gRPC CreateWorkflowRequest
@@ -102,9 +106,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
   }
   
   if (request.LoadTestSpec) {
-    const grpcLoadTestSpec = convertToGrpcLoadTestSpec(request.LoadTestSpec);
-    grpcLoadTestSpec.isEvmChain = request.IsEvmChain;
-    grpcRequest.loadTestSpec = grpcLoadTestSpec;
+    grpcRequest.encodedLoadTestSpec = convertLoadTestSpecToYaml(request.LoadTestSpec);
   }
 
   return grpcRequest;
@@ -188,23 +190,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
           }
         })()
       },
-      LoadTestSpec: workflow.loadTestSpec ? {
-        name: workflow.loadTestSpec.name,
-        description: workflow.loadTestSpec.description,
-        chain_id: workflow.loadTestSpec.chainId,
-        NumOfBlocks: workflow.loadTestSpec.numOfBlocks,
-        NumOfTxs: workflow.loadTestSpec.numOfTxs,
-        msgs: (workflow.loadTestSpec.msgs || []).map((msg: any) => ({
-          type: msg.type,
-          weight: msg.weight,
-          NumMsgs: msg.numMsgs,
-          ContainedType: msg.containedType,
-          NumOfRecipients: msg.numOfRecipients
-        })),
-        unordered_txs: workflow.loadTestSpec.unorderedTxs,
-        tx_timeout: workflow.loadTestSpec.txTimeout?.toString() || '',
-        isEvmChain: workflow.loadTestSpec.isEvmChain
-      } : undefined
+      LoadTestSpec: workflow.loadTestSpec ? JSON.parse(workflow.loadTestSpec) : undefined
     };
   }
   
@@ -278,16 +264,8 @@ export const workflowApi = {
   },
 
   runLoadTest: async (workflowId: string, spec: LoadTestSpec): Promise<WorkflowResponse> => {
-    // Make sure we have a copy of the spec to avoid modifying the original
-    const specCopy = { ...spec };
-    
-    // If evm is not set in the spec, default to false
-    if (specCopy.isEvmChain === undefined) {
-      specCopy.isEvmChain = false;
-    }
-    
-    const grpcSpec = convertToGrpcLoadTestSpec(specCopy);
-    const response = await grpcWorkflowApi.runLoadTest(workflowId, grpcSpec);
+    const yamlSpec = convertLoadTestSpecToYaml(spec);
+    const response = await grpcWorkflowApi.runLoadTest(workflowId, yamlSpec);
     return convertFromGrpcWorkflowResponse(response);
   },
 

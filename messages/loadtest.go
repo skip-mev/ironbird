@@ -1,7 +1,7 @@
 package messages
 
 import (
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 )
 
 type RunLoadTestRequest struct {

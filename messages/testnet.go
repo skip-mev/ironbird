@@ -3,9 +3,8 @@ package messages
 import (
 	"fmt"
 
+	ctlttypes "github.com/skip-mev/catalyst/chains/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
-
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
 	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
@@ -19,7 +18,7 @@ const (
 
 var (
 	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-		"image_id": "197014352"}
+		"image_id": "195881161"}
 )
 
 type RunnerType string
@@ -72,12 +71,15 @@ type LaunchTestnetResponse struct {
 }
 
 type TestnetWorkflowRequest struct {
-	Repo               string
-	SHA                string
-	IsEvmChain         bool
-	ChainConfig        types.ChainsConfig
-	RunnerType         RunnerType
-	LoadTestSpec       *catalysttypes.LoadTestSpec
+	Repo        string
+	SHA         string
+	IsEvmChain  bool
+	ChainConfig types.ChainsConfig
+	RunnerType  RunnerType
+
+	EthereumLoadTestSpec *ctlttypes.LoadTestSpec
+	CosmosLoadTestSpec   *ctlttypes.LoadTestSpec
+
 	LongRunningTestnet bool
 	LaunchLoadBalancer bool
 	TestnetDuration    string
@@ -111,6 +113,20 @@ func (r TestnetWorkflowRequest) Validate() error {
 
 	if r.RunnerType == Docker && r.LaunchLoadBalancer {
 		return fmt.Errorf("load balancer is not supported for docker runners")
+	}
+
+	if r.EthereumLoadTestSpec != nil && r.CosmosLoadTestSpec != nil {
+		return fmt.Errorf("only one of ethereum of cosmos load test can be specified")
+	}
+
+	if r.IsEvmChain {
+		if r.CosmosLoadTestSpec != nil {
+			return fmt.Errorf("can not run cosmos load tests for evm chain")
+		}
+	} else {
+		if r.EthereumLoadTestSpec != nil {
+			return fmt.Errorf("can not run ethereum load tests for cosmos chain")
+		}
 	}
 
 	return nil

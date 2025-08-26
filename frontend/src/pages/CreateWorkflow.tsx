@@ -130,9 +130,10 @@ const CreateWorkflow = () => {
       let hasChanges = false;
       
       if (params.get('repo')) {
-        newFormData.Repo = params.get('repo')!;
+        const repo = params.get('repo')!;
+        newFormData.Repo = repo;
+        newFormData.IsEvmChain = repo === 'evm';
         hasChanges = true;
-        console.log("Setting repo:", newFormData.Repo);
       }
       
       if (params.get('sha')) {
@@ -241,7 +242,7 @@ const CreateWorkflow = () => {
         console.log("Setting launchLoadBalancer:", newFormData.LaunchLoadBalancer);
       }
 
-      if (params.get('isEvmChain')) {
+      if (params.get('isEvmChain') && !params.get('repo')) {
         newFormData.IsEvmChain = params.get('isEvmChain') === 'true';
         hasChanges = true;
         console.log("Setting evm flag:", newFormData.IsEvmChain);
@@ -286,6 +287,7 @@ const CreateWorkflow = () => {
             name: parsedLoadTestSpec.Name || parsedLoadTestSpec.name || "",
             description: parsedLoadTestSpec.Description || parsedLoadTestSpec.description || "",
             chain_id: parsedLoadTestSpec.ChainID || parsedLoadTestSpec.chain_id || "",
+            kind: parsedLoadTestSpec.Kind || parsedLoadTestSpec.kind || (newFormData.Repo === 'evm' ? 'eth' : 'cosmos'),
             NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || 0,
             NumOfTxs: parsedLoadTestSpec.NumOfTxs || 0,
             msgs: Array.isArray(parsedLoadTestSpec.Msgs) 
@@ -509,12 +511,13 @@ const CreateWorkflow = () => {
       IsEvmChain: formData.IsEvmChain || false,
       RunnerType: formData.RunnerType,
       LoadTestSpec: formData.LoadTestSpec,
+      EthereumLoadTestSpec: formData.LoadTestSpec?.kind === 'eth' ? formData.LoadTestSpec : undefined,
+      CosmosLoadTestSpec: formData.LoadTestSpec?.kind === 'cosmos' ? formData.LoadTestSpec : undefined,
       LongRunningTestnet: formData.LongRunningTestnet,
       LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
       NumWallets: formData.NumWallets,
     };
-
     createWorkflowMutation.mutate(submissionData);
   };
   
@@ -559,7 +562,24 @@ const CreateWorkflow = () => {
             <FormLabel color="text">Repository</FormLabel>
               <Select
                 value={formData.Repo}
-                onChange={(e) => setFormData({ ...formData, Repo: e.target.value })}
+                onChange={(e) => {
+                  const newRepo = e.target.value;
+                  const updatedFormData = { 
+                    ...formData, 
+                    Repo: newRepo,
+                    IsEvmChain: newRepo === 'evm'
+                  };
+                                    
+                  // Update LoadTestSpec kind if it exists based on new repository
+                  if (updatedFormData.LoadTestSpec) {
+                    updatedFormData.LoadTestSpec = {
+                      ...updatedFormData.LoadTestSpec,
+                      kind: newRepo === 'evm' ? 'eth' : 'cosmos'
+                    };
+                  }
+                  
+                  setFormData(updatedFormData);
+                }}
                 bg="surface"
                 color="text"
                 borderColor="divider"
@@ -570,6 +590,7 @@ const CreateWorkflow = () => {
               <option value="gaia">Gaia</option>
               <option value="ironbird-cosmos-sdk">Ironbird Cosmos SDK</option>
               <option value="ironbird-cometbft">Ironbird CometBFT</option>
+              <option value="evm">EVM</option>
             </Select>
           </FormControl>
 
@@ -941,11 +962,16 @@ const CreateWorkflow = () => {
                       name: 'basic-load-test',
                       description: 'Basic load test configuration',
                       chain_id: 'test-chain',
+                      kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
                       NumOfBlocks: 100,
                       NumOfTxs: 1000,
                       msgs: [],
                       unordered_txs: false,
                       tx_timeout: '',
+                      send_interval: '',
+                      num_batches: 0,
+                      gas_denom: '',
+                      bech32_prefix: '',
                     }
                   });
                   setHasLoadTest(true);
@@ -979,8 +1005,23 @@ const CreateWorkflow = () => {
                 />
               </Flex>
               <Text color="text">Name: {formData.LoadTestSpec.name}</Text>
-              <Text color="text">Transactions: {formData.LoadTestSpec.NumOfTxs}</Text>
-              <Text color="text">Blocks: {formData.LoadTestSpec.NumOfBlocks}</Text>
+              <Text color="text">Type: {formData.LoadTestSpec.kind === 'eth' ? 'Ethereum' : 'Cosmos'}</Text>
+              {formData.LoadTestSpec.kind === 'cosmos' && (
+                <>
+                  <Text color="text">Transactions: {formData.LoadTestSpec.NumOfTxs}</Text>
+                  <Text color="text">Blocks: {formData.LoadTestSpec.NumOfBlocks}</Text>
+                </>
+              )}
+              {formData.LoadTestSpec.kind === 'eth' && (
+                <>
+                  {formData.LoadTestSpec.send_interval && (
+                    <Text color="text">Send Interval: {formData.LoadTestSpec.send_interval}</Text>
+                  )}
+                  {formData.LoadTestSpec.num_batches && (
+                    <Text color="text">Batches: {formData.LoadTestSpec.num_batches}</Text>
+                  )}
+                </>
+              )}
               {formData.LoadTestSpec.unordered_txs && (
                 <>
                   <Text color="text">Unordered Transactions: Yes</Text>
@@ -1080,12 +1121,18 @@ const CreateWorkflow = () => {
           name: 'basic-load-test',
           description: 'Basic load test configuration',
           chain_id: formData.ChainConfig.Name || 'test-chain',
+          kind: formData.Repo === 'evm' ? 'eth' : 'cosmos',
           NumOfBlocks: 100,
           NumOfTxs: 1000,
           msgs: [],
           unordered_txs: false,
           tx_timeout: '',
+          send_interval: '',
+          num_batches: 0,
+          gas_denom: '',
+          bech32_prefix: '',
         }}
+        selectedRepo={formData.Repo}
         onSave={handleLoadTestSave}
       />
       

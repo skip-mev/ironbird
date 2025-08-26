@@ -74,7 +74,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
-	} else if req.LoadTestSpec == nil {
+	} else if req.CosmosLoadTestSpec == nil && req.EthereumLoadTestSpec == nil {
 		testnetDuration := defaultRuntime
 		if req.TestnetDuration != "" {
 			var err error
@@ -90,7 +90,6 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 		networkTimeout := max(testnetDuration, defaultRuntime)
 		f := workflow.NewTimer(ctx, networkTimeout)
 		selector.AddFuture(f, func(_ workflow.Future) {})
-
 	}
 }
 
@@ -109,6 +108,8 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	if req.ChainConfig.Image == "" {
 		switch req.Repo {
 		case "gaia":
+			req.ChainConfig.Image = req.Repo
+		case "evm":
 			req.ChainConfig.Image = req.Repo
 		default:
 			// for SDK testing default to simapp
@@ -259,35 +260,59 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
 	mnemonics []string, selector workflow.Selector) error {
-	if req.LoadTestSpec == nil {
-		return nil
-	}
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		var loadTestResp messages.RunLoadTestResponse
-		req.LoadTestSpec.IsEvmChain = req.IsEvmChain
-		f := workflow.ExecuteActivity(
-			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
-			loadTestActivities.RunLoadTest,
-			messages.RunLoadTestRequest{
-				ChainState:    chainState,
-				ProviderState: providerState,
-				LoadTestSpec:  *req.LoadTestSpec,
-				RunnerType:    req.RunnerType,
-				IsEvmChain:    req.IsEvmChain,
-				Mnemonics:     mnemonics,
-			},
-		)
+	if req.EthereumLoadTestSpec != nil {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var loadTestResp messages.RunLoadTestResponse
+			f := workflow.ExecuteActivity(
+				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+				loadTestActivities.RunLoadTest,
+				messages.RunLoadTestRequest{
+					ChainState:    chainState,
+					ProviderState: providerState,
+					LoadTestSpec:  *req.EthereumLoadTestSpec,
+					RunnerType:    req.RunnerType,
+					IsEvmChain:    req.IsEvmChain,
+					Mnemonics:     mnemonics,
+				},
+			)
 
-		selector.AddFuture(f, func(f workflow.Future) {
-			activityErr := f.Get(ctx, &loadTestResp)
-			if activityErr != nil {
-				workflow.GetLogger(ctx).Error("load test activity failed", zap.Error(activityErr))
-			} else if loadTestResp.Result.Error != "" {
-				workflow.GetLogger(ctx).Error("load test reported an error", zap.String("error", loadTestResp.Result.Error))
-			}
+			selector.AddFuture(f, func(f workflow.Future) {
+				activityErr := f.Get(ctx, &loadTestResp)
+				if activityErr != nil {
+					workflow.GetLogger(ctx).Error("ethereum load test failed", zap.Error(activityErr))
+				} else if loadTestResp.Result.Error != "" {
+					workflow.GetLogger(ctx).Error("ethereum load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				}
+			})
+
 		})
+	} else if req.CosmosLoadTestSpec != nil {
+		workflow.Go(ctx, func(ctx workflow.Context) {
+			var loadTestResp messages.RunLoadTestResponse
+			f := workflow.ExecuteActivity(
+				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+				loadTestActivities.RunLoadTest,
+				messages.RunLoadTestRequest{
+					ChainState:    chainState,
+					ProviderState: providerState,
+					LoadTestSpec:  *req.CosmosLoadTestSpec,
+					RunnerType:    req.RunnerType,
+					IsEvmChain:    req.IsEvmChain,
+					Mnemonics:     mnemonics,
+				},
+			)
 
-	})
+			selector.AddFuture(f, func(f workflow.Future) {
+				activityErr := f.Get(ctx, &loadTestResp)
+				if activityErr != nil {
+					workflow.GetLogger(ctx).Error("cosmos load test failed", zap.Error(activityErr))
+				} else if loadTestResp.Result.Error != "" {
+					workflow.GetLogger(ctx).Error("cosmos load test reported an error", zap.String("error", loadTestResp.Result.Error))
+				}
+			})
+
+		})
+	}
 
 	return nil
 }

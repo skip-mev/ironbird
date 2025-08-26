@@ -3,6 +3,8 @@ package testnet
 import (
 	"context"
 	"fmt"
+	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
+
 	petritypes "github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/ironbird/activities/walletcreator"
@@ -20,7 +22,8 @@ import (
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	catalysttypes "github.com/skip-mev/catalyst/pkg/types"
+	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
+	catalysttypes "github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/builder"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
@@ -55,14 +58,15 @@ var (
 			NumOfNodes:         1,
 			SetPersistentPeers: true,
 		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
+		CosmosLoadTestSpec: &catalysttypes.LoadTestSpec{
+			Kind:        "cosmos",
 			Name:        "e2e-test",
 			ChainID:     "stake-1",
 			Description: "e2e test",
 			NumOfBlocks: 5,
 			NumOfTxs:    100,
 			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
+				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
 		NumWallets: 20,
@@ -82,34 +86,51 @@ var (
 			}
 		},
 	}
-	gaiaReq = messages.TestnetWorkflowRequest{
-		Repo:            "gaia",
-		SHA:             "27397363ab7f28338c59542b0c99dfe736c7032c",
+	evmReq = messages.TestnetWorkflowRequest{
+		TestnetDuration: "20m",
+		Repo:            "evm",
 		IsEvmChain:      true,
+		SHA:             "2d3df2ba510c978d785f2151132e9ed70e1605ec",
 		RunnerType:      messages.Docker,
-		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
-			Name: "gaia-devnet",
+			Name:  "evmd",
+			Image: "",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
-					Value: "uatom",
+					Value: "atest",
 				},
 				{
-					Key:   "app_state.gov.deposit_params.min_deposit.0.denom",
-					Value: "uatom",
+					Key:   "app_state.gov.params.expedited_voting_period",
+					Value: "120s",
+				},
+				{
+					Key:   "app_state.gov.params.voting_period",
+					Value: "300s",
+				},
+				{
+					Key:   "app_state.gov.params.expedited_min_deposit.0.amount",
+					Value: "1",
+				},
+				{
+					Key:   "app_state.gov.params.expedited_min_deposit.0.denom",
+					Value: "atest",
+				},
+				{
+					Key:   "app_state.gov.params.min_deposit.0.amount",
+					Value: "1",
 				},
 				{
 					Key:   "app_state.gov.params.min_deposit.0.denom",
-					Value: "uatom",
+					Value: "atest",
 				},
 				{
 					Key:   "app_state.evm.params.evm_denom",
-					Value: "uatom",
+					Value: "atest",
 				},
 				{
 					Key:   "app_state.mint.params.mint_denom",
-					Value: "uatom",
+					Value: "atest",
 				},
 				{
 					Key: "app_state.bank.denom_metadata",
@@ -118,7 +139,7 @@ var (
 							"description": "The native staking token for evmd.",
 							"denom_units": []map[string]interface{}{
 								{
-									"denom":    "uatom",
+									"denom":    "atest",
 									"exponent": 0,
 									"aliases":  []string{"attotest"},
 								},
@@ -128,7 +149,7 @@ var (
 									"aliases":  []string{},
 								},
 							},
-							"base":     "uatom",
+							"base":     "atest",
 							"display":  "test",
 							"name":     "Test Token",
 							"symbol":   "TEST",
@@ -151,16 +172,12 @@ var (
 					},
 				},
 				{
-					Key:   "app_state.erc20.params.native_precompiles",
-					Value: []string{"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-				},
-				{
 					Key: "app_state.erc20.token_pairs",
 					Value: []map[string]interface{}{
 						{
 							"contract_owner": 1,
 							"erc20_address":  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-							"denom":          "uatom",
+							"denom":          "atest",
 							"enabled":        true,
 						},
 					},
@@ -171,19 +188,21 @@ var (
 				},
 			},
 			NumOfValidators:    1,
-			NumOfNodes:         1,
+			NumOfNodes:         0,
 			SetPersistentPeers: true,
 		},
-		LoadTestSpec: &catalysttypes.LoadTestSpec{
+		EthereumLoadTestSpec: &catalysttypes.LoadTestSpec{
+			Kind:        "eth",
 			Name:        "e2e-test",
+			ChainID:     "262144",
 			Description: "e2e test",
 			NumOfBlocks: 5,
-			NumOfTxs:    10,
+			NumOfTxs:    100,
 			Msgs: []catalysttypes.LoadTestMsg{
-				{Weight: 1, Type: catalysttypes.MsgSend},
+				{NumMsgs: 20, Type: ethtypes.MsgCreateContract},
 			},
 		},
-		NumWallets: 10,
+		NumWallets: 5,
 	}
 )
 
@@ -208,6 +227,8 @@ func (s *TestnetWorkflowTestSuite) SetupTest() {
 		log.Println("buildkitd container already exists")
 	}
 
+	cosmostypes.Register()
+	ethtypes.Register()
 	s.env = s.NewTestWorkflowEnvironment()
 	s.env.SetTestTimeout(2 * time.Hour)
 }
@@ -280,30 +301,40 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-			originalTag := "ghcr.io/cosmos/simapp:v0.50"
-			newTag := "simapp-v53"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				// TODO: replace with main once feature branch is merged to main
-				originalTag = "ghcr.io/cosmos/gaia:feature-evm"
-				newTag = "gaia"
-			}
+			if req.Repo == "evm" {
+				evmTag := "public.ecr.aws/n7v2p5f8/skip-mev/ironbird-local:test-1main-evm-e01cc5077dc05796362af724fe0c9281c478f94a"
 
-			cmd := exec.Command("docker", "pull", originalTag)
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				return messages.BuildDockerImageResponse{}, err
-			}
+				cmd := exec.Command("docker", "pull", evmTag)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to pull EVM Docker image: %w, output: %s", err, output)
+				}
 
-			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
-			tagOutput, err := tagCmd.CombinedOutput()
-			if err != nil {
-				return messages.BuildDockerImageResponse{}, err
-			}
+				return messages.BuildDockerImageResponse{
+					FQDNTag: evmTag,
+					Logs:    output,
+				}, nil
+			} else {
+				originalTag := "ghcr.io/cosmos/simapp:v0.50"
+				newTag := "simapp-v53"
 
-			return messages.BuildDockerImageResponse{
-				FQDNTag: newTag,
-				Logs:    append(output, tagOutput...),
-			}, nil
+				cmd := exec.Command("docker", "pull", originalTag)
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, err
+				}
+
+				tagCmd := exec.Command("docker", "tag", originalTag, newTag)
+				tagOutput, err := tagCmd.CombinedOutput()
+				if err != nil {
+					return messages.BuildDockerImageResponse{}, err
+				}
+
+				return messages.BuildDockerImageResponse{
+					FQDNTag: newTag,
+					Logs:    append(output, tagOutput...),
+				}, nil
+			}
 		})
 }
 
@@ -340,13 +371,16 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
+	walletCreatorActivity := &walletcreator.Activity{
+		DOToken:           doToken,
+		TailscaleSettings: tailscaleSettings,
+	}
 
-	walletCreatorActivities := &walletcreator.Activity{}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
+	s.env.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
@@ -377,9 +411,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 			tag := "ghcr.io/cosmos/simapp:v0.50"
-			if strings.Contains(req.SHA, gaiaReq.SHA) {
-				tag = "ghcr.io/cosmos/gaia:na-build-arm64"
-			}
 			cmd := exec.Command("docker", "pull", tag)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
@@ -462,6 +493,13 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = true
+	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
+		{
+			Name:          "nyc1",
+			NumValidators: 1,
+			NumNodes:      0,
+		},
+	}
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -472,6 +510,17 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchLoadBalancer", 1)
 }
 
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowEVM() {
+	s.setupMockActivitiesDocker()
+
+	s.env.ExecuteWorkflow(Workflow, evmReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+}
+
 func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest() {
 	s.setupMockActivitiesDocker()
 
@@ -480,7 +529,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
 
@@ -500,7 +549,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LoadTestSpec = nil
+	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 
@@ -532,7 +581,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
-	dockerReq.LoadTestSpec = nil
 
 	updatedReq := dockerReq
 	updatedReq.ChainConfig.Name = "updated-stake"
@@ -561,16 +609,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
-}
-
-func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowGaia() {
-	s.setupMockActivitiesDocker()
-	s.env.ExecuteWorkflow(Workflow, gaiaReq)
-
-	s.True(s.env.IsWorkflowCompleted())
-	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {

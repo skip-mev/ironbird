@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -57,9 +58,9 @@ var (
 
 const (
 	cosmosDenom       = "stake"
-	evmDenom          = "uatom"
+	evmDenom          = "atest"
 	cosmosDecimals    = 6
-	defaultEvmChainID = "4231"
+	DefaultEvmChainID = "262144"
 )
 
 func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProviderRequest) (messages.CreateProviderResponse, error) {
@@ -181,6 +182,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,
+		NodeOptions:   nodeOptions,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
@@ -304,6 +306,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		NumValidators: int(req.NumOfValidators),
 		NumNodes:      int(req.NumOfNodes),
 		BinaryName:    chainImage.BinaryName,
+		Entrypoint:    chainImage.Entrypoint,
 		Image: provider.ImageDefinition{
 			Image: req.Image,
 			UID:   chainImage.UID,
@@ -326,7 +329,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 
 	if req.IsEvmChain {
 		config.Denom = evmDenom
-		chainID := defaultEvmChainID
+		chainID := DefaultEvmChainID
 		config.IsEVMChain = true
 		config.ChainId = chainID
 		config.CoinType = "60"
@@ -347,6 +350,12 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 		if evmConfig, ok := config.CustomAppConfig["evm"].(map[string]interface{}); ok {
 			evmConfig["evm-chain-id"] = chainID
 		}
+
+		deleg := new(big.Int)
+		deleg.SetString("10000000000000000000000000", 10)
+		genBal := deleg.Mul(deleg, big.NewInt(int64(req.NumOfValidators+2)))
+		config.GenesisDelegation = deleg
+		config.GenesisBalance = genBal
 	}
 
 	return config, walletConfig

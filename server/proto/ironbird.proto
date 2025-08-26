@@ -10,9 +10,9 @@ service IronbirdService {
     rpc ListWorkflows(ListWorkflowsRequest) returns (WorkflowListResponse) {}
     rpc CancelWorkflow(CancelWorkflowRequest) returns (WorkflowResponse) {}
     rpc SignalWorkflow(SignalWorkflowRequest) returns (WorkflowResponse) {}
-    
+
     rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
-    
+
     rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
 }
 
@@ -24,11 +24,12 @@ message CreateWorkflowRequest {
     bool isEvmChain = 3;
     ChainConfig chain_config = 4;
     string runner_type = 5;
-    LoadTestSpec load_test_spec = 6;
-    bool long_running_testnet = 7;
-    string testnet_duration = 8;
-    int32 num_wallets = 9;
-    bool launch_load_balancer = 10;
+    // json encoded loadtest spec.
+    string encoded_load_test_spec = 6;
+    bool long_running_testnet = 8;
+    string testnet_duration = 9;
+    int32 num_wallets = 10;
+    bool launch_load_balancer = 11;
 }
 
 message GenesisKV {
@@ -48,42 +49,14 @@ message ChainConfig {
     uint64 num_of_validators = 3;
     repeated GenesisKV genesis_modifications = 4;
     string image = 5;
-    string custom_app_config = 6;       
-    string custom_consensus_config = 7; 
+    string custom_app_config = 6;
+    string custom_consensus_config = 7;
     string custom_client_config = 8;
     bool set_seed_node = 9;
     bool set_persistent_peers = 10;
     repeated RegionConfig region_configs = 11;
 }
 
-message NodeAddress {
-    string grpc = 1;
-    string rpc = 2;
-}
-
-message LoadTestMsg {
-    float weight = 1;
-    string type = 2;
-    int32 num_msgs = 3;
-    string contained_type = 4;
-    int32 num_of_recipients = 5;
-}
-
-message LoadTestSpec {
-    string name = 1;
-    string description = 2;
-    bool isEvmChain = 3;
-    string chain_id = 4;
-    int32 num_of_txs = 5;
-    int32 num_of_blocks = 6;
-    repeated NodeAddress nodes_addresses = 7;
-    repeated string mnemonics = 8;
-    string gas_denom = 9;
-    string bech32_prefix = 10;
-    repeated LoadTestMsg msgs = 11;
-    bool unordered_txs = 12;
-    int64 tx_timeout = 13;
-}
 
 message GetWorkflowRequest {
     string workflow_id = 1;
@@ -105,7 +78,7 @@ message SignalWorkflowRequest {
 
 message RunLoadTestRequest {
     string workflow_id = 1;
-    LoadTestSpec load_test_spec = 2;
+    string load_test_spec = 2;
 }
 
 message WorkflowResponse {
@@ -135,7 +108,7 @@ message Workflow {
     repeated Node load_balancers = 5;
     map<string, string> monitoring = 6;
     CreateWorkflowRequest config = 7;
-    LoadTestSpec load_test_spec = 17;
+    string load_test_spec = 17;
     WalletInfo wallets = 18;
     string provider = 19;
 }

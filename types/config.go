@@ -134,14 +134,16 @@ type ServerConfig struct {
 type Chains map[string]ImageConfig
 
 type ImageConfig struct {
-	Name       string `yaml:"name"`
-	Version    string `yaml:"version"`
-	Dockerfile string `yaml:"dockerfile"`
-	GID        string `yaml:"gid"`
-	UID        string `yaml:"uid"`
-	BinaryName string `yaml:"binary_name"`
-	HomeDir    string `yaml:"home_dir"`
-	GasPrices  string `yaml:"gas_prices"`
+	Name            string   `yaml:"name"`
+	Version         string   `yaml:"version"`
+	Dockerfile      string   `yaml:"dockerfile"`
+	AdditionalFiles []string `yaml:"additional_files"`
+	GID             string   `yaml:"gid"`
+	UID             string   `yaml:"uid"`
+	BinaryName      string   `yaml:"binary_name"`
+	Entrypoint      []string `yaml:"entrypoint"`
+	HomeDir         string   `yaml:"home_dir"`
+	GasPrices       string   `yaml:"gas_prices"`
 }
 
 func ParseWorkerConfig(path string) (WorkerConfig, error) {

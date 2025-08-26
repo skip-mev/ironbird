@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	types2 "github.com/skip-mev/petri/core/v3/types"
 	petriutil "github.com/skip-mev/petri/core/v3/util"
 	"github.com/skip-mev/petri/cosmos/v3/chain"
 	"github.com/skip-mev/petri/cosmos/v3/node"
@@ -21,6 +22,8 @@ import (
 
 const (
 	walletFundChunkSize = 100
+	maxRetries          = 3
+	baseRetryDelay      = 1 * time.Second
 )
 
 type Activity struct {
@@ -51,15 +54,12 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore chain: %w", err)
 	}
 
-	var mnemonics []string
-	var addresses []string
-	var walletsMutex sync.Mutex
-
+	mnemonics := make([]string, req.NumWallets)
+	addresses := make([]string, req.NumWallets)
 	faucetWallet := chain.GetFaucetWallet()
 
 	var wg sync.WaitGroup
-
-	for i := 0; i < req.NumWallets; i++ {
+	for i := range req.NumWallets {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -68,11 +68,8 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 				logger.Error("failed to create wallet", zap.Error(err))
 				return
 			}
-
-			walletsMutex.Lock()
-			mnemonics = append(mnemonics, w.Mnemonic())
-			addresses = append(addresses, w.FormattedAddress())
-			walletsMutex.Unlock()
+			mnemonics[i] = w.Mnemonic()
+			addresses[i] = w.FormattedAddress()
 		}()
 	}
 
@@ -89,36 +86,25 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	time.Sleep(1 * time.Second)
 
 	chainConfig := chain.GetConfig()
-	for i := 0; i <= req.NumWallets/walletFundChunkSize; i++ {
-		command := []string{
-			chainConfig.BinaryName,
-			"tx", "bank", "multi-send",
-			faucetWallet.FormattedAddress(),
-		}
-		first := i * walletFundChunkSize
-		last := first + walletFundChunkSize
-		if last > len(addresses) {
-			last = len(addresses)
-		}
+	commands := getFundWalletCommands(chainConfig, req.NumWallets, faucetWallet, addresses)
 
-		command = append(command, addresses[first:last]...)
-		command = append(command, fmt.Sprintf("1000000000%s", chainConfig.Denom),
-			"--chain-id", chainConfig.ChainId,
-			"--keyring-backend", "test",
-			"--from", "faucet",
-			"--fees", fmt.Sprintf("160000%s", chainConfig.Denom),
-			"--gas", "auto",
-			"--gas-adjustment", "1.5",
-			"--yes",
-			"--home", chainConfig.HomeDir,
-		)
+	for _, command := range commands {
+		for retry := 0; retry < maxRetries; retry++ {
+			if retry > 0 {
+				time.Sleep(baseRetryDelay)
+			}
 
-		stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
-		if err != nil || exitCode != 0 {
-			logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
-			return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+			stdout, stderr, exitCode, err := node.RunCommand(ctx, command)
+			if err == nil && exitCode == 0 {
+				logger.Info("fund result", zap.String("stdout", stdout))
+				break
+			}
+
+			if retry == maxRetries-1 {
+				logger.Error("failed to fund wallets", zap.Error(err), zap.String("stderr", stderr))
+				return messages.CreateWalletsResponse{}, fmt.Errorf("failed to fund wallets: %w", err)
+			}
 		}
-		logger.Info("fund result", zap.String("stdout", stdout))
 	}
 	time.Sleep(5 * time.Second)
 
@@ -146,4 +132,50 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	return messages.CreateWalletsResponse{
 		Mnemonics: mnemonics,
 	}, nil
+}
+
+func getFundWalletCommands(chainConfig types2.ChainConfig, numWallets int, faucet types2.WalletI, addresses []string) [][]string {
+	commands := make([][]string, 0)
+	for i := 0; i <= numWallets/walletFundChunkSize; i++ {
+		command := []string{
+			chainConfig.BinaryName,
+			"tx", "bank", "multi-send",
+			faucet.FormattedAddress(),
+		}
+		first := i * walletFundChunkSize
+		last := first + walletFundChunkSize
+		if last > len(addresses) {
+			last = len(addresses)
+		}
+
+		receivers := addresses[first:last]
+
+		if len(receivers) == 0 {
+			return commands
+		}
+
+		var gasPrices string
+		var amount string
+		if chainConfig.IsEVMChain {
+			amount = "10000000000000000"
+			gasPrices = "770000000"
+		} else {
+			amount = "1000000000"
+			gasPrices = "160000"
+		}
+
+		command = append(command, receivers...)
+		command = append(command, fmt.Sprintf("%s%s", amount, chainConfig.Denom),
+			"--chain-id", chainConfig.ChainId,
+			"--keyring-backend", "test",
+			"--from", "faucet",
+			"--gas-prices", fmt.Sprintf("%s%s", gasPrices, chainConfig.Denom),
+			"--gas", "auto",
+			"--gas-adjustment", "1.5",
+			"--yes",
+			"--home", chainConfig.HomeDir,
+		)
+		commands = append(commands, command)
+	}
+	return commands
 }
