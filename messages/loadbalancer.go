@@ -1,7 +1,7 @@
 package messages
 
 import (
-	"github.com/skip-mev/petri/core/v3/apps"
+	"github.com/skip-mev/ironbird/petri/core/apps"
 )
 
 type LaunchLoadBalancerRequest struct {

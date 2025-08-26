@@ -5,12 +5,12 @@ import (
 	"fmt"
 	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 
-	petritypes "github.com/skip-mev/petri/core/v3/types"
+	petritypes "github.com/skip-mev/ironbird/petri/core/types"
 
 	"github.com/skip-mev/ironbird/activities/walletcreator"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
+	petriutil "github.com/skip-mev/ironbird/petri/core/util"
 
 	"log"
 	"os"
@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
@@ -29,7 +29,7 @@ import (
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/types"
-	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.temporal.io/sdk/testsuite"

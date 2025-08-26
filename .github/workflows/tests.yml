@@ -49,3 +49,73 @@ jobs:
         run: |
           make tidy
           make unit-test
+      - uses: dorny/paths-filter@v3
+        id: petri-filter
+        with:
+          filters: |
+            petri:
+              - 'petri/**'
+      - name: Run petri unit tests
+        if: steps.petri-filter.outputs.petri == 'true'
+        run: |
+          make petri-unit-test
+
+  petri-docker-e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            petri:
+              - 'petri/**'
+      - name: Install Latest Docker
+        if: steps.filter.outputs.petri == 'true'
+        run: |
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu  $(lsb_release -cs)  stable"
+          sudo apt-get update
+          sudo apt-get install docker-ce
+      - name: Run petri Docker E2E tests
+        if: steps.filter.outputs.petri == 'true'
+        run: |
+          make tidy
+          make petri-docker-e2e
+
+  petri-digitalocean-e2e:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      DO_API_TOKEN: ${{ secrets.DO_API_TOKEN }}
+      DO_IMAGE_ID: ${{ vars.DO_IMAGE_ID }}
+      TS_CLIENT_AUTH_KEY: ${{ secrets.TS_CLIENT_AUTH_KEY }}
+      TS_SERVER_OAUTH_SECRET: ${{ secrets.TS_SERVER_OAUTH_SECRET }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            digitalocean:
+              - 'petri/cosmos/**'
+              - 'petri/core/provider/digitalocean/**'
+              - 'petri/core/provider/clients/**'
+      - name: Run petri DigitalOcean E2E tests
+        if: steps.filter.outputs.digitalocean == 'true'
+        run: |
+          make tidy
+          make petri-digitalocean-e2e

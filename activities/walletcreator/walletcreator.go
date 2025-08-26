@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	types2 "github.com/skip-mev/petri/core/v3/types"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
-	"github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
-	"github.com/skip-mev/petri/cosmos/v3/wallet"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	types2 "github.com/skip-mev/ironbird/petri/core/types"
+	petriutil "github.com/skip-mev/ironbird/petri/core/util"
+	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
+	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/activities/testnet"

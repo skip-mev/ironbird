@@ -7,9 +7,9 @@ import (
 
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/docker"
 	"github.com/uber-go/tally/v4"
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"

@@ -1,0 +1,122 @@
+discovery.docker "containers" {
+  host = "tcp://localhost:2375"
+}
+
+foreach "container" {
+    enable_metrics = true
+    collection = discovery.docker.containers.targets
+
+    var = "container"
+
+    template {
+        foreach "port" {
+            enable_metrics = true
+            collection = string.split(container["__meta_docker_container_label_petri_ports"], ",")
+            var = "port"
+
+            template {
+                prometheus.scrape "target" {
+                    targets = [{ __address__ = string.format("127.0.0.1:%s", port), provider=json_path(local.file.creds.content, ".provider")[0], node_name=container["__meta_docker_container_label_petri_node_name"]}]
+                    scrape_interval = "5s"
+                    scrape_timeout  = "5s"
+                    forward_to = [prometheus.remote_write.overseer.receiver]
+                }
+            }
+        }
+    }
+}
+
+prometheus.relabel "instance" {
+    forward_to = [prometheus.remote_write.overseer.receiver]
+
+    rule {
+        action = "replace"
+        source_labels = ["instance"]
+        replacement = constants.hostname
+        target_label = "host"
+    }
+}
+
+prometheus.remote_write "overseer" {
+  endpoint {
+    url = json_path(local.file.creds.content, ".prometheus.url")[0]
+
+    basic_auth {
+      username = json_path(local.file.creds.content, ".prometheus.username")[0]
+      password = json_path(local.file.creds.content, ".prometheus.password")[0]
+    }
+  }
+}
+
+local.file "creds" {
+  filename = "/etc/alloy/telemetry.json"
+}
+
+discovery.relabel "logs_integrations_docker" {
+  targets = []
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex = "/(.*)"
+    target_label = "container_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_petri_node_name"]
+    target_label = "node_name"
+  }
+
+}
+
+loki.source.docker "default" {
+  host       = "tcp://localhost:2375"
+  targets    = discovery.docker.containers.targets
+  labels     = {"service" = "ironbird", "provider" = json_path(local.file.creds.content, ".provider")[0]}
+  relabel_rules = discovery.relabel.logs_integrations_docker.rules
+  forward_to = [loki.write.overseer.receiver]
+}
+
+loki.write "overseer" {
+   endpoint {
+     url = json_path(local.file.creds.content, ".loki.url")[0]
+
+     basic_auth {
+       username = json_path(local.file.creds.content, ".loki.username")[0]
+       password = json_path(local.file.creds.content, ".loki.password")[0]
+     }
+   }
+}
+
+pyroscope.scrape "node" {
+          targets = [
+            {"__address__" = "localhost:6060", "service_name" = "ironbird", "host" = coalesce(sys.env("HOSTNAME"), constants.hostname), "node_name" = coalesce(sys.env("NODE_NAME"), constants.hostname), "provider" = json_path(local.file.creds.content, ".provider")[0]},
+          ]
+          profiling_config {
+            profile.memory {
+              enabled = true
+            }
+            profile.block {
+              enabled = true
+            }
+            profile.goroutine {
+              enabled = true
+            }
+            profile.mutex {
+              enabled = true
+            }
+            profile.process_cpu {
+              enabled = true
+            }
+        }
+      forward_to = [pyroscope.write.grafana_cloud.receiver]
+}
+
+pyroscope.write "grafana_cloud" {
+  endpoint {
+    url = json_path(local.file.creds.content, ".pyroscope.url")[0]
+    basic_auth {
+      username = "<GRAF_PYRO_USER>"
+      password = "<GRAF_PYRO_PASS>"
+    }
+  }
+}

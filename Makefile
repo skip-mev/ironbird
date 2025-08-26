@@ -86,9 +86,25 @@ proto-tools:
 ###                                  Testing                                ###
 ###############################################################################
 
-.PHONY: unit-test
+.PHONY: unit-test petri-unit-test petri-docker-e2e petri-digitalocean-e2e petri-e2e-test
 unit-test:
 	go test -p 1 -v -count 1 -timeout 30m ./... -race
+
+petri-unit-test:
+	@docker pull nginx:latest
+	@docker pull ghcr.io/cosmos/simapp:v0.47
+	@go test -v -count 2 ./petri/core/... -race
+	@go test -v -count 2 `go list ./petri/cosmos/... | grep -v e2e` -race
+
+petri-docker-e2e:
+	@docker pull nginx:latest
+	@docker pull ghcr.io/cosmos/simapp:v0.47
+	@go test -v -count 1 ./petri/cosmos/tests/e2e/docker/... -race -v
+
+petri-digitalocean-e2e:
+	@go test -v -count 1 ./petri/cosmos/tests/e2e/digitalocean/... -race -v
+
+petri-e2e-test: petri-docker-e2e petri-digitalocean-e2e
 
 ###############################################################################
 ###                                Formatting                               ###
@@ -124,6 +140,22 @@ govulncheck: tidy
 
 .PHONY: lint lint-fix lint-markdown govulncheck ⏎
 
+###############################################################################
+###                           Starting Ssrvices                             ###
+###############################################################################
+
+.PHONY: start-buildkit
+start-buildkit:
+	docker run -d --name buildkitd --privileged -p 1234:1234 -v /var/run/docker.sock:/var/run/docker.sock -v buildkitd:/var/lib/buildkit -v ~/.docker/config.json:/root/.docker/config.json moby/buildkit:latest --addr tcp://0.0.0.0:1234
+
+.PHONY: start-temporal
+start-temporal:
+	temporal server start-dev
+
+.PHONY: start-worker
+start-worker:
+	go run ./cmd/worker/main.go
+
 .PHONY: start-frontend
 start-frontend:
 	cd frontend && npm install --legacy-peer-deps && npm run dev
@@ -137,44 +169,7 @@ dev:
 	make -j2 start-frontend start-backend
 
 ###############################################################################
-###                                Docker                                   ###
-###############################################################################
-
-.PHONY: docker-build docker-up docker-down docker-logs docker-dev
-
-# Build Docker images
-docker-build:
-	@echo "--> Building Docker images..."
-	docker-compose build
-
-# Start services in production mode
-docker-up:
-	@echo "--> Starting services with Docker Compose..."
-	docker-compose up -d
-
-# Stop and remove services
-docker-down:
-	@echo "--> Stopping services..."
-	docker-compose down
-
-# View logs from all services
-docker-logs:
-	@echo "--> Showing logs..."
-	docker-compose logs -f
-
-# Start services in development mode (with logs)
-docker-dev:
-	@echo "--> Starting services in development mode..."
-	docker-compose up --build
-
-# Clean up Docker resources
-docker-clean:
-	@echo "--> Cleaning up Docker resources..."
-	docker-compose down --volumes --remove-orphans
-	docker system prune -f
-
-###############################################################################
-###                           Local Development                             ###
+###                           First time setup                             ###
 ###############################################################################
 
 .PHONY: install-deps generate-certs first-time-setup

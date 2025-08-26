@@ -8,8 +8,8 @@ import (
 	pb "github.com/skip-mev/ironbird/server/proto"
 
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/petri/core/v3/apps"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/apps"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	"go.uber.org/zap"
 )
 

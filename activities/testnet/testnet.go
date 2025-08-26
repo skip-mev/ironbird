@@ -14,16 +14,16 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/docker"
 
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	petritypes "github.com/skip-mev/petri/core/v3/types"
-	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
+	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"

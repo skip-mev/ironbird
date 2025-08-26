@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	petritypes "github.com/skip-mev/petri/core/v3/types"
-	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
 
 	"gopkg.in/yaml.v3"
 )

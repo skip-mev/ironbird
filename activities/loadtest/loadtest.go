@@ -14,10 +14,10 @@ import (
 	"github.com/skip-mev/ironbird/util"
 	"github.com/skip-mev/petri/core/v3/types"
 
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )

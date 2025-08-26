@@ -7,11 +7,11 @@ import (
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
-	"github.com/skip-mev/petri/core/v3/apps"
-	"github.com/skip-mev/petri/core/v3/util"
+	"github.com/skip-mev/ironbird/petri/core/apps"
+	"github.com/skip-mev/ironbird/petri/core/util"
 
-	"github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
+	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/walletcreator"
