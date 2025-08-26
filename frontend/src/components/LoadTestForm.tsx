@@ -54,10 +54,32 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
     bech32_prefix: '',
   });
   
-  const [newMessage, setNewMessage] = useState<Message>({
-    type: MsgType.MsgSend,
-    weight: 0.5,
-    num_msgs: 1,
+  // Initialize newMessage based on the initial kind
+  const getInitialMessageForKind = (kind: 'cosmos' | 'eth'): Message => {
+    if (kind === 'cosmos') {
+      return {
+        type: MsgType.MsgSend,
+        weight: 0.5,
+      };
+    } else {
+      return {
+        type: MsgType.MsgCreateContract,
+        num_msgs: 1,
+      };
+    }
+  };
+
+  const [newMessage, setNewMessage] = useState<Message>(() => {
+    // Determine initial kind
+    let initialKind: 'cosmos' | 'eth' = 'cosmos';
+    if (selectedRepo === 'evm') {
+      initialKind = 'eth';
+    } else if (selectedRepo && selectedRepo !== 'evm') {
+      initialKind = 'cosmos';
+    } else {
+      initialKind = initialData.kind || 'cosmos';
+    }
+    return getInitialMessageForKind(initialKind);
   });
   const toast = useToast();
 
@@ -92,6 +114,9 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
       gas_denom: '',
       bech32_prefix: '',
     });
+
+    // Reset new message form based on load test type
+    setNewMessage(getInitialMessageForKind(kind));
   }, [initialData, isOpen, selectedRepo]);
 
   const calculateTotalWeight = (): number => {
@@ -246,17 +271,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
     });
 
     // Reset new message form based on load test type
-    if (formData.kind === 'cosmos') {
-      setNewMessage({
-        type: MsgType.MsgSend,
-        weight: 0.5,
-      });
-    } else {
-      setNewMessage({
-        type: MsgType.MsgCreateContract,
-        num_msgs: 1,
-      });
-    }
+    setNewMessage(getInitialMessageForKind(formData.kind));
   };
 
   const removeMessage = (index: number) => {

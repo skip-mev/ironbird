@@ -276,7 +276,10 @@ const CreateWorkflow = () => {
         }
       }
       
-      const loadTestSpecParam = params.get('loadTestSpec');
+      // Handle load test specs - check for any of the possible parameter names
+      const loadTestSpecParam = params.get('loadTestSpec') || 
+                                 params.get('ethereumLoadTestSpec') || 
+                                 params.get('cosmosLoadTestSpec');
       if (loadTestSpecParam) {
         try {
           const parsedLoadTestSpec = JSON.parse(loadTestSpecParam);
@@ -296,13 +299,21 @@ const CreateWorkflow = () => {
                   weight: msg.Weight || msg.weight || 0,
                   NumMsgs: msg.NumMsgs || msg.numMsgs,
                   ContainedType: msg.ContainedType || msg.containedType,
-                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients
+                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients,
+                  // Handle Ethereum-specific fields
+                  num_msgs: msg.num_msgs || msg.NumMsgs || msg.numMsgs
                 }))
               : (Array.isArray(parsedLoadTestSpec.msgs) 
                 ? parsedLoadTestSpec.msgs 
                 : []),
             unordered_txs: parsedLoadTestSpec.unordered_txs || false,
             tx_timeout: parsedLoadTestSpec.tx_timeout || "",
+            // Handle Ethereum-specific fields
+            send_interval: parsedLoadTestSpec.send_interval || "",
+            num_batches: parsedLoadTestSpec.num_batches || 0,
+            // Handle Cosmos-specific fields  
+            gas_denom: parsedLoadTestSpec.gas_denom || "",
+            bech32_prefix: parsedLoadTestSpec.bech32_prefix || "",
           };
           
           console.log("Normalized loadTestSpec:", normalizedLoadTestSpec);

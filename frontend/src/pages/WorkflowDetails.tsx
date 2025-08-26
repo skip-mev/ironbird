@@ -273,8 +273,11 @@ const WorkflowDetails = () => {
       }
     }
     
-    // LoadTestSpec - check both config.LoadTestSpec and workflow.loadTestSpec
-    const loadTestSpec = workflow.config?.LoadTestSpec || workflow.loadTestSpec;
+    // LoadTestSpec - check all possible locations for load test configurations
+    const loadTestSpec = workflow.config?.LoadTestSpec || 
+                         workflow.config?.EthereumLoadTestSpec || 
+                         workflow.config?.CosmosLoadTestSpec || 
+                         workflow.loadTestSpec;
     if (loadTestSpec) {
       params.append('loadTestSpec', JSON.stringify(loadTestSpec));
     }
