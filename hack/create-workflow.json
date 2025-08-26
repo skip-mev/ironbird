@@ -3,9 +3,13 @@
   "sha": "99abc7f3a47af1289ddd90c279e49f885ee06278",
   "isEvmChain": true,
   "chain_config": {
+    "region_configs": [
+      {
+        "name": "sfo2",
+        "num_of_validators": 10
+      }
+    ],
     "name": "foobar-0",
-    "num_of_nodes": 0,
-    "num_of_validators": 5,
     "image": "evm",
     "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"50ms\"}}",
     "custom_app_config": "{\"json-rpc\":{\"enable-profiling\":true}}",
@@ -54,6 +58,10 @@
           "value": "[{\"description\":\"The native staking token for evmd.\",\"denom_units\":[{\"denom\":\"atest\",\"exponent\":0,\"aliases\":[\"attotest\"]},{\"denom\":\"test\",\"exponent\":18,\"aliases\":[]}],\"base\":\"atest\",\"display\":\"test\",\"name\":\"Test Token\",\"symbol\":\"TEST\",\"uri\":\"\",\"uri_hash\":\"\"}]"
         },
         {
+          "key": "app_state.erc20.native_precompiles",
+          "value": "[\"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\"]"
+        },
+        {
           "key": "app_state.evm.params.active_static_precompiles",
           "value": "[\"0x0000000000000000000000000000000000000100\",\"0x0000000000000000000000000000000000000400\",\"0x0000000000000000000000000000000000000800\",\"0x0000000000000000000000000000000000000801\",\"0x0000000000000000000000000000000000000802\",\"0x0000000000000000000000000000000000000803\",\"0x0000000000000000000000000000000000000804\",\"0x0000000000000000000000000000000000000805\"]"
         },
@@ -63,7 +71,11 @@
         },
         {
           "key": "consensus.params.block.max_gas",
-          "value": "75000000"
+          "value": "550000000"
+        },
+        {
+          "key": "app_state[\"feemarket\"][\"params\"][\"no_base_fee\"]",
+          "value": "true"
         }
       ]
   },
@@ -71,6 +83,6 @@
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 5000,
+  "num_wallets": 1500,
   "launch_load_balancer": false
 }

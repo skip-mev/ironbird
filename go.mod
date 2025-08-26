@@ -13,12 +13,13 @@ require (
 	github.com/cosmos/evm v0.3.1
 	github.com/docker/cli v27.4.1+incompatible
 	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/golang/mock v1.7.0-rc.1
 	github.com/golangci/golangci-lint v1.57.1
 	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/moby/buildkit v0.18.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/skip-mev/catalyst v0.0.0-beta.7
+	github.com/skip-mev/catalyst v0.0.0-beta.9
 	github.com/skip-mev/petri/core/v3 v3.2.1
 	github.com/skip-mev/petri/cosmos/v3 v3.1.8
 	github.com/stretchr/testify v1.10.0
@@ -200,7 +201,6 @@ require (
 	github.com/gogo/googleapis v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/mock v1.7.0-rc.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20231225225746-43d5d4cd4e0e // indirect
 	github.com/golangci/dupl v0.0.0-20180902072040-3e9179ac440a // indirect

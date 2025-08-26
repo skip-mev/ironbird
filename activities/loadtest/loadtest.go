@@ -12,6 +12,7 @@ import (
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
+	"github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -50,7 +51,12 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 	return res, wrappedErr
 }
 
-func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
+type theChain interface {
+	GetConfig() types.ChainConfig
+	GetValidators() []types.NodeI
+}
+
+func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain theChain, chainID string,
 	loadTestSpec ctltypes.LoadTestSpec, mnemonics []string,
 ) ([]byte, error) {
 	chainConfig := chain.GetConfig()
@@ -67,6 +73,16 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
 	case "eth":
+		ethSpec := ctlteth.ChainConfig{}
+		mySpec, ok := loadTestSpec.ChainCfg.(ctlteth.ChainConfig)
+		if ok {
+			ethSpec = mySpec
+		} else {
+			mySpec, ok := loadTestSpec.ChainCfg.(*ctlteth.ChainConfig)
+			if ok {
+				ethSpec = *mySpec
+			}
+		}
 		nodeAddresses := make([]ctlteth.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
 			nodeAddresses = append(nodeAddresses, ctlteth.NodeAddress{
@@ -74,9 +90,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 				Websocket: "ws://" + addr + ":8546",
 			})
 		}
-		catalystChainConfig = ctlteth.ChainConfig{
-			NodesAddresses: nodeAddresses,
-		}
+		ethSpec.NodesAddresses = nodeAddresses
+		catalystChainConfig = ethSpec
 	case "cosmos":
 		nodeAddresses := make([]ctltcosmos.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
@@ -137,7 +152,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: "ghcr.io/skip-mev/catalyst:0.0.0-beta.9",
 			UID:   "100",
 			GID:   "100",
 		},
