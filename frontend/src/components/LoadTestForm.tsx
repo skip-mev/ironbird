@@ -385,34 +385,6 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
               </>
             )}
 
-            {formData.kind === 'cosmos' && (
-              <>
-                <FormControl>
-                  <FormLabel color="text">Gas Denom</FormLabel>
-                  <Input
-                    value={formData.gas_denom}
-                    onChange={(e) => setFormData({ ...formData, gas_denom: e.target.value })}
-                    placeholder="stake"
-                    bg="surface"
-                    color="text"
-                    borderColor="divider"
-                  />
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel color="text">Bech32 Prefix</FormLabel>
-                  <Input
-                    value={formData.bech32_prefix}
-                    onChange={(e) => setFormData({ ...formData, bech32_prefix: e.target.value })}
-                    placeholder="cosmos"
-                    bg="surface"
-                    color="text"
-                    borderColor="divider"
-                  />
-                </FormControl>
-              </>
-            )}
-
             <FormControl display="flex" alignItems="center">
               <FormLabel mb="0" color="text">Unordered Transactions</FormLabel>
               <Switch
