@@ -241,7 +241,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	}
 
 	go func() {
-		emitHeartbeats(ctx, chain, logger)
+		emitHeartbeats(context.Background(), chain, logger)
 	}()
 
 	return resp, nil
