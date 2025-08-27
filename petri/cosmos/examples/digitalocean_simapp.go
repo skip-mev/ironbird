@@ -2,14 +2,12 @@ package examples
 
 import (
 	"context"
+	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	"io"
 	"net/http"
 	"os"
 	"strings"
-	"tailscale.com/tsnet"
-
-	"github.com/cosmos/cosmos-sdk/crypto/hd"
 
 	"github.com/skip-mev/ironbird/petri/cosmos/chain"
 	"github.com/skip-mev/ironbird/petri/cosmos/node"
@@ -43,27 +41,10 @@ func main() {
 		logger.Fatal("TS_SERVER_AUTH_KEY environment variable not set")
 	}
 
-	serverAuthKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, serverOauthSecret, []string{"petri-e2e"})
+	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, serverOauthSecret,
+		clientAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
 	if err != nil {
 		logger.Fatal("failed to generate Tailscale auth key", zap.Error(err))
-	}
-
-	tsServer := tsnet.Server{
-		AuthKey:   serverAuthKey,
-		Ephemeral: true,
-		Hostname:  "petri-e2e",
-	}
-
-	localClient, err := tsServer.LocalClient()
-	if err != nil {
-		logger.Fatal("failed to create local client", zap.Error(err))
-	}
-
-	tailscaleSettings := digitalocean.TailscaleSettings{
-		AuthKey:     clientAuthKey,
-		Server:      &tsServer,
-		Tags:        []string{"petri-e2e"},
-		LocalClient: localClient,
 	}
 
 	doProvider, err := digitalocean.NewProvider(

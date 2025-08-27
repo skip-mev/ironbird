@@ -9,8 +9,6 @@ import (
 
 	"github.com/skip-mev/ironbird/petri/core/util"
 
-	"tailscale.com/tsnet"
-
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	"github.com/skip-mev/ironbird/petri/core/types"
@@ -91,36 +89,13 @@ func TestDOE2E(t *testing.T) {
 	logger, _ := zap.NewDevelopment()
 
 	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
-	if doToken == "" {
-		logger.Fatal("DO_API_TOKEN environment variable not set")
-	}
 
-	clientAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
-	if clientAuthKey == "" {
-		logger.Fatal("TS_CLIENT_AUTH_KEY environment variable not set")
-	}
-
-	serverOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
-	if serverOauthSecret == "" {
-		logger.Fatal("TS_SERVER_AUTH_KEY environment variable not set")
-	}
-
-	serverAuthKey, err := digitalocean.GenerateTailscaleAuthKey(ctx, serverOauthSecret, []string{"petri-e2e"})
-	require.NoError(t, err)
-
-	tsServer := tsnet.Server{
-		AuthKey:   serverAuthKey,
-		Ephemeral: true,
-		Hostname:  "petri-e2e",
-	}
-	localClient, err := tsServer.LocalClient()
-	require.NoError(t, err)
-
-	tailscaleSettings := digitalocean.TailscaleSettings{
-		AuthKey:     clientAuthKey,
-		Server:      &tsServer,
-		Tags:        []string{"petri-e2e"},
-		LocalClient: localClient,
+	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
+	tsServerOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
+	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, tsServerOauthSecret,
+		nodeAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
+	if err != nil {
+		panic(err)
 	}
 	providerName := util.RandomString(5)
 
