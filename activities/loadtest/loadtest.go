@@ -12,6 +12,7 @@ import (
 	"github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
+	"github.com/skip-mev/petri/core/v3/types"
 
 	"github.com/skip-mev/petri/core/v3/provider"
 	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
@@ -50,7 +51,12 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 	return res, wrappedErr
 }
 
-func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.Chain, chainID string,
+type PetriChain interface {
+	GetConfig() types.ChainConfig
+	GetValidators() []types.NodeI
+}
+
+func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriChain, chainID string,
 	loadTestSpec ctltypes.LoadTestSpec, mnemonics []string,
 ) ([]byte, error) {
 	chainConfig := chain.GetConfig()
@@ -67,6 +73,15 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
 	case "eth":
+		ethChainCfg := ctlteth.ChainConfig{}
+		switch cfg := loadTestSpec.ChainCfg.(type) {
+		case ctlteth.ChainConfig:
+			ethChainCfg = cfg
+		case *ctlteth.ChainConfig:
+			ethChainCfg = *cfg
+		default:
+			ethChainCfg = ctlteth.ChainConfig{}
+		}
 		nodeAddresses := make([]ctlteth.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
 			nodeAddresses = append(nodeAddresses, ctlteth.NodeAddress{
@@ -74,9 +89,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain *chain.
 				Websocket: "ws://" + addr + ":8546",
 			})
 		}
-		catalystChainConfig = ctlteth.ChainConfig{
-			NodesAddresses: nodeAddresses,
-		}
+		ethChainCfg.NodesAddresses = nodeAddresses
+		catalystChainConfig = ethChainCfg
 	case "cosmos":
 		nodeAddresses := make([]ctltcosmos.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
