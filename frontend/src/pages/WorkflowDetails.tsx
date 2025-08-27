@@ -433,16 +433,16 @@ const WorkflowDetails = () => {
                     
                     if (!grpcAddress) {
                       // Fallback to localhost when env var is not set
-                      return `http://localhost:8233/namespaces/default/${workflow.WorkflowID}`;
+                      return `http://localhost:8233/namespaces/default/workflows/${workflow.WorkflowID}`;
                     }
                     
                     if (grpcAddress.includes('prod')) {
                       return `https://ironbird-temporal.prod.skip-internal.money/namespaces/ironbird/workflows/${workflow.WorkflowID}`;
                     } else if (grpcAddress.includes('dev')) {
-                      return `https://ironbird-temporal.dev.skip-internal.money/namespaces/ironbird/${workflow.WorkflowID}`;
+                      return `https://ironbird-temporal.dev.skip-internal.money/namespaces/ironbird/workflows/${workflow.WorkflowID}`;
                     } else {
                       // Default fallback to localhost
-                      return `http://localhost:8233/namespaces/default/${workflow.WorkflowID}`;
+                      return `http://localhost:8233/namespaces/default/workflows/${workflow.WorkflowID}`;
                     }
                   })()} 
                   target="_blank" 
