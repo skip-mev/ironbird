@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/skip-mev/ironbird/petri/core/types"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/skip-mev/ironbird/petri/core/types"
 
 	"github.com/digitalocean/godo"
 	"github.com/docker/docker/api/types/container"
@@ -167,7 +168,7 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 
 		return true, nil
 	}); err != nil {
-		return nil, fmt.Errorf("failed to wait for tailscale peer: %w", err)
+		return nil, fmt.Errorf("failed to wait for tailscale peer in task %s: %w", task.GetState().Name, err)
 	}
 
 	ip, err := task.GetIP(ctx)
