@@ -68,6 +68,7 @@ const WorkflowDetails = () => {
             name: loadTestSpec.Name || loadTestSpec.name || "",
             description: loadTestSpec.Description || loadTestSpec.description || "",
             chain_id: loadTestSpec.ChainID || loadTestSpec.chain_id || "",
+            kind: loadTestSpec.kind || (loadTestSpec.ChainID || loadTestSpec.chain_id || "").includes('evm') ? 'eth' : 'cosmos',
             NumOfBlocks: loadTestSpec.NumOfBlocks  || 0,
             NumOfTxs: loadTestSpec.NumOfTxs || 0,
             msgs: Array.isArray(loadTestSpec.Msgs) 
@@ -421,6 +422,39 @@ const WorkflowDetails = () => {
                 >
                   {workflow.Status}
                 </Badge>
+              </Box>
+              <Box>
+                <Text fontWeight="bold" color="gray.600" fontSize="sm">
+                  Temporal Workflow
+                </Text>
+                <Link 
+                  href={(() => {
+                    const grpcAddress = import.meta.env.VITE_IRONBIRD_GRPC_ADDRESS;
+                    
+                    if (!grpcAddress) {
+                      // Fallback to localhost when env var is not set
+                      return `http://localhost:8233/namespaces/default/${workflow.WorkflowID}`;
+                    }
+                    
+                    if (grpcAddress.includes('prod')) {
+                      return `https://ironbird-temporal.prod.skip-internal.money/namespaces/ironbird/workflows/${workflow.WorkflowID}`;
+                    } else if (grpcAddress.includes('dev')) {
+                      return `https://ironbird-temporal.dev.skip-internal.money/namespaces/ironbird/${workflow.WorkflowID}`;
+                    } else {
+                      // Default fallback to localhost
+                      return `http://localhost:8233/namespaces/default/${workflow.WorkflowID}`;
+                    }
+                  })()} 
+                  target="_blank" 
+                  color="blue.500"
+                  display="flex"
+                  alignItems="center"
+                  gap={1}
+                  fontSize="sm"
+                >
+                  View in Temporal
+                  <Icon as={ExternalLinkIcon} boxSize={3} />
+                </Link>
               </Box>
             </SimpleGrid>
           </CardBody>
