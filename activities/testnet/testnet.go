@@ -195,11 +195,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	// Add a 10-minute timeout for chain startup to prevent indefinite blocking
-	startupCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-	defer cancel()
-
-	err = chain.WaitForStartup(startupCtx)
+	err = chain.WaitForStartup(ctx)
 	if err != nil {
 		return resp, temporal.NewApplicationErrorWithOptions("failed to wait for chain startup", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}

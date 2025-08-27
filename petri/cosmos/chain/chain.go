@@ -636,8 +636,22 @@ func (c *Chain) GetFullNode() petritypes.NodeI {
 }
 
 func (c *Chain) WaitForStartup(ctx context.Context) error {
-	c.logger.Info("waiting for chain startup")
-	return c.WaitForHeight(ctx, 1)
+	ticker := time.NewTicker(1 * time.Second)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			err := c.WaitForHeight(ctx, 1)
+			if err != nil {
+				c.logger.Error("error waiting for height", zap.Error(err))
+				continue
+			}
+			ticker.Stop()
+			return nil
+		}
+	}
 }
 
 // WaitForBlocks blocks until the chain increases in block height by delta
@@ -655,34 +669,31 @@ func (c *Chain) WaitForBlocks(ctx context.Context, delta uint64) error {
 // WaitForHeight blocks until the chain reaches block height desiredHeight
 func (c *Chain) WaitForHeight(ctx context.Context, desiredHeight uint64) error {
 	c.logger.Info("waiting for height", zap.Uint64("desired_height", desiredHeight))
-	
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-	
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			c.logger.Debug("waiting for height", zap.Uint64("desired_height", desiredHeight))
+		c.logger.Debug("waiting for height", zap.Uint64("desired_height", desiredHeight))
 
-			height, err := c.Height(ctx)
-			if err != nil {
-				c.logger.Error("failed to get height", zap.Error(err))
-				continue
-			}
-
-			if height >= desiredHeight {
-				return nil
-			}
-
-			// We assume the chain will eventually return a non-zero height, otherwise
-			// this may block indefinitely.
-			if height == 0 {
-				continue
-			}
+		height, err := c.Height(ctx)
+		if err != nil {
+			c.logger.Error("failed to get height", zap.Error(err))
+			time.Sleep(2 * time.Second)
+			continue
 		}
+
+		if height >= desiredHeight {
+			break
+		}
+
+		// We assume the chain will eventually return a non-zero height, otherwise
+		// this may block indefinitely.
+		if height == 0 {
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		time.Sleep(2 * time.Second)
 	}
+
+	return nil
 }
 
 // GetValidators returns all of the validating nodes in the chain
