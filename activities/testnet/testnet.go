@@ -195,7 +195,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	err = chain.WaitForStartup(ctx)
+	// Add a 10-minute timeout for chain startup to prevent indefinite blocking
+	startupCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+
+	err = chain.WaitForStartup(startupCtx)
 	if err != nil {
 		return resp, temporal.NewApplicationErrorWithOptions("failed to wait for chain startup", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
@@ -240,9 +244,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
 	}
 
-	//go func() {
-	//	emitHeartbeats(context.Background(), chain, logger)
-	//}()
+	go func() {
+		emitHeartbeats(ctx, chain, logger)
+	}()
 
 	return resp, nil
 }
