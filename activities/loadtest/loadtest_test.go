@@ -10,7 +10,7 @@ import (
 	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	"github.com/skip-mev/catalyst/chains/types"
 	"github.com/skip-mev/ironbird/activities/loadtest/mocks"
-	types2 "github.com/skip-mev/petri/core/v3/types"
+	types2 "github.com/skip-mev/ironbird/petri/core/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 	"gopkg.in/yaml.v3"
