@@ -73,15 +73,14 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
 	case "eth":
-		ethSpec := ctlteth.ChainConfig{}
-		mySpec, ok := loadTestSpec.ChainCfg.(ctlteth.ChainConfig)
-		if ok {
-			ethSpec = mySpec
-		} else {
-			mySpec, ok := loadTestSpec.ChainCfg.(*ctlteth.ChainConfig)
-			if ok {
-				ethSpec = *mySpec
-			}
+		ethChainCfg := ctlteth.ChainConfig{}
+		switch cfg := loadTestSpec.ChainCfg.(type) {
+		case ctlteth.ChainConfig:
+			ethChainCfg = cfg
+		case *ctlteth.ChainConfig:
+			ethChainCfg = *cfg
+		default:
+			ethChainCfg = ctlteth.ChainConfig{}
 		}
 		nodeAddresses := make([]ctlteth.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
@@ -90,8 +89,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 				Websocket: "ws://" + addr + ":8546",
 			})
 		}
-		ethSpec.NodesAddresses = nodeAddresses
-		catalystChainConfig = ethSpec
+		ethChainCfg.NodesAddresses = nodeAddresses
+		catalystChainConfig = ethChainCfg
 	case "cosmos":
 		nodeAddresses := make([]ctltcosmos.NodeAddress, 0, len(nodes))
 		for _, addr := range nodes {
