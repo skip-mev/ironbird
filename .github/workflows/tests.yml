@@ -49,6 +49,22 @@ jobs:
         run: |
           make tidy
           make unit-test
+
+  petri-unit-test:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      DIGITALOCEAN_TOKEN: ${{ secrets.DIGITALOCEAN_TOKEN }}
+      TS_NODE_AUTH_KEY: ${{ secrets.TS_NODE_AUTH_KEY }}
+      TS_SERVER_OAUTH_SECRET: ${{ secrets.TS_SERVER_OAUTH_SECRET }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
       - uses: dorny/paths-filter@v3
         id: petri-filter
         with:
@@ -58,6 +74,7 @@ jobs:
       - name: Run petri unit tests
         if: steps.petri-filter.outputs.petri == 'true'
         run: |
+          make tidy
           make petri-unit-test
 
   petri-docker-e2e:
