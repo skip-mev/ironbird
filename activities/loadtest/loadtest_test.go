@@ -70,6 +70,6 @@ func TestGenerateSpec(t *testing.T) {
 	spec.ChainID = chainID
 	spec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses = gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses
 	require.Equal(t, gotLoadtestSpec, spec)
-	require.Equal(t, len(nodes), gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses)
+	require.Equal(t, len(nodes), len(gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses))
 	require.True(t, len(gotLoadtestSpec.Mnemonics) > 0)
 }
