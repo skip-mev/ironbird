@@ -41,7 +41,7 @@ const (
 
 var (
 	defaultWorkflowOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute * 30,
+		StartToCloseTimeout: time.Hour * 1,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},
