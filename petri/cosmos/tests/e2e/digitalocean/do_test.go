@@ -113,7 +113,6 @@ func TestDOE2E(t *testing.T) {
 		Ephemeral: true,
 		Hostname:  "petri-e2e",
 	}
-
 	localClient, err := tsServer.LocalClient()
 	require.NoError(t, err)
 
