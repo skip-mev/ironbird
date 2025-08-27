@@ -90,17 +90,12 @@ func TestDOE2E(t *testing.T) {
 	ctx := context.Background()
 	logger, _ := zap.NewDevelopment()
 
-	doToken := os.Getenv("DO_API_TOKEN")
+	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
 	if doToken == "" {
 		logger.Fatal("DO_API_TOKEN environment variable not set")
 	}
 
-	imageID := os.Getenv("DO_IMAGE_ID")
-	if imageID == "" {
-		logger.Fatal("DO_IMAGE_ID environment variable not set")
-	}
-
-	clientAuthKey := os.Getenv("TS_CLIENT_AUTH_KEY")
+	clientAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
 	if clientAuthKey == "" {
 		logger.Fatal("TS_CLIENT_AUTH_KEY environment variable not set")
 	}
