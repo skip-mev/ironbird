@@ -240,9 +240,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
 	}
 
-	go func() {
-		emitHeartbeats(context.Background(), chain, logger)
-	}()
+	//go func() {
+	//	emitHeartbeats(context.Background(), chain, logger)
+	//}()
 
 	return resp, nil
 }
