@@ -48,6 +48,7 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
 	tailscale.com v1.84.0
+	tailscale.com/client/tailscale/v2 v2.0.0-20250826152832-32bb577d17b3
 )
 
 require (

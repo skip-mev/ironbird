@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"github.com/skip-mev/ironbird/petri/core/provider/clients"
 	"golang.org/x/oauth2/clientcredentials"
+	"net/url"
 	"strings"
-	"tailscale.com/client/tailscale"
+	"tailscale.com/client/tailscale/v2"
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tsnet"
 	"time"
@@ -112,27 +113,31 @@ func GenerateTailscaleAuthKey(ctx context.Context, oauthSecret string, tags []st
 		TokenURL:     baseURL + "/api/v2/oauth/token",
 	}
 
-	tsClient := tailscale.NewClient("-", nil)
-	tailscale.I_Acknowledge_This_API_Is_Unstable = true
-	tsClient.UserAgent = "tailscale-cli"
-	tsClient.HTTPClient = credentials.Client(ctx)
-	tsClient.BaseURL = baseURL
-
-	caps := tailscale.KeyCapabilities{
-		Devices: tailscale.KeyDeviceCapabilities{
-			Create: tailscale.KeyDeviceCreateCapabilities{
-				Reusable:      false,
-				Ephemeral:     true,
-				Preauthorized: true,
-				Tags:          prefixedTags,
-			},
-		},
-	}
-	authkey, _, err := tsClient.CreateKey(ctx, caps)
+	baseU, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
 	}
-	return authkey, nil
+	
+	tsClient := &tailscale.Client{
+		APIKey:  "-",
+		HTTP:    credentials.Client(ctx),
+		BaseURL: baseU,
+	}
+
+	var capabilities tailscale.KeyCapabilities
+	capabilities.Devices.Create.Reusable = false
+	capabilities.Devices.Create.Ephemeral = true
+	capabilities.Devices.Create.Preauthorized = true
+	capabilities.Devices.Create.Tags = prefixedTags
+
+	createKeyReq := tailscale.CreateKeyRequest{
+		Capabilities: capabilities,
+	}
+	key, err := tsClient.Keys().Create(ctx, createKeyReq)
+	if err != nil {
+		return "", err
+	}
+	return key.Key, nil
 }
 
 func SetupTailscale(ctx context.Context, serverOauthSecret, nodeAuthKey, hostname string, serverTags, nodeTags []string) (TailscaleSettings, error) {
