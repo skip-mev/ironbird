@@ -51,12 +51,12 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 	return res, wrappedErr
 }
 
-type theChain interface {
+type PetriChain interface {
 	GetConfig() types.ChainConfig
 	GetValidators() []types.NodeI
 }
 
-func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain theChain, chainID string,
+func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriChain, chainID string,
 	loadTestSpec ctltypes.LoadTestSpec, mnemonics []string,
 ) ([]byte, error) {
 	chainConfig := chain.GetConfig()

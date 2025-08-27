@@ -2,7 +2,6 @@ package loadtest
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	types2 "github.com/skip-mev/petri/core/v3/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
+	"gopkg.in/yaml.v3"
 )
 
 func TestGenerateSpec(t *testing.T) {
@@ -61,5 +61,15 @@ func TestGenerateSpec(t *testing.T) {
 	specBZ, err := generateLoadTestSpec(ctx, logger, chain, chainID, spec, mnemonics)
 	require.NoError(t, err)
 
-	fmt.Println(string(specBZ))
+	var gotLoadtestSpec types.LoadTestSpec
+	err = yaml.Unmarshal(specBZ, &gotLoadtestSpec)
+	require.NoError(t, err)
+
+	// the function will set mnemonics.
+	spec.Mnemonics = mnemonics
+	spec.ChainID = chainID
+	spec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses = gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses
+	require.Equal(t, gotLoadtestSpec, spec)
+	require.Equal(t, len(nodes), gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses)
+	require.True(t, len(gotLoadtestSpec.Mnemonics) > 0)
 }

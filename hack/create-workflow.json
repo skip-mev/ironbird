@@ -6,12 +6,12 @@
     "region_configs": [
       {
         "name": "sfo2",
-        "num_of_validators": 10
+        "num_of_validators": 5
       }
     ],
     "name": "foobar-0",
     "image": "evm",
-    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"50ms\"}}",
+    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"800ms\"}}",
     "custom_app_config": "{\"json-rpc\":{\"enable-profiling\":true}}",
     "custom_client_config": "{\"chain-id\":\"262144\"}",
     "set_persistent_peers": true,
@@ -74,15 +74,15 @@
           "value": "550000000"
         },
         {
-          "key": "app_state[\"feemarket\"][\"params\"][\"no_base_fee\"]",
+          "key": "app_state.feemarket.params.no_base_fee",
           "value": "true"
         }
       ]
   },
-  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":500ms,\"num_batches\":30,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":1500}]}",
+  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"900ms\",\"num_batches\":30,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":1000}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 1500,
+  "num_wallets": 3000,
   "launch_load_balancer": false
 }
