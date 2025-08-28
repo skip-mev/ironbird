@@ -88,6 +88,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 
 		// 3. No load test and not long-running will end after the timeout timer
 		networkTimeout := max(testnetDuration, defaultRuntime)
+		logger.Info("network timeout", zap.Duration("timeout", networkTimeout))
 		f := workflow.NewTimer(ctx, networkTimeout)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	}
@@ -376,7 +377,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 			if err != nil {
 				return fmt.Errorf("failed to decompress provider state: %w", err)
 			}
-			
+
 			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, decompressedProviderState, ironbirdutil.ProviderOptions{
 				DOToken: testnetActivities.DOToken, TailscaleSettings: testnetActivities.TailscaleSettings, TelemetrySettings: testnetActivities.TelemetrySettings})
 
@@ -423,7 +424,7 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 			if err != nil {
 				return fmt.Errorf("failed to serialize provider: %w", err)
 			}
-			
+
 			*providerState, err = ironbirdutil.CompressData(newProviderState)
 			if err != nil {
 				return fmt.Errorf("failed to compress provider state: %w", err)
