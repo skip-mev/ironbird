@@ -74,7 +74,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
-	} else if req.CosmosLoadTestSpec == nil && req.EthereumLoadTestSpec == nil {
+	} else {
 		testnetDuration := defaultRuntime
 		if req.TestnetDuration != "" {
 			var err error
