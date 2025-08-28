@@ -86,7 +86,6 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			}
 		}
 
-		// 3. No load test and not long-running will end after the timeout timer
 		networkTimeout := max(testnetDuration, defaultRuntime)
 		logger.Info("network timeout", zap.Duration("timeout", networkTimeout))
 		f := workflow.NewTimer(ctx, networkTimeout)
