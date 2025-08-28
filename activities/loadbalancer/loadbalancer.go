@@ -10,6 +10,7 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/petri/core/apps"
 	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/util"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +31,12 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		return messages.LaunchLoadBalancerResponse{}, fmt.Errorf("only digitalocean provider supported for load balancer")
 	}
 
-	p, err := digitalocean.RestoreProvider(ctx, req.ProviderState, a.DOToken, a.TailscaleSettings,
+	decompressedProviderState, err := util.DecompressData(req.ProviderState)
+	if err != nil {
+		return messages.LaunchLoadBalancerResponse{}, fmt.Errorf("failed to decompress provider state: %w", err)
+	}
+
+	p, err := digitalocean.RestoreProvider(ctx, decompressedProviderState, a.DOToken, a.TailscaleSettings,
 		digitalocean.WithLogger(logger), digitalocean.WithDomain(a.RootDomain))
 
 	if err != nil {
@@ -53,10 +59,15 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		return messages.LaunchLoadBalancerResponse{}, fmt.Errorf("failed to serialize provider: %w", err)
 	}
 
+	compressedProviderState, err := util.CompressData(newProviderState)
+	if err != nil {
+		return messages.LaunchLoadBalancerResponse{}, fmt.Errorf("failed to compress provider state: %w", err)
+	}
+
 	loadBalancerState, err := p.SerializeTask(ctx, lb)
 
 	if err != nil {
-		return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState},
+		return messages.LaunchLoadBalancerResponse{ProviderState: compressedProviderState},
 			fmt.Errorf("failed to serialize load balancer task: %w", err)
 	}
 
@@ -97,5 +108,5 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 		}
 	}
 
-	return messages.LaunchLoadBalancerResponse{ProviderState: newProviderState, LoadBalancerState: loadBalancerState, RootDomain: a.RootDomain}, nil
+	return messages.LaunchLoadBalancerResponse{ProviderState: compressedProviderState, LoadBalancerState: loadBalancerState, RootDomain: a.RootDomain}, nil
 }

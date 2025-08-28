@@ -37,7 +37,13 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 		logger.Error("failed to serialize provider after error", zap.Error(wrappedErr), zap.Error(serializeErr))
 		return res, fmt.Errorf("%w; also failed to serialize provider: %v", wrappedErr, serializeErr)
 	}
-	res.ProviderState = newProviderState
+	
+	compressedProviderState, compressErr := util.CompressData(newProviderState)
+	if compressErr != nil {
+		logger.Error("failed to compress provider state after error", zap.Error(wrappedErr), zap.Error(compressErr))
+		return res, fmt.Errorf("%w; also failed to compress provider state: %v", wrappedErr, compressErr)
+	}
+	res.ProviderState = compressedProviderState
 
 	if chain != nil {
 		newChainState, chainErr := chain.Serialize(ctx, p)
@@ -45,7 +51,13 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 			logger.Error("failed to serialize chain after error", zap.Error(wrappedErr), zap.Error(chainErr))
 			return res, fmt.Errorf("%w; also failed to serialize chain: %v", wrappedErr, chainErr)
 		}
-		res.ChainState = newChainState
+		
+		compressedChainState, chainCompressErr := util.CompressData(newChainState)
+		if chainCompressErr != nil {
+			logger.Error("failed to compress chain state after error", zap.Error(wrappedErr), zap.Error(chainCompressErr))
+			return res, fmt.Errorf("%w; also failed to compress chain state: %v", wrappedErr, chainCompressErr)
+		}
+		res.ChainState = compressedChainState
 	}
 
 	return res, wrappedErr
@@ -125,11 +137,21 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+	decompressedProviderState, err := util.DecompressData(req.ProviderState)
+	if err != nil {
+		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to decompress provider state: %w", err)
+	}
+
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, decompressedProviderState, util.ProviderOptions{
 		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to restore provider: %w", err)
+	}
+
+	decompressedChainState, err := util.DecompressData(req.ChainState)
+	if err != nil {
+		return messages.RunLoadTestResponse{}, fmt.Errorf("failed to decompress chain state: %w", err)
 	}
 
 	walletConfig := testnet.CosmosWalletConfig
@@ -138,7 +160,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		logger.Info("updated load test to evm walletconfig")
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)
+	chain, err := chain.RestoreChain(ctx, logger, p, decompressedChainState, node.RestoreNode, walletConfig)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
@@ -215,15 +237,27 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 				return messages.RunLoadTestResponse{Result: result}, fmt.Errorf("load test succeeded, but failed to serialize provider: %w", err)
 			}
 
+			compressedProviderState, err := util.CompressData(newProviderState)
+			if err != nil {
+				logger.Error("failed to compress provider state after successful run", zap.Error(err))
+				return messages.RunLoadTestResponse{Result: result}, fmt.Errorf("load test succeeded, but failed to compress provider state: %w", err)
+			}
+
 			newChainState, err := chain.Serialize(ctx, p)
 			if err != nil {
 				logger.Error("failed to serialize chain after successful run", zap.Error(err))
-				return messages.RunLoadTestResponse{ProviderState: newProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to serialize chain: %w", err)
+				return messages.RunLoadTestResponse{ProviderState: compressedProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to serialize chain: %w", err)
+			}
+
+			compressedChainState, err := util.CompressData(newChainState)
+			if err != nil {
+				logger.Error("failed to compress chain state after successful run", zap.Error(err))
+				return messages.RunLoadTestResponse{ProviderState: compressedProviderState, Result: result}, fmt.Errorf("load test succeeded, but failed to compress chain state: %w", err)
 			}
 
 			return messages.RunLoadTestResponse{
-				ProviderState: newProviderState,
-				ChainState:    newChainState,
+				ProviderState: compressedProviderState,
+				ChainState:    compressedChainState,
 				Result:        result,
 			}, nil
 		}

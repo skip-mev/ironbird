@@ -372,18 +372,28 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 			stdCtx := context.Background()
 			logger, _ := zap.NewDevelopment()
 
-			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, *providerState, ironbirdutil.ProviderOptions{
+			decompressedProviderState, err := ironbirdutil.DecompressData(*providerState)
+			if err != nil {
+				return fmt.Errorf("failed to decompress provider state: %w", err)
+			}
+			
+			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, decompressedProviderState, ironbirdutil.ProviderOptions{
 				DOToken: testnetActivities.DOToken, TailscaleSettings: testnetActivities.TailscaleSettings, TelemetrySettings: testnetActivities.TelemetrySettings})
 
 			if err != nil {
 				return fmt.Errorf("failed to restore provider: %w", err)
 			}
 
+			decompressedChainState, err := ironbirdutil.DecompressData(*chainState)
+			if err != nil {
+				return fmt.Errorf("failed to decompress chain state: %w", err)
+			}
+
 			walletConfig := testnet.CosmosWalletConfig
 			if isEvmChain {
 				walletConfig = testnet.EvmCosmosWalletConfig
 			}
-			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
+			chain, err := chain.RestoreChain(stdCtx, logger, p, decompressedChainState, node.RestoreNode, walletConfig)
 
 			if err != nil {
 				return fmt.Errorf("failed to restore chain: %w", err)
@@ -409,9 +419,14 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 
 			// update provider and chain state here in case LaunchTestnet activity fails
 			*chainState = []byte{}
-			*providerState, err = p.SerializeProvider(stdCtx)
+			newProviderState, err := p.SerializeProvider(stdCtx)
 			if err != nil {
 				return fmt.Errorf("failed to serialize provider: %w", err)
+			}
+			
+			*providerState, err = ironbirdutil.CompressData(newProviderState)
+			if err != nil {
+				return fmt.Errorf("failed to compress provider state: %w", err)
 			}
 
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
