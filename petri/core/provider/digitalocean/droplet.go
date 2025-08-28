@@ -53,10 +53,10 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 
 	state := p.GetState()
 	req := &godo.DropletCreateRequest{
-		Name:    fmt.Sprintf("%s-%s", state.PetriTag, definition.Name),
-		Region:  doConfig["region"],
-		Size:    doConfig["size"],
-		SSHKeys: []godo.DropletCreateSSHKey{{ID: 50241382}},
+		Name:   fmt.Sprintf("%s-%s", state.PetriTag, definition.Name),
+		Region: doConfig["region"],
+		Size:   doConfig["size"],
+		// SSHKeys: []godo.DropletCreateSSHKey{{ID: 50241382}},
 		Image: godo.DropletCreateImage{
 			ID: int(imageId),
 		},
