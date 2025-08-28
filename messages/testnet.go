@@ -6,8 +6,8 @@ import (
 	ctlttypes "github.com/skip-mev/catalyst/chains/types"
 	pb "github.com/skip-mev/ironbird/server/proto"
 	"github.com/skip-mev/ironbird/types"
-	petritypes "github.com/skip-mev/petri/core/v3/types"
-	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
+	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
 )
 
 const (

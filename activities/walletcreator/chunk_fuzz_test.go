@@ -7,9 +7,9 @@ import (
 
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/petri/core/v3/types"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
-	"github.com/skip-mev/petri/cosmos/v3/wallet"
+	"github.com/skip-mev/ironbird/petri/core/types"
+	petriutil "github.com/skip-mev/ironbird/petri/core/util"
+	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 	"github.com/stretchr/testify/require"
 )
 

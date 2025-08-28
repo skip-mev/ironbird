@@ -7,11 +7,11 @@ import (
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
-	"github.com/skip-mev/petri/core/v3/apps"
-	"github.com/skip-mev/petri/core/v3/util"
+	"github.com/skip-mev/ironbird/petri/core/apps"
+	"github.com/skip-mev/ironbird/petri/core/util"
 
-	"github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
+	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/walletcreator"
@@ -41,7 +41,7 @@ const (
 
 var (
 	defaultWorkflowOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute * 30,
+		StartToCloseTimeout: time.Hour * 1,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
 		},
@@ -74,7 +74,7 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			setter.SetError(nil)
 		})
 		selector.AddFuture(f, func(_ workflow.Future) {})
-	} else if req.CosmosLoadTestSpec == nil && req.EthereumLoadTestSpec == nil {
+	} else {
 		testnetDuration := defaultRuntime
 		if req.TestnetDuration != "" {
 			var err error
@@ -86,8 +86,8 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 			}
 		}
 
-		// 3. No load test and not long-running will end after the timeout timer
 		networkTimeout := max(testnetDuration, defaultRuntime)
+		logger.Info("network timeout", zap.Duration("timeout", networkTimeout))
 		f := workflow.NewTimer(ctx, networkTimeout)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	}
@@ -156,7 +156,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	var testnetResp messages.LaunchTestnetResponse
 	activityOptions := workflow.ActivityOptions{
-		HeartbeatTimeout:    time.Hour * 1,
+		//HeartbeatTimeout:    time.Hour * 1,
 		StartToCloseTimeout: time.Hour * 24 * 365,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
@@ -372,18 +372,28 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 			stdCtx := context.Background()
 			logger, _ := zap.NewDevelopment()
 
-			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, *providerState, ironbirdutil.ProviderOptions{
+			decompressedProviderState, err := ironbirdutil.DecompressData(*providerState)
+			if err != nil {
+				return fmt.Errorf("failed to decompress provider state: %w", err)
+			}
+
+			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, decompressedProviderState, ironbirdutil.ProviderOptions{
 				DOToken: testnetActivities.DOToken, TailscaleSettings: testnetActivities.TailscaleSettings, TelemetrySettings: testnetActivities.TelemetrySettings})
 
 			if err != nil {
 				return fmt.Errorf("failed to restore provider: %w", err)
 			}
 
+			decompressedChainState, err := ironbirdutil.DecompressData(*chainState)
+			if err != nil {
+				return fmt.Errorf("failed to decompress chain state: %w", err)
+			}
+
 			walletConfig := testnet.CosmosWalletConfig
 			if isEvmChain {
 				walletConfig = testnet.EvmCosmosWalletConfig
 			}
-			chain, err := chain.RestoreChain(stdCtx, logger, p, *chainState, node.RestoreNode, walletConfig)
+			chain, err := chain.RestoreChain(stdCtx, logger, p, decompressedChainState, node.RestoreNode, walletConfig)
 
 			if err != nil {
 				return fmt.Errorf("failed to restore chain: %w", err)
@@ -409,9 +419,14 @@ func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, i
 
 			// update provider and chain state here in case LaunchTestnet activity fails
 			*chainState = []byte{}
-			*providerState, err = p.SerializeProvider(stdCtx)
+			newProviderState, err := p.SerializeProvider(stdCtx)
 			if err != nil {
 				return fmt.Errorf("failed to serialize provider: %w", err)
+			}
+
+			*providerState, err = ironbirdutil.CompressData(newProviderState)
+			if err != nil {
+				return fmt.Errorf("failed to compress provider state: %w", err)
 			}
 
 			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID

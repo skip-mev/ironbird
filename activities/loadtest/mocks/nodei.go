@@ -5,8 +5,8 @@ import (
 	"net"
 
 	"github.com/cometbft/cometbft/rpc/client/http"
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/types"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/types"
 	"google.golang.org/grpc"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"

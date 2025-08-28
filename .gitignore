@@ -1,6 +1,8 @@
 *.pem
 *.env
-.env
+**/.env
 .idea/**
 build/
 *.db*
+**/.DS_Store
+**/*.pkr.hcl

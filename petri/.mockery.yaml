@@ -1,0 +1,15 @@
+pkgname: "mocks"
+dir: "{{.InterfaceDir}}/mocks"
+filename: "mock_{{ .InterfaceName | snakecase }}.go"
+packages:
+  github.com/skip-mev/ironbird/petri/core/provider/digitalocean:
+    interfaces:
+      DoClient:
+  github.com/skip-mev/ironbird/petri/core/provider/clients:
+    interfaces:
+      DockerClient:
+      TailscaleServer:
+      TailscaleLocalClient:
+
+
+

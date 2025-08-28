@@ -14,16 +14,16 @@ import (
 	"github.com/skip-mev/ironbird/messages"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/docker"
 
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	petritypes "github.com/skip-mev/petri/core/v3/types"
-	petrichain "github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
+	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"
@@ -88,7 +88,12 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
+	decompressedProviderState, err := util.DecompressData(req.ProviderState)
+	if err != nil {
+		return messages.TeardownProviderResponse{}, fmt.Errorf("failed to decompress provider state: %w", err)
+	}
+
+	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, decompressedProviderState, util.ProviderOptions{
 		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
@@ -171,7 +176,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
-		resp.ProviderState = providerState
+		compressedProviderState, compressErr := util.CompressData(providerState)
+		if compressErr != nil {
+			return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", compressErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		}
+		resp.ProviderState = compressedProviderState
 
 		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
@@ -190,7 +199,11 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 		}
 
-		resp.ProviderState = providerState
+		compressedProviderState, compressErr := util.CompressData(providerState)
+		if compressErr != nil {
+			return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", compressErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		}
+		resp.ProviderState = compressedProviderState
 
 		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
@@ -205,14 +218,22 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	resp.ProviderState = providerState
+	compressedProviderState, err := util.CompressData(providerState)
+	if err != nil {
+		return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	}
+	resp.ProviderState = compressedProviderState
 
 	chainState, err := chain.Serialize(ctx, p)
 	if err != nil {
 		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
 	}
 
-	resp.ChainState = chainState
+	compressedChainState, err := util.CompressData(chainState)
+	if err != nil {
+		return resp, temporal.NewApplicationErrorWithOptions("failed to compress chain state", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+	}
+	resp.ChainState = compressedChainState
 
 	testnetValidators := make([]*pb.Node, 0, len(chain.GetValidators()))
 	testnetNodes := make([]*pb.Node, 0, len(chain.GetNodes()))
@@ -240,9 +261,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
 	}
 
-	go func() {
-		emitHeartbeats(ctx, chain, logger)
-	}()
+	//go func() {
+	//	emitHeartbeats(ctx, chain, logger)
+	//}()
 
 	return resp, nil
 }

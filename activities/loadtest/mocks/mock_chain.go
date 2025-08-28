@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	types "github.com/skip-mev/petri/core/v3/types"
+	types "github.com/skip-mev/ironbird/petri/core/types"
 )
 
 // MocktheChain is a mock of theChain interface.

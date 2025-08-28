@@ -1,15 +1,19 @@
 package util
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"time"
 
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/petri/core/v3/provider"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	"github.com/skip-mev/petri/core/v3/provider/docker"
+	"github.com/skip-mev/ironbird/petri/core/provider"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/docker"
 	"github.com/uber-go/tally/v4"
 	"github.com/uber-go/tally/v4/prometheus"
 	sdktally "go.temporal.io/sdk/contrib/tally"
@@ -58,4 +62,43 @@ func RestoreProvider(ctx context.Context, logger *zap.Logger, runnerType message
 
 	return digitalocean.RestoreProvider(ctx, providerState, opts.DOToken, opts.TailscaleSettings,
 		digitalocean.WithLogger(logger), digitalocean.WithTelemetry(opts.TelemetrySettings))
+}
+
+func CompressData(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+
+	if _, err := gz.Write(data); err != nil {
+		gz.Close()
+		return nil, fmt.Errorf("failed to compress data: %w", err)
+	}
+
+	if err := gz.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close gzip writer: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+func DecompressData(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return data, nil
+	}
+
+	reader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer reader.Close()
+
+	result, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress data: %w", err)
+	}
+
+	return result, nil
 }

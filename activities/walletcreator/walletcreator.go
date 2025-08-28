@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
-	types2 "github.com/skip-mev/petri/core/v3/types"
-	petriutil "github.com/skip-mev/petri/core/v3/util"
-	"github.com/skip-mev/petri/cosmos/v3/chain"
-	"github.com/skip-mev/petri/cosmos/v3/node"
-	"github.com/skip-mev/petri/cosmos/v3/wallet"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
+	types2 "github.com/skip-mev/ironbird/petri/core/types"
+	petriutil "github.com/skip-mev/ironbird/petri/core/util"
+	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
+	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/activities/testnet"
@@ -37,11 +37,21 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 	logger, _ := zap.NewDevelopment()
 	logger.Info("Creating wallets", zap.Int("numWallets", req.NumWallets))
 
-	p, err := util.RestoreProvider(ctx, logger, messages.RunnerType(req.RunnerType), req.ProviderState, util.ProviderOptions{
+	decompressedProviderState, err := util.DecompressData(req.ProviderState)
+	if err != nil {
+		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to decompress provider state: %w", err)
+	}
+
+	p, err := util.RestoreProvider(ctx, logger, messages.RunnerType(req.RunnerType), decompressedProviderState, util.ProviderOptions{
 		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
 
 	if err != nil {
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore provider: %w", err)
+	}
+
+	decompressedChainState, err := util.DecompressData(req.ChainState)
+	if err != nil {
+		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to decompress chain state: %w", err)
 	}
 
 	walletConfig := testnet.CosmosWalletConfig
@@ -49,7 +59,7 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 		walletConfig = testnet.EvmCosmosWalletConfig
 	}
 
-	chain, err := chain.RestoreChain(ctx, logger, p, req.ChainState, node.RestoreNode, walletConfig)
+	chain, err := chain.RestoreChain(ctx, logger, p, decompressedChainState, node.RestoreNode, walletConfig)
 	if err != nil {
 		return messages.CreateWalletsResponse{}, fmt.Errorf("failed to restore chain: %w", err)
 	}

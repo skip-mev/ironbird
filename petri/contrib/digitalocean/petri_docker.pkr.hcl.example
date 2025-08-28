@@ -1,0 +1,100 @@
+packer {
+  required_plugins {
+    digitalocean = {
+      version = ">= 1.0.4"
+      source  = "github.com/digitalocean/digitalocean"
+    }
+  }
+}
+
+source "digitalocean" "petri" {
+    api_token = "<your api token>"
+    image = "ubuntu-24-04-x64"
+    region = "ams3"
+    size = "s-1vcpu-1gb"
+    ssh_username = "root"
+    snapshot_name = "petri-ubuntu-24-04-x64-telemetry"
+    snapshot_regions = [<regions>]
+}
+
+build {
+    sources = ["source.digitalocean.petri"]
+
+    provisioner "shell" {
+        inline = [
+            "sudo mkdir -p /etc/apt/keyrings/",
+            "wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null",
+            "echo \"deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main\" | sudo tee /etc/apt/sources.list.d/grafana.list",
+
+            "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg",
+            "echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu noble stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+
+            "curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null",
+            "curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list",
+
+            # Stop and disable apt-daily services so they don't run during provisioning
+            "systemctl stop apt-daily.timer apt-daily-upgrade.timer || true",
+            "systemctl disable apt-daily.service apt-daily-upgrade.service || true",
+            "systemctl mask apt-daily.service apt-daily-upgrade.service || true",
+            "systemctl daemon-reload || true",
+
+            # Stop and disable unattended-upgrades (if needed)
+            "systemctl stop unattended-upgrades.service || true",
+            "systemctl disable unattended-upgrades.service || true",
+            "systemctl mask unattended-upgrades.service || true",
+
+            "apt-get update -y",
+            "sleep 6",
+            "apt-get upgrade -y",
+            "sleep 6",
+            "apt-get purge -y unattended-upgrades",
+            "sleep 6",
+            "killall -9 apt-get || true",
+            
+            # Wait for any current apt/dpkg processes to finish
+            "while pgrep apt >/dev/null 2>&1 || pgrep dpkg >/dev/null 2>&1; do echo 'Waiting for apt lock...'; sleep 1; done",
+
+            "sleep 6",
+            "killall -9 apt-get || true",
+            "apt-get install -y tailscale docker-ce alloy",
+
+            "mkdir -p /etc/docker",
+            "mkdir -p /etc/systemd/system/docker.service.d",
+
+            "sh -c 'echo $(ps aux | grep apt)'",
+
+            "mkdir /docker_volumes",
+            "chmod 777 /docker_volumes",
+            "chown root:docker /docker_volumes",
+            "sudo sed -i.bak 's/^CUSTOM_ARGS.*/CUSTOM_ARGS=\"--stability.level experimental\"/' /etc/default/alloy",
+
+            # SSH - disable password authentication
+            "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config",
+            "sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config",
+            "systemctl restart ssh",
+            
+            "cloud-init clean --logs",
+        ]
+    }
+
+    provisioner "file" {
+        source = "files/docker_daemon.json"
+        destination = "/etc/docker/daemon.json"
+    }
+
+    provisioner "file" {
+        source = "files/config.alloy"
+        destination = "/etc/alloy/config.alloy"
+    }
+
+    provisioner "file" {
+        source = "files/docker_systemd_override.conf"
+        destination = "/etc/systemd/system/docker.service.d/override.conf"
+    }
+
+    provisioner "file" {
+        source = "files/enabled_ipv4_forwarding.conf"
+        destination = "/etc/sysctl.d/enabled_ipv4_forwarding.conf"
+    }
+
+}

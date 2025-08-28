@@ -17,7 +17,7 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/skip-mev/petri/core/v3/provider/digitalocean"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	"github.com/uber-go/tally/v4/prometheus"
 
 	"github.com/skip-mev/ironbird/activities/builder"
