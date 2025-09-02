@@ -33,7 +33,8 @@ export const MsgType = {
   MsgCreateContract: "MsgCreateContract",
   MsgWriteTo: "MsgWriteTo",
   MsgCrossContractCall: "MsgCrossContractCall",
-  MsgCallDataBlast: "MsgCallDataBlast"
+  MsgCallDataBlast: "MsgCallDataBlast",
+  MsgNativeTransferERC20: "MsgNativeTransferERC20"
 } as const;
 
 // Type for message types

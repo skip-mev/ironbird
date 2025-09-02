@@ -628,6 +628,7 @@ const LoadTestForm = ({ isOpen, onClose, initialData, onSave, selectedRepo }: Lo
                       <option value={MsgType.MsgWriteTo}>MsgWriteTo</option>
                       <option value={MsgType.MsgCrossContractCall}>MsgCrossContractCall</option>
                       <option value={MsgType.MsgCallDataBlast}>MsgCallDataBlast</option>
+                      <option value={MsgType.MsgNativeTransferERC20}>MsgNativeTransferERC20</option>
                     </Select>
                     {/* <FormHelperText color="textSecondary">
                       {newMessage.type === MsgType.MsgCreateContract && "Deploys smart contracts to test contract creation gas costs"}
