@@ -318,6 +318,14 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 }
 
 func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
+	var providerState []byte
+	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
+	defer func() {
+		if providerState != nil {
+			teardownProvider(cleanupCtx, req.RunnerType, providerState)
+		}
+	}()
+
 	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
@@ -334,11 +342,6 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	if err != nil {
 		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
 	}
-
-	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
-	defer func() {
-		teardownProvider(cleanupCtx, req.RunnerType, providerState)
-	}()
 
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
