@@ -698,6 +698,16 @@ export class Workflow extends Message<Workflow> {
    */
   provider = "";
 
+  /**
+   * @generated from field: string start_time = 20;
+   */
+  startTime = "";
+
+  /**
+   * @generated from field: string end_time = 21;
+   */
+  endTime = "";
+
   constructor(data?: PartialMessage<Workflow>) {
     super();
     proto3.util.initPartial(data, this);
@@ -716,6 +726,8 @@ export class Workflow extends Message<Workflow> {
     { no: 17, name: "load_test_spec", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 18, name: "wallets", kind: "message", T: WalletInfo },
     { no: 19, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 20, name: "start_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "end_time", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Workflow {

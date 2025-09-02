@@ -110,7 +110,7 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 		return
 	}
 
-	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, a.GrafanaConfig)
+	monitoringLinks := types.GenerateMonitoringLinks(chainID, startTime, nil, provider, a.GrafanaConfig)
 	logger.Info("monitoring links", zap.String("chainID", chainID),
 		zap.Any("monitoringLinks", monitoringLinks))
 

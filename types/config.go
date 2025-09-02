@@ -111,12 +111,22 @@ type Dashboard struct {
 	HumanName string `yaml:"human_name"`
 }
 
-func GenerateMonitoringLinks(chainID string, startTime time.Time, grafana GrafanaConfig) map[string]string {
+func GenerateMonitoringLinks(chainID string, startTime time.Time, endTime *time.Time, provider string, grafana GrafanaConfig) map[string]string {
 	urls := make(map[string]string)
+
+	toParam := "now"
+	if endTime != nil {
+		toParam = fmt.Sprintf("%d", endTime.UnixMilli())
+	}
 
 	for _, dashboard := range grafana.Dashboards {
 		url := fmt.Sprintf("%s/d/%s/%s?orgId=1&var-chain_id=%s&from=%d&to=%s&refresh=auto",
-			grafana.URL, dashboard.ID, dashboard.Name, chainID, startTime.UnixMilli(), "now")
+			grafana.URL, dashboard.ID, dashboard.Name, chainID, startTime.UnixMilli(), toParam)
+
+		if provider != "" {
+			url += fmt.Sprintf("&var-provider=%s", provider)
+		}
+
 		urls[dashboard.HumanName] = url
 	}
 

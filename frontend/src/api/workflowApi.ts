@@ -197,6 +197,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
   return {
     WorkflowID: workflow.workflowId,
     Status: workflow.status,
+    StartTime: workflow.startTime || undefined,
+    EndTime: workflow.endTime || undefined,
     Provider: workflow.provider || '',
     Nodes: (workflow.nodes || []).map((node: any) => ({
       Name: node.name,

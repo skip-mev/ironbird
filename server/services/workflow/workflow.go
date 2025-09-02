@@ -14,10 +14,10 @@ import (
 	cosmostypes "github.com/skip-mev/catalyst/chains/cosmos/types"
 	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 	catalysttypes "github.com/skip-mev/catalyst/chains/types"
-	"github.com/skip-mev/ironbird/server/db"
-	pb "github.com/skip-mev/ironbird/server/proto"
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
 	"github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/server/db"
+	pb "github.com/skip-mev/ironbird/server/proto"
 	"go.temporal.io/api/enums/v1"
 	temporalclient "go.temporal.io/sdk/client"
 	"go.uber.org/zap"
@@ -205,10 +205,20 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 
 	status := db.WorkflowStatusToString(desc.WorkflowExecutionInfo.Status)
 
+	var startTimeStr, endTimeStr string
+	if desc.WorkflowExecutionInfo.StartTime != nil {
+		startTimeStr = desc.WorkflowExecutionInfo.StartTime.AsTime().Format(time.RFC3339)
+	}
+	if desc.WorkflowExecutionInfo.CloseTime != nil {
+		endTimeStr = desc.WorkflowExecutionInfo.CloseTime.AsTime().Format(time.RFC3339)
+	}
+
 	response := &pb.Workflow{
 		WorkflowId: req.WorkflowId,
 		Status:     status,
 		Provider:   workflow.Provider,
+		StartTime:  startTimeStr,
+		EndTime:    endTimeStr,
 	}
 
 	response.Nodes = workflow.Nodes
