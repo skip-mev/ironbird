@@ -102,6 +102,8 @@ export interface WalletInfo {
 export interface WorkflowStatus {
   WorkflowID: string;
   Status: string;
+  StartTime?: string;
+  EndTime?: string;
   Nodes: Node[];
   Validators: Node[];
   LoadBalancers: Node[];

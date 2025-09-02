@@ -111,6 +111,8 @@ message Workflow {
     string load_test_spec = 17;
     WalletInfo wallets = 18;
     string provider = 19;
+    string start_time = 20;
+    string end_time = 21;
 }
 
 message WorkflowSummary {

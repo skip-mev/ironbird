@@ -311,6 +311,32 @@ const WorkflowDetails = () => {
     }
   };
 
+  // Helper function to update monitoring dashboard URLs with proper time ranges and provider
+  const updateMonitoringUrl = (originalUrl: string, startTime?: string, endTime?: string, provider?: string) => {
+    if (!startTime) return originalUrl;
+    
+    const url = new URL(originalUrl);
+    const startTimestamp = new Date(startTime).getTime();
+    
+    // Update the from parameter
+    url.searchParams.set('from', startTimestamp.toString());
+    
+    // Update the to parameter
+    if (endTime) {
+      const endTimestamp = new Date(endTime).getTime();
+      url.searchParams.set('to', endTimestamp.toString());
+    } else {
+      url.searchParams.set('to', 'now');
+    }
+    
+    // Add provider variable if provided and not already present
+    if (provider && !url.searchParams.has('var-provider')) {
+      url.searchParams.set('var-provider', provider);
+    }
+    
+    return url.toString();
+  };
+
   // Export wallets to CSV function
   const exportWalletsToCSV = (wallets: WalletInfo) => {
     const csvContent = [
@@ -973,24 +999,27 @@ const WorkflowDetails = () => {
                     Monitoring Dashboards
                   </Text>
                   <Stack spacing={3}>
-                    {Object.entries(workflow.Monitoring).map(([name, url]) => (
-                      <HStack key={name} spacing={3}>
-                        <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
-                          {name}
-                        </Text>
-                        <Link 
-                          href={url} 
-                          target="_blank" 
-                          color="blue.500"
-                          display="flex"
-                          alignItems="center"
-                          gap={2}
-                        >
-                          {url}
-                          <Icon as={ExternalLinkIcon} boxSize={4} />
-                        </Link>
-                      </HStack>
-                    ))}
+                    {Object.entries(workflow.Monitoring).map(([name, url]) => {
+                      const updatedUrl = updateMonitoringUrl(url, workflow.StartTime, workflow.EndTime, workflow.Provider);
+                      return (
+                        <HStack key={name} spacing={3}>
+                          <Text fontWeight="semibold" minW="100px" textTransform="capitalize">
+                            {name}
+                          </Text>
+                          <Link 
+                            href={updatedUrl} 
+                            target="_blank" 
+                            color="blue.500"
+                            display="flex"
+                            alignItems="center"
+                            gap={2}
+                          >
+                            {updatedUrl}
+                            <Icon as={ExternalLinkIcon} boxSize={4} />
+                          </Link>
+                        </HStack>
+                      );
+                    })}
                   </Stack>
                 </Box>
 
@@ -1005,7 +1034,31 @@ const WorkflowDetails = () => {
                         Pyroscope
                       </Text>
                       <Link 
-                        href={`https://skipprotocol.grafana.net/a/grafana-pyroscope-app/explore?searchText=&panelType=time-series&layout=grid&hideNoData=off&explorationType=flame-graph&var-serviceName=ironbird&var-profileMetricId=goroutine:goroutine:count:goroutine:count&var-spanSelector=undefined&var-dataSource=grafanacloud-profiles&var-filters=provider%7C%3D%7C${workflow.Provider || 'unknown'}&var-filtersBaseline=&var-filtersComparison=&var-groupBy=&from=now-5m&to=now&maxNodes=16384&diffFrom=&diffTo=&diffFrom-2=&diffTo-2=`}
+                        href={(() => {
+                          // Calculate time range based on workflow timing
+                          const baseUrl = 'https://skipprotocol.grafana.net/a/grafana-pyroscope-app/explore?searchText=&panelType=time-series&layout=grid&hideNoData=off&explorationType=flame-graph&var-serviceName=ironbird&var-profileMetricId=goroutine:goroutine:count:goroutine:count&var-spanSelector=undefined&var-dataSource=grafanacloud-profiles&var-filters=provider%7C%3D%7C';
+                          const provider = workflow.Provider || 'unknown';
+                          
+                          let fromParam, toParam;
+                          if (workflow.StartTime) {
+                            // Convert workflow start time to Unix timestamp in milliseconds for Grafana
+                            const startTimestamp = new Date(workflow.StartTime).getTime();
+                            fromParam = `from=${startTimestamp}`;
+                          } else {
+                            fromParam = 'from=now-5m';
+                          }
+                          
+                          if (workflow.EndTime) {
+                            // Convert workflow end time to Unix timestamp in milliseconds for Grafana
+                            const endTimestamp = new Date(workflow.EndTime).getTime();
+                            toParam = `to=${endTimestamp}`;
+                          } else {
+                            // If workflow is still running, use "now"
+                            toParam = 'to=now';
+                          }
+                          
+                          return `${baseUrl}${provider}&var-filtersBaseline=&var-filtersComparison=&var-groupBy=&${fromParam}&${toParam}&maxNodes=16384&diffFrom=&diffTo=&diffFrom-2=&diffTo-2=`;
+                        })()}
                         target="_blank" 
                         color="blue.500"
                         display="flex"
