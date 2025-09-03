@@ -84,7 +84,11 @@ const generateSampleEvmModifications = (): GenesisModification[] => [
   },
   {
     key: "consensus.params.block.max_gas",
-    value: "75000000"
+    value: "550000000"
+  },
+  {
+    "key": "app_state.feemarket.params.no_base_fee",
+    "value": "true"
   }
 ];
 
