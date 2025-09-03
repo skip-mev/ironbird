@@ -28,8 +28,8 @@ import (
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.temporal.io/sdk/testsuite"
@@ -555,7 +555,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow(shutdownSignal, nil)
+		s.env.CancelWorkflow()
 		time.Sleep(5 * time.Second)
 		close(done)
 	}, 15*time.Second)
@@ -596,7 +596,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
 		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
 
 		time.Sleep(1 * time.Minute) // wait for new chain to startup
-		s.env.SignalWorkflow(shutdownSignal, nil)
+		s.env.CancelWorkflow()
 		time.Sleep(10 * time.Second)
 		close(done)
 	}()

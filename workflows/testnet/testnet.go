@@ -36,7 +36,6 @@ const (
 	defaultRuntime  = time.Minute * 2
 	loadTestTimeout = time.Hour
 	updateHandler   = "chain_update"
-	shutdownSignal  = "shutdown"
 )
 
 var (
@@ -60,19 +59,12 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 }
 
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
-	selector workflow.Selector, providerState []byte) {
+	selector workflow.Selector) {
 	logger := workflow.GetLogger(ctx)
 	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
-		logger.Info("testnet is in long-running mode")
-		f, setter := workflow.NewFuture(ctx)
-		workflow.Go(ctx, func(ctx workflow.Context) {
-			logger.Info("waiting for shutdown signal")
-			signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
-			signalChan.Receive(ctx, nil)
-			logger.Info("received shutdown signal for testnet")
-			setter.SetError(nil)
-		})
+		logger.Info("testnet is in long-running mode - will run until workflow is cancelled")
+		f, _ := workflow.NewFuture(ctx)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	} else {
 		testnetDuration := defaultRuntime
@@ -355,7 +347,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		return err
 	}
 
-	waitForTestnetCompletion(ctx, req, shutdownSelector, providerState)
+	waitForTestnetCompletion(ctx, req, shutdownSelector)
 
 	// Wait for shutdown
 	shutdownSelector.Select(ctx)

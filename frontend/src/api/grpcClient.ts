@@ -10,8 +10,6 @@ import {
   WorkflowListResponse,
   CancelWorkflowRequest,
   SignalWorkflowRequest,
-  RunLoadTestRequest,
-  LoadTestSpec
 } from "../gen/proto/ironbird_pb.js";
 
 console.log("VITE_IRONBIRD_GRPC_ADDRESS:", import.meta.env.VITE_IRONBIRD_GRPC_ADDRESS);
@@ -73,14 +71,6 @@ export const grpcWorkflowApi = {
     return await client.getWorkflow(request) as Workflow;
   },
 
-  runLoadTest: async (workflowId: string, loadTestSpec: LoadTestSpec): Promise<WorkflowResponse> => {
-    const request = new RunLoadTestRequest({
-      workflowId: workflowId,
-      loadTestSpec: loadTestSpec
-    });
-    return await client.runLoadTest(request) as WorkflowResponse;
-  },
-
   cancelWorkflow: async (workflowId: string): Promise<WorkflowResponse> => {
     const request = new CancelWorkflowRequest({
       workflowId: workflowId
@@ -95,12 +85,4 @@ export const grpcWorkflowApi = {
     });
     return await client.signalWorkflow(request) as WorkflowResponse;
   },
-
-  sendShutdownSignal: async (workflowId: string): Promise<WorkflowResponse> => {
-    const request = new SignalWorkflowRequest({
-      workflowId: workflowId,
-      signalName: "shutdown"
-    });
-    return await client.signalWorkflow(request) as WorkflowResponse;
-  }
 };
