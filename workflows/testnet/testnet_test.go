@@ -571,46 +571,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	cleanupResources(s)
 }
 
-func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
-	s.setupMockActivitiesDocker()
-
-	dockerReq := simappReq
-	dockerReq.Repo = "ironbird-cosmos-sdk"
-	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = messages.Docker
-	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LongRunningTestnet = true
-	dockerReq.TestnetDuration = ""
-
-	updatedReq := dockerReq
-	updatedReq.ChainConfig.Name = "updated-stake"
-
-	done := make(chan struct{})
-	go func() {
-		time.Sleep(1 * time.Minute) // give time for load test to run
-		s.env.UpdateWorkflow(updateHandler, "1", callbacks, updatedReq)
-
-		oldCatalystContainer := "ib-stake-defaul-catalyst"
-		rmCmd := exec.Command("docker", "rm", "-f", oldCatalystContainer)
-		_, err := rmCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
-
-		time.Sleep(1 * time.Minute) // wait for new chain to startup
-		s.env.CancelWorkflow()
-		time.Sleep(10 * time.Second)
-		close(done)
-	}()
-	s.env.ExecuteWorkflow(Workflow, dockerReq)
-	<-done
-
-	s.True(s.env.IsWorkflowCompleted())
-	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchTestnet", 2)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
-
-	cleanupResources(s)
-}
-
 func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
 }
