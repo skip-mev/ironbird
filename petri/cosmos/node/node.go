@@ -241,11 +241,31 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 		return nil, "", fmt.Errorf("failed to generate wallet: %w", err)
 	}
 
-	var scriptBuilder strings.Builder
-	scriptBuilder.WriteString("#!/bin/sh\nset -e\n")
-
 	initCmd := n.BinCommand([]string{"init", n.GetDefinition().Name, "--chain-id", n.GetChainConfig().ChainId}...)
-	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(initCmd, " ")))
+	initScript := strings.Join(initCmd, " ")
+
+	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", initScript})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to run validator init: %w", err)
+	}
+
+	if exitCode != 0 {
+		return nil, "", fmt.Errorf("validator init failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
+	}
+
+	n.logger.Debug("validator init completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+
+	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
+	if err := n.ModifyTomlConfigFile(
+		ctx,
+		"config/client.toml",
+		clientConfig,
+	); err != nil {
+		return nil, "", err
+	}
+
+	var genesisScriptBuilder strings.Builder
+	genesisScriptBuilder.WriteString("#!/bin/sh\nset -e\n")
 
 	amount := ""
 	for i, coin := range genesisAmounts {
@@ -262,7 +282,7 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 
 	addGenesisAccountCmd = append(addGenesisAccountCmd, "add-genesis-account", validatorWallet.FormattedAddress(), amount, "--keyring-backend", "test")
 	addGenesisCmd := n.BinCommand(addGenesisAccountCmd...)
-	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(addGenesisCmd, " ")))
+	genesisScriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(addGenesisCmd, " ")))
 
 	var gentxCmd []string
 	if n.GetChainConfig().UseGenesisSubCommand {
@@ -272,29 +292,20 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 		"--keyring-backend", "test",
 		"--chain-id", n.GetChainConfig().ChainId)
 	gentxCommand := n.BinCommand(gentxCmd...)
-	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(gentxCommand, " ")))
+	genesisScriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(gentxCommand, " ")))
 
-	script := scriptBuilder.String()
+	genesisScript := genesisScriptBuilder.String()
 
-	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", script})
+	stdout, stderr, exitCode, err = n.RunCommand(ctx, []string{"/bin/sh", "-c", genesisScript})
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to run validator setup: %w", err)
+		return nil, "", fmt.Errorf("failed to run validator genesis setup: %w", err)
 	}
 
 	if exitCode != 0 {
-		return nil, "", fmt.Errorf("validator setup failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
+		return nil, "", fmt.Errorf("validator genesis setup failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
 	}
 
-	n.logger.Debug("validator setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
-
-	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
-	if err := n.ModifyTomlConfigFile(
-		ctx,
-		"config/client.toml",
-		clientConfig,
-	); err != nil {
-		return nil, "", err
-	}
+	n.logger.Debug("validator genesis setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
 	return validatorWallet, validatorWallet.FormattedAddress(), nil
 }
