@@ -388,7 +388,7 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 			if err := n.SetupNode(ctx); err != nil {
 				return err
 			}
-			c.logger.Info("node setup finished", zap.String("validator", v.GetDefinition().Name), zap.String("address", validatorAddress))
+			c.logger.Info("node setup finished", zap.String("node", n.GetDefinition().Name))
 
 			return nil
 		})
