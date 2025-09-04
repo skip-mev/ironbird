@@ -34,6 +34,7 @@ require (
 	github.com/skip-mev/catalyst v0.0.0-beta.9
 	github.com/spf13/afero v1.12.0
 	github.com/stretchr/testify v1.10.0
+	github.com/tidwall/sjson v1.2.5
 	github.com/tonistiigi/fsutil v0.0.0-20241121093142-31cf1f437184
 	github.com/uber-go/tally/v4 v4.1.17
 	go.temporal.io/api v1.40.0
@@ -379,7 +380,6 @@ require (
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966 // indirect
 	github.com/timonwong/loggercheck v0.9.4 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.8.3 // indirect
