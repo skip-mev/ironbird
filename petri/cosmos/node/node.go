@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/p2p"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
+	"github.com/cosmos/cosmos-sdk/types"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -222,4 +224,107 @@ func (n *Node) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, err
 	}
 
 	return json.Marshal(state)
+}
+
+// SetupValidator performs validator initialization operations:
+// 1. Create a new wallet for the validator
+// 2. Add the validator's account to the genesis file
+// 3. Generate a gentx for the validator
+// 4. Update the client config with chain id (this is needed at this step for the chain ID
+// to be available in the client config during validator genesis setup)
+func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.WalletConfig,
+	genesisAmounts []types.Coin, genesisSelfDelegation types.Coin) (petritypes.WalletI, string, error) {
+	n.logger.Info("initializing validator setup script", zap.String("name", n.GetDefinition().Name))
+
+	validatorWallet, err := n.CreateWallet(ctx, petritypes.ValidatorKeyName, walletConfig)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate wallet: %w", err)
+	}
+
+	var scriptBuilder strings.Builder
+	scriptBuilder.WriteString("#!/bin/sh\nset -e\n")
+
+	initCmd := n.BinCommand([]string{"init", n.GetDefinition().Name, "--chain-id", n.GetChainConfig().ChainId}...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(initCmd, " ")))
+
+	amount := ""
+	for i, coin := range genesisAmounts {
+		if i != 0 {
+			amount += ","
+		}
+		amount += fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom)
+	}
+
+	var addGenesisAccountCmd []string
+	if n.GetChainConfig().UseGenesisSubCommand {
+		addGenesisAccountCmd = append(addGenesisAccountCmd, "genesis")
+	}
+
+	addGenesisAccountCmd = append(addGenesisAccountCmd, "add-genesis-account", validatorWallet.FormattedAddress(), amount, "--keyring-backend", "test")
+	addGenesisCmd := n.BinCommand(addGenesisAccountCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(addGenesisCmd, " ")))
+
+	var gentxCmd []string
+	if n.GetChainConfig().UseGenesisSubCommand {
+		gentxCmd = append(gentxCmd, "genesis")
+	}
+	gentxCmd = append(gentxCmd, "gentx", petritypes.ValidatorKeyName, fmt.Sprintf("%s%s", genesisSelfDelegation.Amount.String(), genesisSelfDelegation.Denom),
+		"--keyring-backend", "test",
+		"--chain-id", n.GetChainConfig().ChainId)
+	gentxCommand := n.BinCommand(gentxCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(gentxCommand, " ")))
+
+	script := scriptBuilder.String()
+
+	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", script})
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to run validator setup: %w", err)
+	}
+
+	if exitCode != 0 {
+		return nil, "", fmt.Errorf("validator setup failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
+	}
+
+	n.logger.Debug("validator setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+
+	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
+	if err := n.ModifyTomlConfigFile(
+		ctx,
+		"config/client.toml",
+		clientConfig,
+	); err != nil {
+		return nil, "", err
+	}
+
+	return validatorWallet, validatorWallet.FormattedAddress(), nil
+}
+
+// SetupNode initializes the node's home directory
+func (n *Node) SetupNode(ctx context.Context) error {
+	n.logger.Info("initializing node setup script", zap.String("name", n.GetDefinition().Name))
+
+	initCmd := n.BinCommand([]string{"init", n.GetDefinition().Name, "--chain-id", n.GetChainConfig().ChainId}...)
+	script := strings.Join(initCmd, " ")
+
+	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", script})
+	if err != nil {
+		return fmt.Errorf("failed to setup node: %w", err)
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("node setup failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
+	}
+
+	n.logger.Debug("node setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+
+	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
+	if err := n.ModifyTomlConfigFile(
+		ctx,
+		"config/client.toml",
+		clientConfig,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
