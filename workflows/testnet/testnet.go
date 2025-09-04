@@ -1,7 +1,6 @@
 package testnet
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -9,9 +8,6 @@ import (
 
 	"github.com/skip-mev/ironbird/petri/core/apps"
 	"github.com/skip-mev/ironbird/petri/core/util"
-
-	"github.com/skip-mev/ironbird/petri/cosmos/chain"
-	"github.com/skip-mev/ironbird/petri/cosmos/node"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/walletcreator"
@@ -35,8 +31,6 @@ var walletCreatorActivities *walletcreator.Activity
 const (
 	defaultRuntime  = time.Minute * 2
 	loadTestTimeout = time.Hour
-	updateHandler   = "chain_update"
-	shutdownSignal  = "shutdown"
 )
 
 var (
@@ -60,19 +54,12 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 }
 
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
-	selector workflow.Selector, providerState []byte) {
+	selector workflow.Selector) {
 	logger := workflow.GetLogger(ctx)
 	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
-		logger.Info("testnet is in long-running mode")
-		f, setter := workflow.NewFuture(ctx)
-		workflow.Go(ctx, func(ctx workflow.Context) {
-			logger.Info("waiting for shutdown signal")
-			signalChan := workflow.GetSignalChannel(ctx, shutdownSignal)
-			signalChan.Receive(ctx, nil)
-			logger.Info("received shutdown signal for testnet")
-			setter.SetError(nil)
-		})
+		logger.Info("testnet is in long-running mode - will run until workflow is cancelled")
+		f, _ := workflow.NewFuture(ctx)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	} else {
 		testnetDuration := defaultRuntime
@@ -132,6 +119,10 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	}
 
 	if err := startWorkflow(ctx, req, runName, buildResult, workflowID); err != nil {
+		if temporal.IsCanceledError(err) {
+			workflow.GetLogger(ctx).Info("testnet workflow was cancelled, completing gracefully")
+			return "", nil
+		}
 		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
 		return "", err
 	}
@@ -183,7 +174,12 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
 			ProviderState:         providerState,
 		}).Get(ctx, &testnetResp); err != nil {
-		return nil, providerState, nil, nil, err
+		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
+		if compressErr != nil {
+			workflow.GetLogger(ctx).Error("failed to compress provider state for cleanup", zap.Error(compressErr))
+			return nil, providerState, nil, nil, err
+		}
+		return nil, compressedProviderState, nil, nil, err
 	}
 
 	chainState = testnetResp.ChainState
@@ -321,7 +317,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	var providerState []byte
 	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
 	defer func() {
-		if providerState != nil {
+		if len(providerState) != 0 {
 			teardownProvider(cleanupCtx, req.RunnerType, providerState)
 		}
 	}()
@@ -350,112 +346,13 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
 
-	err = setUpdateHandler(ctx, &providerState, &chainState, req.IsEvmChain, workflowID)
-	if err != nil {
-		return err
-	}
+	waitForTestnetCompletion(ctx, req, shutdownSelector)
 
-	waitForTestnetCompletion(ctx, req, shutdownSelector, providerState)
-
-	// Wait for shutdown
 	shutdownSelector.Select(ctx)
 
-	return nil
-}
-
-func setUpdateHandler(ctx workflow.Context, providerState, chainState *[]byte, isEvmChain bool, workflowID string) error {
-	if err := workflow.SetUpdateHandler(
-		ctx,
-		updateHandler,
-		func(ctx workflow.Context, updateReq messages.TestnetWorkflowRequest) error {
-			workflow.GetLogger(ctx).Info("received update", zap.Any("updateReq", updateReq))
-
-			ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
-
-			stdCtx := context.Background()
-			logger, _ := zap.NewDevelopment()
-
-			decompressedProviderState, err := ironbirdutil.DecompressData(*providerState)
-			if err != nil {
-				return fmt.Errorf("failed to decompress provider state: %w", err)
-			}
-
-			p, err := ironbirdutil.RestoreProvider(stdCtx, logger, updateReq.RunnerType, decompressedProviderState, ironbirdutil.ProviderOptions{
-				DOToken: testnetActivities.DOToken, TailscaleSettings: testnetActivities.TailscaleSettings, TelemetrySettings: testnetActivities.TelemetrySettings})
-
-			if err != nil {
-				return fmt.Errorf("failed to restore provider: %w", err)
-			}
-
-			decompressedChainState, err := ironbirdutil.DecompressData(*chainState)
-			if err != nil {
-				return fmt.Errorf("failed to decompress chain state: %w", err)
-			}
-
-			walletConfig := testnet.CosmosWalletConfig
-			if isEvmChain {
-				walletConfig = testnet.EvmCosmosWalletConfig
-			}
-			chain, err := chain.RestoreChain(stdCtx, logger, p, decompressedChainState, node.RestoreNode, walletConfig)
-
-			if err != nil {
-				return fmt.Errorf("failed to restore chain: %w", err)
-			}
-
-			err = chain.Teardown(stdCtx)
-			if err != nil {
-				return fmt.Errorf("failed to teardown chain: %w", err)
-			}
-
-			var buildResult messages.BuildDockerImageResponse
-			err = workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
-				Repo: updateReq.Repo,
-				SHA:  updateReq.SHA,
-				ChainConfig: messages.ChainConfig{
-					Name:  updateReq.ChainConfig.Name,
-					Image: updateReq.ChainConfig.Image,
-				},
-			}).Get(ctx, &buildResult)
-			if err != nil {
-				return fmt.Errorf("failed to build docker image for update request: %w", err)
-			}
-
-			// update provider and chain state here in case LaunchTestnet activity fails
-			*chainState = []byte{}
-			newProviderState, err := p.SerializeProvider(stdCtx)
-			if err != nil {
-				return fmt.Errorf("failed to serialize provider: %w", err)
-			}
-
-			*providerState, err = ironbirdutil.CompressData(newProviderState)
-			if err != nil {
-				return fmt.Errorf("failed to compress provider state: %w", err)
-			}
-
-			runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-			runName := fmt.Sprintf("ib-%s-%s", updateReq.ChainConfig.Name, util.RandomString(6))
-			workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID),
-				zap.String("run_name", runName))
-
-			if updateReq.ChainConfig.Image == "" {
-				switch updateReq.Repo {
-				case "gaia":
-					updateReq.ChainConfig.Image = updateReq.Repo
-				default:
-					// for SDK testing default to simapp
-					// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
-					updateReq.ChainConfig.Image = "simapp-v53"
-				}
-			}
-
-			return startWorkflow(ctx, updateReq, runName, buildResult, workflowID)
-		},
-	); err != nil {
-		return temporal.NewApplicationErrorWithOptions(
-			"failed to register update handler",
-			err.Error(),
-			temporal.ApplicationErrorOptions{NonRetryable: true},
-		)
+	if ctx.Err() != nil && temporal.IsCanceledError(ctx.Err()) {
+		workflow.GetLogger(ctx).Info("workflow was cancelled, completing gracefully")
+		return nil
 	}
 
 	return nil

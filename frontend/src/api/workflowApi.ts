@@ -265,19 +265,9 @@ export const workflowApi = {
     return convertFromGrpcWorkflow(response);
   },
 
-  runLoadTest: async (workflowId: string, spec: LoadTestSpec): Promise<WorkflowResponse> => {
-    const yamlSpec = convertLoadTestSpecToYaml(spec);
-    const response = await grpcWorkflowApi.runLoadTest(workflowId, yamlSpec);
-    return convertFromGrpcWorkflowResponse(response);
-  },
-
   cancelWorkflow: async (workflowId: string): Promise<WorkflowResponse> => {
     const response = await grpcWorkflowApi.cancelWorkflow(workflowId);
     return convertFromGrpcWorkflowResponse(response);
   },
 
-  sendShutdownSignal: async (workflowId: string): Promise<WorkflowResponse> => {
-    const response = await grpcWorkflowApi.sendShutdownSignal(workflowId);
-    return convertFromGrpcWorkflowResponse(response);
-  },
 };

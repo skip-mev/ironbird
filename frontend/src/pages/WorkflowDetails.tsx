@@ -114,30 +114,6 @@ const WorkflowDetails = () => {
     },
   });
 
-  const shutdownTestnetMutation = useMutation({
-    mutationFn: () => {
-      if (!workflow) return Promise.reject('No workflow data available');
-      return workflowApi.sendShutdownSignal(id!);
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Shutdown signal sent',
-        description: 'The shutdown signal has been sent to the workflow',
-        status: 'success',
-        duration: 3000,
-      });
-      // Invalidate the workflow query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['workflow', id] });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error sending shutdown signal',
-        description: error instanceof Error ? error.message : String(error),
-        status: 'error',
-        duration: 5000,
-      });
-    },
-  });
 
   // const handleRunLoadTest = () => {
   //   const loadTestSpec: LoadTestSpec = {
@@ -160,16 +136,6 @@ const WorkflowDetails = () => {
       
     if (window.confirm(confirmMessage)) {
       cancelWorkflowMutation.mutate();
-    }
-  };
-
-  const handleShutdownTestnet = () => {
-    if (!workflow) return;
-    
-    const confirmMessage = 'Are you sure you want to send a shutdown signal to this testnet? This will gracefully complete the workflow.';
-      
-    if (window.confirm(confirmMessage)) {
-      shutdownTestnetMutation.mutate();
     }
   };
 
@@ -1291,17 +1257,6 @@ const WorkflowDetails = () => {
                 >
                   Cancel Workflow
                 </Button>
-                <Button
-                  leftIcon={<CloseIcon />}
-                  colorScheme="red"
-                  onClick={handleShutdownTestnet}
-                  isLoading={shutdownTestnetMutation.isPending}
-                  loadingText="Sending Shutdown Signal..."
-                  disabled={workflow.Status !== 'running'}
-                  size="lg"
-                >
-                  Shutdown Testnet
-                </Button>
               </ButtonGroup>
               
               {/* Action Explanations */}
@@ -1312,15 +1267,7 @@ const WorkflowDetails = () => {
                       Cancel Workflow:
                     </Text>
                     <Text fontSize="sm" color={{ base: "gray.700", _dark: "gray.300" }}>
-                      Stops processing the workflow abruptly. For long-running testnets, no resources are deleted or stopped.
-                    </Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="semibold" color="red.600" mb={1}>
-                      Shutdown Testnet:
-                    </Text>
-                    <Text fontSize="sm" color={{ base: "gray.700", _dark: "gray.300" }}>
-                      Sends a shutdown signal to the workflow which gracefully completes the workflow. For long-running testnets, no resources are deleted or stopped.
+                      Stops the workflow and deletes all associated resources.
                     </Text>
                   </Box>
                 </Stack>

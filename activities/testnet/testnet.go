@@ -88,6 +88,11 @@ func (a *Activity) CreateProvider(ctx context.Context, req messages.CreateProvid
 func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
+	if len(req.ProviderState) == 0 {
+		logger.Info("provider state is empty, skipping teardown")
+		return messages.TeardownProviderResponse{}, nil
+	}
+
 	decompressedProviderState, err := util.DecompressData(req.ProviderState)
 	if err != nil {
 		return messages.TeardownProviderResponse{}, fmt.Errorf("failed to decompress provider state: %w", err)

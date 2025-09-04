@@ -28,8 +28,8 @@ import (
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnettypes "github.com/skip-mev/ironbird/activities/testnet"
 	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/types"
 	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
+	"github.com/skip-mev/ironbird/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.temporal.io/sdk/testsuite"
@@ -555,7 +555,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
-		s.env.SignalWorkflow(shutdownSignal, nil)
+		s.env.CancelWorkflow()
 		time.Sleep(5 * time.Second)
 		close(done)
 	}, 15*time.Second)
@@ -566,46 +566,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.True(s.env.IsWorkflowCompleted())
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
-	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
-
-	cleanupResources(s)
-}
-
-func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowUpdate() {
-	s.setupMockActivitiesDocker()
-
-	dockerReq := simappReq
-	dockerReq.Repo = "ironbird-cosmos-sdk"
-	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
-	dockerReq.RunnerType = messages.Docker
-	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.LongRunningTestnet = true
-	dockerReq.TestnetDuration = ""
-
-	updatedReq := dockerReq
-	updatedReq.ChainConfig.Name = "updated-stake"
-
-	done := make(chan struct{})
-	go func() {
-		time.Sleep(1 * time.Minute) // give time for load test to run
-		s.env.UpdateWorkflow(updateHandler, "1", callbacks, updatedReq)
-
-		oldCatalystContainer := "ib-stake-defaul-catalyst"
-		rmCmd := exec.Command("docker", "rm", "-f", oldCatalystContainer)
-		_, err := rmCmd.CombinedOutput()
-		s.NoError(err, fmt.Sprintf("failed to remove container: %s", oldCatalystContainer))
-
-		time.Sleep(1 * time.Minute) // wait for new chain to startup
-		s.env.SignalWorkflow(shutdownSignal, nil)
-		time.Sleep(10 * time.Second)
-		close(done)
-	}()
-	s.env.ExecuteWorkflow(Workflow, dockerReq)
-	<-done
-
-	s.True(s.env.IsWorkflowCompleted())
-	s.NoError(s.env.GetWorkflowError())
-	s.env.AssertActivityNumberOfCalls(s.T(), "LaunchTestnet", 2)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 
 	cleanupResources(s)
