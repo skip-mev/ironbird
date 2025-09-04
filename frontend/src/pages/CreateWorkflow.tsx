@@ -20,6 +20,7 @@ import {
   Flex,
   FormHelperText,
   Tooltip,
+    Textarea,
 } from '@chakra-ui/react';
 import { useMutation } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
@@ -33,6 +34,116 @@ const CreateWorkflow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const [jsonMode, setJsonMode] = useState(false);
+  
+  // Default JSON content from hack/create-workflow.json
+  const defaultJsonContent = `{
+  "repo": "evm",
+  "sha": "99abc7f3a47af1289ddd90c279e49f885ee06278",
+  "isEvmChain": true,
+  "chain_config": {
+    "region_configs": [
+      {
+        "name": "nyc1",
+        "num_of_validators": 0
+      },
+      {
+        "name": "sfo2",
+        "num_of_validators": 1
+      },
+      {
+        "name": "ams3",
+        "num_of_validators": 0
+      },
+      {
+        "name": "fra1",
+        "num_of_validators": 0
+      },
+      {
+        "name": "sgp1",
+        "num_of_validators": 0
+      }
+    ],
+    "name": "foobar-0",
+    "image": "evm",
+    "custom_consensus_config": "{\\"consensus\\":{\\"timeout_commit\\":\\"800ms\\"}}",
+    "custom_app_config": "{\\"json-rpc\\":{\\"enable-profiling\\":true}}",
+    "custom_client_config": "{\\"chain-id\\":\\"262144\\"}",
+    "set_persistent_peers": true,
+    "genesis_modifications":
+      [
+        {
+          "key": "app_state.staking.params.bond_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.gov.params.expedited_voting_period",
+          "value": "120s"
+        },
+        {
+          "key": "app_state.gov.params.voting_period",
+          "value": "300s"
+        },
+        {
+          "key": "app_state.gov.params.expedited_min_deposit.0.amount",
+          "value": "1"
+        },
+        {
+          "key": "app_state.gov.params.expedited_min_deposit.0.denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.gov.params.min_deposit.0.amount",
+          "value": "1"
+        },
+        {
+          "key": "app_state.gov.params.min_deposit.0.denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.evm.params.evm_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.mint.params.mint_denom",
+          "value": "atest"
+        },
+        {
+          "key": "app_state.bank.denom_metadata",
+          "value": "[{\\"description\\":\\"The native staking token for evmd.\\",\\"denom_units\\":[{\\"denom\\":\\"atest\\",\\"exponent\\":0,\\"aliases\\":[\\"attotest\\"]},{\\"denom\\":\\"test\\",\\"exponent\\":18,\\"aliases\\":[]}],\\"base\\":\\"atest\\",\\"display\\":\\"test\\",\\"name\\":\\"Test Token\\",\\"symbol\\":\\"TEST\\",\\"uri\\":\\"\\",\\"uri_hash\\":\\"\\"}]"
+        },
+        {
+          "key": "app_state.erc20.native_precompiles",
+          "value": "[\\"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\\"]"
+        },
+        {
+          "key": "app_state.evm.params.active_static_precompiles",
+          "value": "[\\"0x0000000000000000000000000000000000000100\\",\\"0x0000000000000000000000000000000000000400\\",\\"0x0000000000000000000000000000000000000800\\",\\"0x0000000000000000000000000000000000000801\\",\\"0x0000000000000000000000000000000000000802\\",\\"0x0000000000000000000000000000000000000803\\",\\"0x0000000000000000000000000000000000000804\\",\\"0x0000000000000000000000000000000000000805\\"]"
+        },
+        {
+          "key": "app_state.erc20.token_pairs",
+          "value": "[{\\"contract_owner\\": 1,\\"erc20_address\\": \\"0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE\\",\\"denom\\": \\"atest\\",\\"enabled\\": true}]"
+        },
+        {
+          "key": "consensus.params.block.max_gas",
+          "value": "550000000"
+        },
+        {
+          "key": "app_state.feemarket.params.no_base_fee",
+          "value": "true"
+        }
+      ]
+  },
+  "encoded_load_test_spec": "{\\"name\\":\\"eth_loadtest\\",\\"description\\":\\"testing\\",\\"kind\\":\\"eth\\",\\"chain_id\\":\\"262144\\",\\"send_interval\\":\\"900ms\\",\\"num_batches\\":30,\\"msgs\\":[{\\"type\\":\\"MsgNativeTransferERC20\\",\\"num_msgs\\":1000}],\\"chain_config\\":{\\"tx_opts\\":{\\"gas_fee_cap\\":10000000,\\"gas_tip_cap\\":10000000}}}",
+  "runner_type": "DigitalOcean",
+  "long_running_testnet": false,
+  "testnet_duration": "10m",
+  "num_wallets": 3000,
+  "launch_load_balancer": false
+}`;
+  
+  const [jsonInput, setJsonInput] = useState<string>(defaultJsonContent);
+  const [isParsing, setIsParsing] = useState(false);
   // Default values to use as placeholders
   const defaultValues: TestnetWorkflowRequest = {
     Repo: 'cosmos-sdk',
@@ -97,6 +208,61 @@ const CreateWorkflow = () => {
       }));
     }
   }, [formData.RunnerType, formData.LaunchLoadBalancer]);
+
+  // Shared validation between form mode and JSON mode
+  const validateRequest = (data: TestnetWorkflowRequest): string | null => {
+    const requiredFields: { name: string; value: string | number }[] = [
+      { name: 'Repository', value: data.Repo },
+      { name: 'Commit SHA', value: data.SHA },
+      { name: 'Chain Name', value: data.ChainConfig.Name },
+      { name: 'Runner Type', value: data.RunnerType },
+    ];
+
+    if (data.RunnerType === 'Docker') {
+      if (data.ChainConfig.NumOfValidators === undefined || data.ChainConfig.NumOfValidators < 0) {
+        requiredFields.push({ name: 'Number of Validators', value: data.ChainConfig.NumOfValidators || 0 });
+      }
+      if (data.ChainConfig.NumOfNodes === undefined || data.ChainConfig.NumOfNodes < 0) {
+        requiredFields.push({ name: 'Number of Nodes', value: data.ChainConfig.NumOfNodes || 0 });
+      }
+    } else if (data.RunnerType === 'DigitalOcean') {
+      if (!data.ChainConfig.RegionConfigs || data.ChainConfig.RegionConfigs.length === 0) {
+        return 'DigitalOcean deployment requires regional configuration';
+      }
+      const totalValidators = data.ChainConfig.RegionConfigs.reduce((sum, rc) => sum + (rc.numOfValidators || 0), 0);
+      if (totalValidators === 0) {
+        return 'DigitalOcean deployment requires at least one region to have validators';
+      }
+    }
+
+    if (data.Repo === 'cometbft') {
+      requiredFields.push({ name: 'Chain Image', value: data.ChainConfig.Image });
+    }
+
+    if (!data.LongRunningTestnet) {
+      requiredFields.push({ name: 'Testnet Duration', value: data.TestnetDuration });
+    }
+
+    const empty = requiredFields.filter(field => {
+      if (typeof field.value === 'number') {
+        return field.value === 0 || field.value === undefined;
+      }
+      return field.value === '' || field.value === undefined;
+    });
+    if (empty.length > 0) {
+      return `Please fill in all required fields: ${empty.map(f => f.name).join(', ')}`;
+    }
+
+    if (!data.ChainConfig.SetSeedNode && !data.ChainConfig.SetPersistentPeers) {
+      return 'At least one of "Set Seed Node" or "Set Persistent Peers" must be enabled';
+    }
+
+    if (data.LaunchLoadBalancer && data.RunnerType !== 'DigitalOcean') {
+      return 'Launch Load Balancer can only be enabled when using DigitalOcean as the runner type';
+    }
+
+    return null;
+  };
 
   // Check for URL parameters (for cloning workflows)
   useEffect(() => {
@@ -411,95 +577,9 @@ const CreateWorkflow = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate all required fields are filled
-    const requiredFields: { name: string; value: string | number }[] = [
-      { name: 'Repository', value: formData.Repo },
-      { name: 'Commit SHA', value: formData.SHA },
-      { name: 'Chain Name', value: formData.ChainConfig.Name },
-      { name: 'Runner Type', value: formData.RunnerType },
-    ];
-
-    // Add validator validation based on runner type
-    if (formData.RunnerType === 'Docker') {
-      // For Docker, require number of validators and nodes (can be 0)
-      if (formData.ChainConfig.NumOfValidators === undefined || formData.ChainConfig.NumOfValidators < 0) {
-        requiredFields.push({ name: 'Number of Validators', value: formData.ChainConfig.NumOfValidators || 0 });
-      }
-      if (formData.ChainConfig.NumOfNodes === undefined || formData.ChainConfig.NumOfNodes < 0) {
-        requiredFields.push({ name: 'Number of Nodes', value: formData.ChainConfig.NumOfNodes || 0 });
-      }
-    } else if (formData.RunnerType === 'DigitalOcean') {
-      // For DigitalOcean, always use regional configs and require at least one region with validators
-      if (!formData.ChainConfig.RegionConfigs || formData.ChainConfig.RegionConfigs.length === 0) {
-        toast({
-          title: 'Validation Error',
-          description: 'DigitalOcean deployment requires regional configuration',
-          status: 'error',
-          duration: 5000,
-        });
-        return;
-      }
-
-      const totalValidators = formData.ChainConfig.RegionConfigs.reduce((sum, rc) => sum + rc.numOfValidators, 0);
-      if (totalValidators === 0) {
-        toast({
-          title: 'Validation Error',
-          description: 'DigitalOcean deployment requires at least one region to have validators',
-          status: 'error',
-          duration: 5000,
-        });
-        return;
-      }
-    }
-
-    // Add Chain Image to required fields if repo is cometbft or ironbird-cometbft
-    if (formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') {
-      requiredFields.push({ name: 'Chain Image', value: formData.ChainConfig.Image });
-    }
-
-    // Add Testnet Duration if not long running
-    if (!formData.LongRunningTestnet) {
-      requiredFields.push({ name: 'Testnet Duration', value: formData.TestnetDuration });
-    }
-
-    // Check for empty required fields
-    const emptyFields = requiredFields.filter(field => {
-      if (typeof field.value === 'number') {
-        return field.value === 0 || field.value === undefined;
-      }
-      return field.value === '' || field.value === undefined;
-    });
-
-    if (emptyFields.length > 0) {
-      toast({
-        title: 'Validation Error',
-        description: `Please fill in all required fields: ${emptyFields.map(f => f.name).join(', ')}`,
-        status: 'error',
-        duration: 5000,
-      });
-      return;
-    }
-
-    // Validate that at least one of SetSeedNode or SetPersistentPeers is true
-    if (!formData.ChainConfig.SetSeedNode && !formData.ChainConfig.SetPersistentPeers) {
-      toast({
-        title: 'Validation Error',
-        description: 'At least one of "Set Seed Node" or "Set Persistent Peers" must be enabled',
-        status: 'error',
-        duration: 5000,
-      });
-      return;
-    }
-
-    // Validate that LaunchLoadBalancer is only enabled for DigitalOcean runner
-    if (formData.LaunchLoadBalancer && formData.RunnerType !== 'DigitalOcean') {
-      toast({
-        title: 'Validation Error',
-        description: 'Launch Load Balancer can only be enabled when using DigitalOcean as the runner type',
-        status: 'error',
-        duration: 5000,
-      });
+    const validationError = validateRequest(formData);
+    if (validationError) {
+      toast({ title: 'Validation Error', description: validationError, status: 'error', duration: 5000 });
       return;
     }
 
@@ -564,10 +644,156 @@ const CreateWorkflow = () => {
     });
   };
 
+  // --- JSON Mode helpers ---
+  const parseMaybeJson = (v: any) => {
+    if (typeof v === 'string') {
+      try { return JSON.parse(v); } catch { return undefined; }
+    }
+    return v !== undefined ? v : undefined;
+  };
+
+  const normalizeLoadTestSpec = (specIn: any, repo: string): LoadTestSpec | undefined => {
+    if (!specIn) return undefined;
+    let obj = specIn;
+    if (typeof specIn === 'string') {
+      try { obj = JSON.parse(specIn); } catch { return undefined; }
+    }
+    return {
+      name: obj.Name || obj.name || '',
+      description: obj.Description || obj.description || '',
+      chain_id: obj.ChainID || obj.chain_id || '',
+      kind: obj.Kind || obj.kind || (repo === 'evm' ? 'eth' : 'cosmos'),
+      NumOfBlocks: obj.NumOfBlocks || obj.num_of_blocks || 0,
+      NumOfTxs: obj.NumOfTxs || obj.num_of_txs || 0,
+      msgs: Array.isArray(obj.Msgs) ? obj.Msgs.map((m: any) => ({
+        type: m.Type || m.type,
+        weight: m.Weight || m.weight || 0,
+        NumMsgs: m.NumMsgs || m.numMsgs,
+        ContainedType: m.ContainedType || m.containedType || m.contained_type,
+        NumOfRecipients: m.NumOfRecipients || m.num_of_recipients,
+        num_msgs: m.num_msgs || m.NumMsgs || m.numMsgs,
+        NumOfIterations: m.NumOfIterations || m.num_of_iterations,
+        CalldataSize: m.CalldataSize || m.calldata_size,
+      })) : (Array.isArray(obj.msgs) ? obj.msgs.map((m: any) => ({
+        type: m.type,
+        weight: m.weight || 0,
+        NumMsgs: m.NumMsgs || m.numMsgs,
+        ContainedType: m.ContainedType || m.contained_type,
+        NumOfRecipients: m.NumOfRecipients || m.num_of_recipients,
+        num_msgs: m.num_msgs || m.NumMsgs || m.numMsgs,
+        NumOfIterations: m.NumOfIterations || m.num_of_iterations,
+        CalldataSize: m.CalldataSize || m.calldata_size,
+      })) : []),
+      unordered_txs: obj.unordered_txs || false,
+      tx_timeout: obj.tx_timeout || '',
+      send_interval: obj.send_interval || '',
+      num_batches: obj.num_batches || 0,
+      gas_denom: obj.gas_denom || '',
+      bech32_prefix: obj.bech32_prefix || '',
+    };
+  };
+
+  const parseWorkflowJson = (text: string): TestnetWorkflowRequest => {
+    const raw = JSON.parse(text);
+    const repo = raw.repo || raw.Repo || '';
+    const runner = raw.runner_type || raw.RunnerType || '';
+    const chain = raw.chain_config || raw.ChainConfig || {};
+
+    const regionCfgs = chain.region_configs || chain.RegionConfigs || [];
+    const parsedRegionCfgs = Array.isArray(regionCfgs)
+      ? regionCfgs.map((rc: any) => ({
+          name: rc.name || rc.Name,
+          numOfNodes: rc.num_of_nodes || rc.NumOfNodes || 0,
+          numOfValidators: rc.num_of_validators || rc.NumOfValidators || 0,
+        }))
+      : [];
+
+    const loadSpec = normalizeLoadTestSpec(
+      raw.encoded_load_test_spec || raw.load_test_spec || raw.LoadTestSpec || raw.EthereumLoadTestSpec || raw.CosmosLoadTestSpec,
+      repo,
+    );
+
+    const req: TestnetWorkflowRequest = {
+      Repo: repo,
+      SHA: raw.sha || raw.SHA || '',
+      IsEvmChain: (raw.isEvmChain !== undefined ? raw.isEvmChain : (repo === 'evm')) || false,
+      RunnerType: runner,
+      ChainConfig: {
+        Name: chain.name || chain.Name || '',
+        Image: chain.image || chain.Image || '',
+        NumOfNodes: chain.num_of_nodes || chain.NumOfNodes || 0,
+        NumOfValidators: chain.num_of_validators || chain.NumOfValidators || 0,
+        RegionConfigs: parsedRegionCfgs,
+        GenesisModifications: Array.isArray(chain.genesis_modifications || chain.GenesisModifications)
+          ? (chain.genesis_modifications || chain.GenesisModifications)
+          : [],
+        AppConfig: parseMaybeJson(chain.custom_app_config || chain.AppConfig),
+        ConsensusConfig: parseMaybeJson(chain.custom_consensus_config || chain.ConsensusConfig),
+        ClientConfig: parseMaybeJson(chain.custom_client_config || chain.ClientConfig),
+        SetSeedNode: (chain.set_seed_node || chain.SetSeedNode) ?? false,
+        SetPersistentPeers: (chain.set_persistent_peers || chain.SetPersistentPeers) ?? false,
+      },
+      LoadTestSpec: loadSpec,
+      EthereumLoadTestSpec: loadSpec?.kind === 'eth' ? loadSpec : undefined,
+      CosmosLoadTestSpec: loadSpec?.kind === 'cosmos' ? loadSpec : undefined,
+      LongRunningTestnet: raw.long_running_testnet ?? raw.LongRunningTestnet ?? false,
+      LaunchLoadBalancer: raw.launch_load_balancer ?? raw.LaunchLoadBalancer ?? false,
+      TestnetDuration: raw.testnet_duration || raw.TestnetDuration || '',
+      NumWallets: raw.num_wallets || raw.NumWallets || 2500,
+    };
+    return req;
+  };
+
+  const handleJsonSubmit = async () => {
+    setIsParsing(true);
+    try {
+      const req = parseWorkflowJson(jsonInput);
+      const err = validateRequest(req);
+      if (err) {
+        toast({ title: 'Validation Error', description: err, status: 'error', duration: 5000 });
+        return;
+      }
+      createWorkflowMutation.mutate(req);
+    } catch (e: any) {
+      toast({ title: 'Invalid JSON', description: e?.message || 'Failed to parse JSON', status: 'error', duration: 6000 });
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   return (
     <>
       <Box as="form" onSubmit={handleSubmit}>
-        <Heading mb={6}>Create New Testnet</Heading>
+        <Heading mb={4}>Create New Testnet</Heading>
+        <HStack mb={4} align="center" spacing={4}>
+          <Text color="text">JSON Mode</Text>
+          <Switch isChecked={jsonMode} onChange={(e) => setJsonMode(e.target.checked)} />
+        </HStack>
+        {jsonMode ? (
+          <Stack direction="column" gap={4}>
+            <FormControl>
+              <FormLabel color="text">Workflow JSON</FormLabel>
+              <Textarea
+                value={jsonInput}
+                onChange={(e) => setJsonInput(e.target.value)}
+                bg="surface"
+                color="text"
+                borderColor="divider"
+                placeholder="Paste JSON similar to hack/create-workflow.json"
+                minH="80vh"
+                maxH="90vh"
+                resize="vertical"
+                fontFamily="mono"
+                fontSize="md"
+                lineHeight="1.5"
+                w="100%"
+              />
+            </FormControl>
+            <Button colorScheme="blue" isLoading={isParsing || createWorkflowMutation.isPending} onClick={handleJsonSubmit}>
+              Create Testnet
+            </Button>
+          </Stack>
+        ) : (
         <Stack direction="column" gap={4}>
           <FormControl isRequired>
             <FormLabel color="text">Repository</FormLabel>
@@ -599,8 +825,6 @@ const CreateWorkflow = () => {
               <option value="cosmos-sdk">Cosmos SDK</option>
               <option value="cometbft">CometBFT</option>
               <option value="gaia">Gaia</option>
-              <option value="ironbird-cosmos-sdk">Ironbird Cosmos SDK</option>
-              <option value="ironbird-cometbft">Ironbird CometBFT</option>
               <option value="evm">EVM</option>
             </Select>
           </FormControl>
@@ -678,7 +902,7 @@ const CreateWorkflow = () => {
             </Select>
           </FormControl>
 
-          {(formData.Repo === 'cometbft' || formData.Repo === 'ironbird-cometbft') && (
+          {(formData.Repo === 'cometbft') && (
             <FormControl isRequired>
               <FormLabel color="text">Chain Image</FormLabel>
                 <Select
@@ -1123,6 +1347,7 @@ const CreateWorkflow = () => {
             Create Testnet
           </Button>
         </Stack>
+        )}
       </Box>
       
       <LoadTestForm
