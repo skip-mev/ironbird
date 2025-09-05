@@ -134,8 +134,8 @@ func generateReplace(dependencies map[string]string, owner, repo, tag string) st
 	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
-func generateTag(chain, version, owner, repo, sha string) string {
-	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
+func generateTag(version, repo, sha string) string {
+	return fmt.Sprintf("%s-%s-%s", version, repo, sha)
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
@@ -194,8 +194,8 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	buildArguments := make(map[string]string)
-	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, image.Version, repoOwners[req.Repo], req.Repo, req.SHA)
-	tag := generateTag(req.ChainConfig.Name, image.Version, "", req.Repo, req.SHA)
+	buildArguments["GIT_SHA"] = generateTag(image.Version, req.Repo, req.SHA)
+	tag := generateTag(image.Version, req.Repo, req.SHA)
 
 	if slices.Contains(SKIP_REPLACE_REPOS, req.Repo) {
 		buildArguments["CHAIN_TAG"] = req.SHA
