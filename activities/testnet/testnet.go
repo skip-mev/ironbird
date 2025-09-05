@@ -197,6 +197,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		NodeCreator:   node.CreateNode,
 		WalletConfig:  walletConfig,
 		NodeOptions:   nodeOptions,
+		NumWallets:    req.NumWallets,
+		IsEvmChain:    req.IsEvmChain,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
@@ -261,6 +263,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	resp.Nodes = testnetNodes
 	resp.Validators = testnetValidators
+
+	userWallets := chain.GetUserWallets()
+	mnemonics := make([]string, len(userWallets))
+	for i, wallet := range userWallets {
+		mnemonics[i] = wallet.Mnemonic()
+	}
+	resp.Mnemonics = mnemonics
 
 	if a.GRPCClient != nil {
 		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)

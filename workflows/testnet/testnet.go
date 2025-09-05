@@ -10,7 +10,6 @@ import (
 	"github.com/skip-mev/ironbird/petri/core/util"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
 	"github.com/skip-mev/ironbird/messages"
 	ironbirdutil "github.com/skip-mev/ironbird/util"
 
@@ -26,7 +25,6 @@ var testnetActivities *testnet.Activity
 var loadTestActivities *loadtest.Activity
 var builderActivities *builder.Activity
 var loadBalancerActivities *loadbalancer.Activity
-var walletCreatorActivities *walletcreator.Activity
 
 const (
 	defaultRuntime  = time.Minute * 2
@@ -134,7 +132,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 }
 
 func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
-	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
+	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, []string, error) {
 	var providerState, chainState []byte
 	workflow.GetLogger(ctx).Info("launching testnet", zap.Any("req", req))
 
@@ -143,7 +141,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		RunnerType: req.RunnerType,
 		Name:       runName,
 	}).Get(ctx, &createProviderResp); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	providerState = createProviderResp.ProviderState
@@ -176,19 +174,20 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			SetSeedNode:           req.ChainConfig.SetSeedNode,
 			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
 			ProviderState:         providerState,
+			NumWallets:            req.NumWallets,
 		}).Get(ctx, &testnetResp); err != nil {
 		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
 		if compressErr != nil {
 			workflow.GetLogger(ctx).Error("failed to compress provider state for cleanup", zap.Error(compressErr))
-			return nil, providerState, nil, nil, err
+			return nil, providerState, nil, nil, nil, err
 		}
-		return nil, compressedProviderState, nil, nil, err
+		return nil, compressedProviderState, nil, nil, nil, err
 	}
 
 	chainState = testnetResp.ChainState
 	providerState = testnetResp.ProviderState
 
-	return chainState, providerState, testnetResp.Nodes, testnetResp.Validators, nil
+	return chainState, providerState, testnetResp.Nodes, testnetResp.Validators, testnetResp.Mnemonics, nil
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
@@ -224,37 +223,6 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 	}
 
 	return loadBalancerResp.ProviderState, nil
-}
-
-func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, workflowID string) ([]string, error) {
-	if req.NumWallets <= 0 {
-		workflow.GetLogger(ctx).Info("no wallets to create, using default value of 2500")
-		req.NumWallets = 2500
-	}
-
-	workflow.GetLogger(ctx).Info("creating wallets", zap.Int("numWallets", req.NumWallets))
-
-	var createWalletsResp messages.CreateWalletsResponse
-	err := workflow.ExecuteActivity(
-		ctx,
-		walletCreatorActivities.CreateWallets,
-		messages.CreateWalletsRequest{
-			WorkflowID:    workflowID,
-			NumWallets:    req.NumWallets,
-			IsEvmChain:    req.IsEvmChain,
-			RunnerType:    string(req.RunnerType),
-			ChainState:    chainState,
-			ProviderState: providerState,
-		},
-	).Get(ctx, &createWalletsResp)
-
-	if err != nil {
-		workflow.GetLogger(ctx).Error("wallet creation activity failed", zap.Error(err))
-		return nil, err
-	}
-
-	workflow.GetLogger(ctx).Info("wallets created successfully", zap.Int("count", len(createWalletsResp.Mnemonics)))
-	return createWalletsResp.Mnemonics, nil
 }
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
@@ -325,7 +293,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		}
 	}()
 
-	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
+	chainState, providerState, nodes, validators, mnemonics, err := launchTestnet(ctx, req, runName, buildResult)
 	if err != nil {
 		return err
 	}
@@ -335,11 +303,6 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		if err != nil {
 			return err
 		}
-	}
-
-	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)
-	if err != nil {
-		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
 	}
 
 	shutdownSelector := workflow.NewSelector(ctx)

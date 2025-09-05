@@ -4,10 +4,10 @@ import (
 	"fmt"
 
 	ctlttypes "github.com/skip-mev/catalyst/chains/types"
-	pb "github.com/skip-mev/ironbird/server/proto"
-	"github.com/skip-mev/ironbird/types"
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
 	petrichain "github.com/skip-mev/ironbird/petri/cosmos/chain"
+	pb "github.com/skip-mev/ironbird/server/proto"
+	"github.com/skip-mev/ironbird/types"
 )
 
 const (
@@ -60,6 +60,8 @@ type LaunchTestnetRequest struct {
 	ProviderState      []byte
 	SetPersistentPeers bool
 	SetSeedNode        bool
+
+	NumWallets int
 }
 
 type LaunchTestnetResponse struct {
@@ -68,6 +70,7 @@ type LaunchTestnetResponse struct {
 	ChainID       string
 	Nodes         []*pb.Node
 	Validators    []*pb.Node
+	Mnemonics     []string
 }
 
 type TestnetWorkflowRequest struct {

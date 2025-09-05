@@ -31,6 +31,7 @@ type PackagedState struct {
 	NodeStates       [][]byte
 	ValidatorWallets []string
 	FaucetWallet     string
+	UserWallets      []string
 }
 
 type State struct {
@@ -49,6 +50,7 @@ type Chain struct {
 	FaucetWallet petritypes.WalletI
 
 	ValidatorWallets []petritypes.WalletI
+	UserWallets      []petritypes.WalletI
 
 	mu sync.RWMutex
 
@@ -312,6 +314,15 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 		chain.FaucetWallet = w
 	}
 
+	chain.UserWallets = make([]petritypes.WalletI, len(packagedState.UserWallets))
+	for i, mnemonic := range packagedState.UserWallets {
+		w, err := wallet.NewWallet(fmt.Sprintf("user-%d", i), mnemonic, walletConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to restore user wallet %d: %w", i, err)
+		}
+		chain.UserWallets[i] = w
+	}
+
 	return &chain, nil
 }
 
@@ -408,7 +419,7 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	firstValidator := c.Validators[0]
 
-	if err := c.executeGenesisOperations(ctx, firstValidator, faucetWallet, genesisAmounts); err != nil {
+	if err := c.executeGenesisOperations(ctx, firstValidator, faucetWallet, genesisAmounts, opts); err != nil {
 		return err
 	}
 
@@ -682,6 +693,11 @@ func (c *Chain) GetFaucetWallet() petritypes.WalletI {
 	return c.FaucetWallet
 }
 
+// GetUserWallets returns the user wallets that were created and funded during genesis
+func (c *Chain) GetUserWallets() []petritypes.WalletI {
+	return c.UserWallets
+}
+
 // GetConfig is the configuration structure for a logical chain.
 func (c *Chain) GetConfig() petritypes.ChainConfig {
 	return c.State.Config
@@ -724,8 +740,9 @@ func (c *Chain) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, er
 // Executes the needed genesis operations for the chain:
 // 1. Add the faucet account to the genesis file
 // 2. Add the validator accounts to the genesis file
-// 3. Collect the gentxs from the validators and create the genesis file
-func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin) error {
+// 3. Create and add user wallets to the genesis file
+// 4. Collect the gentxs from the validators and create the genesis file
+func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin, opts petritypes.ChainOptions) error {
 	c.logger.Info("executing genesis operations", zap.String("validator", firstValidator.GetDefinition().Name))
 
 	var scriptBuilder strings.Builder
@@ -769,6 +786,38 @@ func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator pet
 		if err := validator.CopyGenTx(ctx, firstValidator); err != nil {
 			return fmt.Errorf("failed to copy gentx from %s: %w", validator.GetDefinition().Name, err)
 		}
+	}
+
+	if opts.NumWallets > 0 {
+		c.logger.Info("creating user wallets", zap.Int("numWallets", opts.NumWallets))
+
+		var userWalletAmount string
+		if opts.IsEvmChain {
+			userWalletAmount = fmt.Sprintf("10000000000000000%s", c.GetConfig().Denom)
+		} else {
+			userWalletAmount = fmt.Sprintf("1000000000%s", c.GetConfig().Denom)
+		}
+
+		c.UserWallets = make([]petritypes.WalletI, opts.NumWallets)
+
+		for i := 0; i < opts.NumWallets; i++ {
+			userWallet, err := wallet.NewGeneratedWallet(fmt.Sprintf("user-%d", i), opts.WalletConfig)
+			if err != nil {
+				return fmt.Errorf("failed to create user wallet %d: %w", i, err)
+			}
+
+			c.UserWallets[i] = userWallet
+
+			var addUserCmd []string
+			if useGenesisSubCommand {
+				addUserCmd = append(addUserCmd, "genesis")
+			}
+			addUserCmd = append(addUserCmd, "add-genesis-account", userWallet.FormattedAddress(), userWalletAmount, "--keyring-backend", "test")
+			userCommand := firstValidatorNode.BinCommand(addUserCmd...)
+			scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(userCommand, " ")))
+		}
+
+		c.logger.Info("successfully created user wallets", zap.Int("count", len(c.UserWallets)))
 	}
 
 	var collectCmd []string

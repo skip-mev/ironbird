@@ -8,7 +8,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
 	"github.com/skip-mev/ironbird/messages"
 	"github.com/skip-mev/ironbird/util"
 	sdktally "go.temporal.io/sdk/contrib/tally"
@@ -156,13 +155,6 @@ func main() {
 		GRPCClient:        grpcClient,
 	}
 
-	walletCreatorActivity := walletcreator.Activity{
-		DOToken:           cfg.DigitalOcean.Token,
-		TailscaleSettings: tailscaleSettings,
-		TelemetrySettings: telemetrySettings,
-		GRPCClient:        grpcClient,
-	}
-
 	w := worker.New(c, messages.TaskQueue, worker.Options{})
 
 	w.RegisterWorkflow(testnetworkflow.Workflow)
@@ -173,7 +165,6 @@ func main() {
 	w.RegisterActivity(loadTestActivity.RunLoadTest)
 	w.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
 	w.RegisterActivity(builderActivity.BuildDockerImage)
-	w.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	err = w.Run(worker.InterruptCh())
 
