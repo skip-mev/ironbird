@@ -1,7 +1,7 @@
 ARG IMG_TAG=latest
 
 # Compile the simapp binary
-FROM golang:1.23-alpine AS evmd-builder
+FROM golang:1.25-alpine AS evmd-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 
@@ -15,8 +15,8 @@ ARG CHAIN_SRC=https://github.com/cosmos/evm
 ARG REPLACE_CMD
 
 RUN git clone $CHAIN_SRC /src/app && \
-    cd /src/app && \
-    git checkout $CHAIN_TAG
+  cd /src/app && \
+  git checkout $CHAIN_TAG
 
 WORKDIR /src/app/evmd
 RUN echo "$REPLACE_CMD" > replace_cmd.sh
