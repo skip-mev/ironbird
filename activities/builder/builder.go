@@ -97,7 +97,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	}
 
 	ecrClient := ecr.NewFromConfig(*a.AwsConfig, func(options *ecr.Options) {
-		options.Region = "us-east-1"
+		options.Region = "us-east-2"
 	})
 
 	repositories, err := ecrClient.DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{

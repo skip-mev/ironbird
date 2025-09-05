@@ -10,7 +10,7 @@ import (
 
 func FetchDockerRepoToken(ctx context.Context, awsCfg aws.Config) (string, error) {
 	ecrClient := ecr.NewFromConfig(awsCfg, func(options *ecr.Options) {
-		options.Region = "us-east-1"
+		options.Region = "us-east-2"
 	})
 
 	token, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
