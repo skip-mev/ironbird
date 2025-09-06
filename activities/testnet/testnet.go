@@ -2,8 +2,11 @@ package testnet
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -37,6 +40,31 @@ type Activity struct {
 	GrafanaConfig     types.GrafanaConfig
 	GRPCClient        pb.IronbirdServiceClient
 	AwsConfig         *aws.Config
+}
+
+// convertECRTokenToDockerAuth converts an ECR authorization token to Docker API RegistryAuth format
+func convertECRTokenToDockerAuth(ecrToken string) (string, error) {
+	decodedToken, err := base64.StdEncoding.DecodeString(ecrToken)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode ECR token: %w", err)
+	}
+
+	parts := strings.Split(string(decodedToken), ":")
+	if len(parts) != 2 {
+		return "", fmt.Errorf("invalid ECR token format")
+	}
+
+	authConfig := map[string]string{
+		"username": parts[0],
+		"password": parts[1],
+	}
+
+	authJSON, err := json.Marshal(authConfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal auth config: %w", err)
+	}
+
+	return base64.StdEncoding.EncodeToString(authJSON), nil
 }
 
 var (
@@ -155,11 +183,17 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		if err != nil {
 			logger.Error("Failed to fetch docker repo token", zap.Error(err))
 		}
+
+		dockerAuth, err := convertECRTokenToDockerAuth(token)
+		if err != nil {
+			logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
+		}
+
 		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 			if definition.ProviderSpecificConfig == nil {
 				definition.ProviderSpecificConfig = make(map[string]string)
 			}
-			definition.ProviderSpecificConfig["docker_auth"] = token
+			definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
 			return definition
 		}
 	}
