@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -830,15 +831,32 @@ func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator pet
 
 	finalScript := scriptBuilder.String()
 	c.logger.Info("executing genesis operations script")
-	stdout, stderr, exitCode, err := firstValidator.RunCommand(ctx, []string{"/bin/sh", "-c", finalScript})
+
+	// Write script to a temporary file to avoid linux ARG_MAX limitations
+	scriptPath := "/tmp/genesis_operations.sh"
+	encodedScript := base64.StdEncoding.EncodeToString([]byte(finalScript))
+	writeScriptCmd := []string{"/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s", encodedScript, scriptPath)}
+	stdout, stderr, exitCode, err := firstValidator.RunCommand(ctx, writeScriptCmd)
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("failed to write genesis script to file (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	chmodCmd := []string{"/bin/chmod", "+x", scriptPath}
+	stdout, stderr, exitCode, err = firstValidator.RunCommand(ctx, chmodCmd)
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("failed to make genesis script executable (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	stdout, stderr, exitCode, err = firstValidator.RunCommand(ctx, []string{scriptPath})
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("final genesis script failed (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	cleanupCmd := []string{"/bin/rm", "-f", scriptPath}
+	_, _, _, err = firstValidator.RunCommand(ctx, cleanupCmd)
 	if err != nil {
-		return fmt.Errorf("failed to run final genesis script: %w", err)
+		c.logger.Error("failed to clean up genesis script", zap.Error(err))
 	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("final genesis script failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
-	}
-
 	c.logger.Debug("final genesis script completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
 	return nil
