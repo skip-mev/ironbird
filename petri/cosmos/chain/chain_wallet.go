@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/skip-mev/ironbird/petri/core/types"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 )
@@ -33,14 +31,4 @@ func (c *Chain) RecoverKey(ctx context.Context, keyName, mnemonic string) error 
 // CreateWallet creates a wallet in the first available full node's keystore using a randomly generated mnemonic
 func (c *Chain) CreateWallet(ctx context.Context, keyName string, config types.WalletConfig) (types.WalletI, error) {
 	return c.GetFullNode().CreateWallet(ctx, keyName, config)
-}
-
-// GetAddress returns a Bech32 formatted address for a given key in the first available full node's keystore
-func (c *Chain) GetAddress(ctx context.Context, keyName string) ([]byte, error) {
-	b32Addr, err := c.GetFullNode().KeyBech32(ctx, keyName, "acc")
-	if err != nil {
-		return nil, err
-	}
-
-	return sdk.GetFromBech32(b32Addr, c.GetConfig().Bech32Prefix)
 }

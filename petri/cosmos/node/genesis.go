@@ -3,10 +3,7 @@ package node
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/types"
 	"go.uber.org/zap"
 
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
@@ -43,103 +40,6 @@ func (n *Node) CopyGenTx(ctx context.Context, dstNode petritypes.NodeI) error {
 
 	n.logger.Debug("writing gen tx", zap.String("node", dstNode.GetConfig().Name))
 	return dstNode.WriteFile(context.Background(), path, gentx)
-}
-
-// AddGenesisAccount adds a genesis account to the node's local genesis file
-func (n *Node) AddGenesisAccount(ctx context.Context, address string, genesisAmounts []types.Coin) error {
-	n.logger.Debug("adding genesis account", zap.String("node", n.GetDefinition().Name), zap.String("address", address))
-
-	amount := ""
-
-	for i, coin := range genesisAmounts {
-		if i != 0 {
-			amount += ","
-		}
-
-		amount += fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom)
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancel()
-
-	var command []string
-
-	if n.GetChainConfig().UseGenesisSubCommand {
-		command = append(command, "genesis")
-	}
-
-	command = append(command, "add-genesis-account", address, amount, "--keyring-backend", keyring.BackendTest)
-	command = n.BinCommand(command...)
-
-	stdout, stderr, exitCode, err := n.RunCommand(ctx, command)
-	n.logger.Debug("add-genesis-account", zap.String("stdout", stdout), zap.String("stderr", stderr), zap.Int("exitCode", exitCode))
-
-	if err != nil {
-		return fmt.Errorf("failed to add genesis account: %w", err)
-	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("failed to add genesis account (exitcode=%d): %s", exitCode, stderr)
-	}
-
-	return nil
-}
-
-// GenerateGenTx generates a genesis transaction for the node
-func (n *Node) GenerateGenTx(ctx context.Context, genesisSelfDelegation types.Coin) error {
-	n.logger.Info("generating genesis transaction", zap.String("node", n.GetDefinition().Name))
-
-	var command []string
-
-	if n.GetChainConfig().UseGenesisSubCommand {
-		command = append(command, "genesis")
-	}
-
-	command = append(command, "gentx", petritypes.ValidatorKeyName, fmt.Sprintf("%s%s", genesisSelfDelegation.Amount.String(), genesisSelfDelegation.Denom),
-		"--keyring-backend", keyring.BackendTest,
-		"--chain-id", n.GetChainConfig().ChainId)
-
-	command = n.BinCommand(command...)
-
-	stdout, stderr, exitCode, err := n.RunCommand(ctx, command)
-	n.logger.Debug("gentx", zap.String("stdout", stdout), zap.String("stderr", stderr),
-		zap.Int("exitCode", exitCode), zap.Strings("command", command))
-
-	if err != nil {
-		return fmt.Errorf("failed to generate genesis transaction: %w", err)
-	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("failed to generate genesis transaction (exitcode=%d): %s", exitCode, stderr)
-	}
-
-	return nil
-}
-
-// CollectGenTxs collects the genesis transactions from the node and create a finalized genesis file
-func (n *Node) CollectGenTxs(ctx context.Context) error {
-	n.logger.Info("collecting genesis transactions", zap.String("node", n.GetDefinition().Name))
-
-	command := []string{}
-
-	if n.GetChainConfig().UseGenesisSubCommand {
-		command = append(command, "genesis")
-	}
-
-	command = append(command, "collect-gentxs")
-
-	stdout, stderr, exitCode, err := n.RunCommand(ctx, n.BinCommand(command...))
-	n.logger.Debug("collect-gentxs", zap.String("stdout", stdout), zap.String("stderr", stderr), zap.Int("exitCode", exitCode))
-
-	if err != nil {
-		return fmt.Errorf("failed to collect genesis transactions: %w", err)
-	}
-
-	if exitCode != 0 {
-		return fmt.Errorf("failed to collect genesis transactions (exitcode=%d): %s", exitCode, stderr)
-	}
-
-	return nil
 }
 
 // OverwriteGenesisFile overwrites the genesis file on the node with the provided genesis file

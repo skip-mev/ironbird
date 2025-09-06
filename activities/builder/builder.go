@@ -14,8 +14,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/ecrpublic"
-	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecrpublic/types"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/docker/cli/cli/config/configfile"
 	configtypes "github.com/docker/cli/cli/config/types"
@@ -96,12 +96,11 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 		return fmt.Errorf("failed to fetch STS identity: %w", err)
 	}
 
-	ecrClient := ecrpublic.NewFromConfig(*a.AwsConfig, func(options *ecrpublic.Options) {
-		// ecrpublic only works in us-east-1
-		options.Region = "us-east-1"
+	ecrClient := ecr.NewFromConfig(*a.AwsConfig, func(options *ecr.Options) {
+		options.Region = "us-east-2"
 	})
 
-	repositories, err := ecrClient.DescribeRepositories(ctx, &ecrpublic.DescribeRepositoriesInput{
+	repositories, err := ecrClient.DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []string{
 			a.BuilderConfig.Registry.ImageName,
 		},
@@ -118,7 +117,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 		return nil
 	}
 
-	_, err = ecrClient.CreateRepository(ctx, &ecrpublic.CreateRepositoryInput{
+	_, err = ecrClient.CreateRepository(ctx, &ecr.CreateRepositoryInput{
 		RepositoryName: aws.String(a.BuilderConfig.Registry.ImageName),
 	})
 

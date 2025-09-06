@@ -3,11 +3,10 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
-
-	"github.com/skip-mev/ironbird/activities/walletcreator"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	petriutil "github.com/skip-mev/ironbird/petri/core/util"
@@ -267,9 +266,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	builderActivity := &builder.Activity{}
-	walletCreatorActivities := walletcreator.Activity{}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
 
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
@@ -292,11 +289,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 			return testnetActivity.TeardownProvider(ctx, req)
-		})
-
-	s.env.OnActivity(walletCreatorActivities.CreateWallets, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.CreateWalletsRequest) (messages.CreateWalletsResponse, error) {
-			return walletCreatorActivities.CreateWallets(ctx, req)
 		})
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
@@ -371,16 +363,11 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
-	walletCreatorActivity := &walletcreator.Activity{
-		DOToken:           doToken,
-		TailscaleSettings: tailscaleSettings,
-	}
 
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-	s.env.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
@@ -549,7 +536,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 

@@ -102,27 +102,7 @@ func (m MockNode) Height(ctx context.Context) (uint64, error) {
 	panic("implement me")
 }
 
-func (m MockNode) InitHome(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m MockNode) AddGenesisAccount(ctx context.Context, s string, coins []sdk.Coin) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m MockNode) GenerateGenTx(ctx context.Context, coin sdk.Coin) error {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (m MockNode) CopyGenTx(ctx context.Context, i types.NodeI) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (m MockNode) CollectGenTxs(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -168,6 +148,16 @@ func (m MockNode) SetSeedNode(ctx context.Context, seedNode string) error {
 }
 
 func (m MockNode) SetSeedMode(ctx context.Context) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockNode) SetupNode(ctx context.Context) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockNode) SetupValidator(context.Context, types.WalletConfig, []sdk.Coin, sdk.Coin) (types.WalletI, string, error) {
 	//TODO implement me
 	panic("implement me")
 }

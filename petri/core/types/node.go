@@ -64,29 +64,23 @@ type NodeI interface {
 	// Height returns the current height of the node
 	Height(context.Context) (uint64, error)
 
-	// InitHome creates a home directory on the node
-	InitHome(context.Context) error
-
-	// AddGenesisAccount adds a genesis account to the node's genesis file
-	AddGenesisAccount(context.Context, string, []sdk.Coin) error
-	// GenerateGenTx creates a genesis transaction using the validator's key on the node
-	GenerateGenTx(context.Context, sdk.Coin) error
 	// CopyGenTx copies the genesis transaction to another node
 	CopyGenTx(context.Context, NodeI) error
-	// CollectGenTxs collects all of the genesis transactions on the node and creates the genesis file
-	CollectGenTxs(context.Context) error
 
 	// GenesisFileContent returns the contents of the genesis file on the node
 	GenesisFileContent(context.Context) ([]byte, error)
 	// OverwriteGenesisFile overwrites the genesis file on the node with the given contents
 	OverwriteGenesisFile(context.Context, []byte) error
 
+	// SetupValidator performs validator initialization operations
+	SetupValidator(context.Context, WalletConfig, []sdk.Coin, sdk.Coin) (WalletI, string, error)
+	// SetupNode performs node initialization operations
+	SetupNode(context.Context) error
+
 	// CreateWallet creates a Cosmos wallet on the node
 	CreateWallet(context.Context, string, WalletConfig) (WalletI, error)
 	// RecoverKey creates a Cosmos wallet on the node given a mnemonic
 	RecoverKey(context.Context, string, string) error
-	// KeyBech32 returns the Bech32 address of a key on the node
-	KeyBech32(context.Context, string, string) (string, error)
 
 	// SetChainConfigs sets the default configurations for the app and consensus of the node, then applies custom configs
 	SetChainConfigs(context.Context, string, string) error

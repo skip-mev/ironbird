@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/petri/core/types"
-	"github.com/skip-mev/ironbird/petri/core/util"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 )
 
@@ -44,29 +43,4 @@ func (n *Node) RecoverKey(ctx context.Context, name, mnemonic string) error {
 		zap.String("stderr", stderr), zap.Any("exitCode", exitCode))
 
 	return err
-}
-
-// KeyBech32 returns the bech32 address of a key on the node using the app's binary
-func (n *Node) KeyBech32(ctx context.Context, name, bech string) (string, error) {
-	command := []string{
-		n.GetChainConfig().BinaryName,
-		"keys", "show", name, "-a", "--keyring-backend", keyring.BackendTest, "--home", n.GetChainConfig().HomeDir,
-	}
-
-	if bech != "" {
-		command = append(command, "--bech", bech)
-	}
-
-	stdout, stderr, exitCode, err := n.RunCommand(ctx, command)
-	n.logger.Debug("show key", zap.String("name", name), zap.String("stdout", stdout), zap.String("stderr", stderr))
-
-	if err != nil {
-		return "", fmt.Errorf("failed to show key %q (stderr=%q): %w", name, stderr, err)
-	}
-
-	if exitCode != 0 {
-		return "", fmt.Errorf("failed to show key %q (exitcode=%d): %s", name, exitCode, stderr)
-	}
-
-	return util.CleanDockerOutput(stdout), nil
 }

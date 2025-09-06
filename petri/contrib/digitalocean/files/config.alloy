@@ -19,7 +19,7 @@ foreach "container" {
                     targets = [{ __address__ = string.format("127.0.0.1:%s", port), provider=json_path(local.file.creds.content, ".provider")[0], node_name=container["__meta_docker_container_label_petri_node_name"]}]
                     scrape_interval = "5s"
                     scrape_timeout  = "5s"
-                    forward_to = [prometheus.remote_write.overseer.receiver]
+                    forward_to = [prometheus.remote_write.grafana_cloud.receiver]
                 }
             }
         }
@@ -27,7 +27,7 @@ foreach "container" {
 }
 
 prometheus.relabel "instance" {
-    forward_to = [prometheus.remote_write.overseer.receiver]
+    forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 
     rule {
         action = "replace"
@@ -37,13 +37,13 @@ prometheus.relabel "instance" {
     }
 }
 
-prometheus.remote_write "overseer" {
+prometheus.remote_write "grafana_cloud" {
   endpoint {
     url = json_path(local.file.creds.content, ".prometheus.url")[0]
 
     basic_auth {
-      username = json_path(local.file.creds.content, ".prometheus.username")[0]
-      password = json_path(local.file.creds.content, ".prometheus.password")[0]
+      username = <GRAFANA_OTLP_USER>
+      password = <GRAFANA_OTLP_PASSWORD>
     }
   }
 }
@@ -73,16 +73,16 @@ loki.source.docker "default" {
   targets    = discovery.docker.containers.targets
   labels     = {"service" = "ironbird", "provider" = json_path(local.file.creds.content, ".provider")[0]}
   relabel_rules = discovery.relabel.logs_integrations_docker.rules
-  forward_to = [loki.write.overseer.receiver]
+  forward_to = [loki.write.grafana_cloud.receiver]
 }
 
-loki.write "overseer" {
+loki.write "grafana_cloud" {
    endpoint {
      url = json_path(local.file.creds.content, ".loki.url")[0]
 
      basic_auth {
-       username = json_path(local.file.creds.content, ".loki.username")[0]
-       password = json_path(local.file.creds.content, ".loki.password")[0]
+       username = <GRAFANA_LOGS_USER>
+       password = <GRAFANA_LOGS_PASS>
      }
    }
 }

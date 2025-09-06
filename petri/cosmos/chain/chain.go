@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 
 	sdkmath "cosmossdk.io/math"
@@ -30,6 +32,7 @@ type PackagedState struct {
 	NodeStates       [][]byte
 	ValidatorWallets []string
 	FaucetWallet     string
+	UserWallets      []string
 }
 
 type State struct {
@@ -48,6 +51,7 @@ type Chain struct {
 	FaucetWallet petritypes.WalletI
 
 	ValidatorWallets []petritypes.WalletI
+	UserWallets      []petritypes.WalletI
 
 	mu sync.RWMutex
 
@@ -311,6 +315,15 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 		chain.FaucetWallet = w
 	}
 
+	chain.UserWallets = make([]petritypes.WalletI, len(packagedState.UserWallets))
+	for i, mnemonic := range packagedState.UserWallets {
+		w, err := wallet.NewWallet(fmt.Sprintf("user-%d", i), mnemonic, walletConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to restore user wallet %d: %w", i, err)
+		}
+		chain.UserWallets[i] = w
+	}
+
 	return &chain, nil
 }
 
@@ -363,30 +376,16 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		v := v
 		idx := idx
 		eg.Go(func() error {
-			c.logger.Info("setting up validator home dir", zap.String("validator", v.GetDefinition().Name))
-			if err := v.InitHome(ctx); err != nil {
-				return fmt.Errorf("error initializing home dir: %v", err)
-			}
+			c.logger.Info("setting up validator", zap.String("validator", v.GetDefinition().Name))
 
-			validatorWallet, err := v.CreateWallet(ctx, petritypes.ValidatorKeyName, opts.WalletConfig)
+			validatorWallet, validatorAddress, err := v.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
 			if err != nil {
-				return err
+				return fmt.Errorf("error in validator setup: %v", err)
 			}
 
 			c.ValidatorWallets[idx] = validatorWallet
 
-			bech32, err := v.KeyBech32(ctx, petritypes.ValidatorKeyName, "acc")
-			if err != nil {
-				return err
-			}
-
-			if err := v.AddGenesisAccount(ctx, bech32, genesisAmounts); err != nil {
-				return err
-			}
-
-			if err := v.GenerateGenTx(ctx, genesisSelfDelegation); err != nil {
-				return err
-			}
+			c.logger.Info("validator setup finished", zap.String("validator", v.GetDefinition().Name), zap.String("address", validatorAddress))
 
 			return nil
 		})
@@ -396,10 +395,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		n := n
 
 		eg.Go(func() error {
-			c.logger.Info("setting up node home dir", zap.String("node", n.GetDefinition().Name))
-			if err := n.InitHome(ctx); err != nil {
+			c.logger.Info("setting up node", zap.String("node", n.GetDefinition().Name))
+
+			if err := n.SetupNode(ctx); err != nil {
 				return err
 			}
+			c.logger.Info("node setup finished", zap.String("node", n.GetDefinition().Name))
 
 			return nil
 		})
@@ -419,31 +420,7 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	firstValidator := c.Validators[0]
 
-	c.logger.Info("first validator name", zap.String("validator", firstValidator.GetDefinition().Name))
-
-	if err := firstValidator.AddGenesisAccount(ctx, faucetWallet.FormattedAddress(), genesisAmounts); err != nil {
-		return err
-	}
-
-	for i := 1; i < len(c.Validators); i++ {
-		validatorN := c.Validators[i]
-
-		bech32, err := validatorN.KeyBech32(ctx, petritypes.ValidatorKeyName, "acc")
-		if err != nil {
-			return err
-		}
-
-		c.logger.Info("setting up validator keys", zap.String("validator", validatorN.GetDefinition().Name), zap.String("address", bech32))
-		if err := firstValidator.AddGenesisAccount(ctx, bech32, genesisAmounts); err != nil {
-			return fmt.Errorf("failed to add validator %s genesis account: %w", validatorN.GetDefinition().Name, err)
-		}
-
-		if err := validatorN.CopyGenTx(ctx, firstValidator); err != nil {
-			return fmt.Errorf("failed to copy gentx from %s: %w", validatorN.GetDefinition().Name, err)
-		}
-	}
-
-	if err := firstValidator.CollectGenTxs(ctx); err != nil {
+	if err := c.executeGenesisOperations(ctx, firstValidator, faucetWallet, genesisAmounts, opts); err != nil {
 		return err
 	}
 
@@ -717,6 +694,11 @@ func (c *Chain) GetFaucetWallet() petritypes.WalletI {
 	return c.FaucetWallet
 }
 
+// GetUserWallets returns the user wallets that were created and funded during genesis
+func (c *Chain) GetUserWallets() []petritypes.WalletI {
+	return c.UserWallets
+}
+
 // GetConfig is the configuration structure for a logical chain.
 func (c *Chain) GetConfig() petritypes.ChainConfig {
 	return c.State.Config
@@ -754,6 +736,130 @@ func (c *Chain) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, er
 	}
 
 	return json.Marshal(state)
+}
+
+// Executes the needed genesis operations for the chain:
+// 1. Add the faucet account to the genesis file
+// 2. Add the validator accounts to the genesis file
+// 3. Create and add user wallets to the genesis file
+// 4. Collect the gentxs from the validators and create the genesis file
+func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin, opts petritypes.ChainOptions) error {
+	c.logger.Info("executing genesis operations", zap.String("validator", firstValidator.GetDefinition().Name))
+
+	var scriptBuilder strings.Builder
+	scriptBuilder.WriteString("#!/bin/sh\nset -e\n")
+	useGenesisSubCommand := c.GetConfig().UseGenesisSubCommand
+
+	faucetAmount := ""
+	for i, coin := range genesisAmounts {
+		if i != 0 {
+			faucetAmount += ","
+		}
+		faucetAmount += fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom)
+	}
+
+	firstValidatorNode := firstValidator.(*node.Node)
+
+	var addFaucetCmd []string
+	if useGenesisSubCommand {
+		addFaucetCmd = append(addFaucetCmd, "genesis")
+	}
+	addFaucetCmd = append(addFaucetCmd, "add-genesis-account", faucetWallet.FormattedAddress(), faucetAmount, "--keyring-backend", "test")
+	faucetCommand := firstValidatorNode.BinCommand(addFaucetCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(faucetCommand, " ")))
+
+	for i := 1; i < len(c.Validators); i++ {
+		validator := c.Validators[i]
+		validatorAddress := c.ValidatorWallets[i].FormattedAddress()
+
+		c.logger.Info("adding validator to genesis script", zap.String("validator", validator.GetDefinition().Name),
+			zap.String("address", validatorAddress))
+
+		var addValidatorCmd []string
+		if useGenesisSubCommand {
+			addValidatorCmd = append(addValidatorCmd, "genesis")
+		}
+		addValidatorCmd = append(addValidatorCmd, "add-genesis-account", validatorAddress, faucetAmount, "--keyring-backend", "test")
+		validatorCommand := firstValidatorNode.BinCommand(addValidatorCmd...)
+		scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(validatorCommand, " ")))
+
+		// Copy gentx from other validators to first validator
+		if err := validator.CopyGenTx(ctx, firstValidator); err != nil {
+			return fmt.Errorf("failed to copy gentx from %s: %w", validator.GetDefinition().Name, err)
+		}
+	}
+
+	if opts.NumWallets > 0 {
+		c.logger.Info("creating user wallets", zap.Int("numWallets", opts.NumWallets))
+
+		var userWalletAmount string
+		if opts.IsEvmChain {
+			userWalletAmount = fmt.Sprintf("10000000000000000%s", c.GetConfig().Denom)
+		} else {
+			userWalletAmount = fmt.Sprintf("1000000000%s", c.GetConfig().Denom)
+		}
+
+		c.UserWallets = make([]petritypes.WalletI, opts.NumWallets)
+
+		for i := 0; i < opts.NumWallets; i++ {
+			userWallet, err := wallet.NewGeneratedWallet(fmt.Sprintf("user-%d", i), opts.WalletConfig)
+			if err != nil {
+				return fmt.Errorf("failed to create user wallet %d: %w", i, err)
+			}
+
+			c.UserWallets[i] = userWallet
+
+			var addUserCmd []string
+			if useGenesisSubCommand {
+				addUserCmd = append(addUserCmd, "genesis")
+			}
+			addUserCmd = append(addUserCmd, "add-genesis-account", userWallet.FormattedAddress(), userWalletAmount, "--keyring-backend", "test")
+			userCommand := firstValidatorNode.BinCommand(addUserCmd...)
+			scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(userCommand, " ")))
+		}
+
+		c.logger.Info("successfully created user wallets", zap.Int("count", len(c.UserWallets)))
+	}
+
+	var collectCmd []string
+	if useGenesisSubCommand {
+		collectCmd = append(collectCmd, "genesis")
+	}
+	collectCmd = append(collectCmd, "collect-gentxs")
+	collectCommand := firstValidatorNode.BinCommand(collectCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(collectCommand, " ")))
+
+	finalScript := scriptBuilder.String()
+	c.logger.Info("executing genesis operations script")
+
+	// Write script to a temporary file to avoid linux ARG_MAX limitations
+	scriptPath := "/tmp/genesis_operations.sh"
+	encodedScript := base64.StdEncoding.EncodeToString([]byte(finalScript))
+	writeScriptCmd := []string{"/bin/sh", "-c", fmt.Sprintf("echo %s | base64 -d > %s", encodedScript, scriptPath)}
+	stdout, stderr, exitCode, err := firstValidator.RunCommand(ctx, writeScriptCmd)
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("failed to write genesis script to file (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	chmodCmd := []string{"/bin/chmod", "+x", scriptPath}
+	stdout, stderr, exitCode, err = firstValidator.RunCommand(ctx, chmodCmd)
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("failed to make genesis script executable (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	stdout, stderr, exitCode, err = firstValidator.RunCommand(ctx, []string{scriptPath})
+	if err != nil || exitCode != 0 {
+		return fmt.Errorf("final genesis script failed (exit code %d): %s, stdout: %s, error: %v", exitCode, stderr, stdout, err)
+	}
+
+	cleanupCmd := []string{"/bin/rm", "-f", scriptPath}
+	_, _, _, err = firstValidator.RunCommand(ctx, cleanupCmd)
+	if err != nil {
+		c.logger.Error("failed to clean up genesis script", zap.Error(err))
+	}
+	c.logger.Debug("final genesis script completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+
+	return nil
 }
 
 func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petritypes.ChainConfig, genbz []byte,

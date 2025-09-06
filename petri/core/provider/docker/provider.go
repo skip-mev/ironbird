@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/ironbird/petri/core/types"
 	"net"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/provider/clients"
+	"github.com/skip-mev/ironbird/petri/core/types"
 
 	"github.com/cilium/ipam/service/ipallocator"
 	"github.com/docker/docker/api/types/network"
