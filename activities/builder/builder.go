@@ -194,8 +194,8 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	buildArguments := make(map[string]string)
-	buildArguments["GIT_SHA"] = generateTag(image.Version, req.Repo, req.SHA)
 	tag := generateTag(image.Version, req.Repo, req.SHA)
+	buildArguments["GIT_SHA"] = tag
 
 	if slices.Contains(SKIP_REPLACE_REPOS, req.Repo) {
 		buildArguments["CHAIN_TAG"] = req.SHA
