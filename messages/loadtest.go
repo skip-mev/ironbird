@@ -5,12 +5,13 @@ import (
 )
 
 type RunLoadTestRequest struct {
-	ChainState    []byte
-	ProviderState []byte
-	LoadTestSpec  catalysttypes.LoadTestSpec
-	RunnerType    RunnerType
-	IsEvmChain    bool
-	Mnemonics     []string
+	ChainState      []byte
+	ProviderState   []byte
+	LoadTestSpec    catalysttypes.LoadTestSpec
+	RunnerType      RunnerType
+	IsEvmChain      bool
+	Mnemonics       []string
+	CatalystVersion string
 }
 
 type RunLoadTestResponse struct {

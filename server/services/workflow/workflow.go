@@ -59,6 +59,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		LaunchLoadBalancer: req.LaunchLoadBalancer,
 		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int(req.NumWallets),
+		CatalystVersion:    req.CatalystVersion,
 	}
 
 	if req.ChainConfig != nil {
@@ -298,6 +299,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		LaunchLoadBalancer: workflow.Config.LaunchLoadBalancer,
 		TestnetDuration:    workflow.Config.TestnetDuration,
 		NumWallets:         int32(workflow.Config.NumWallets),
+		CatalystVersion:    workflow.Config.CatalystVersion,
 		ChainConfig:        chainConfig,
 	}
 

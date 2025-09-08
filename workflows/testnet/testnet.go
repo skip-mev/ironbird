@@ -263,12 +263,13 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 				loadTestActivities.RunLoadTest,
 				messages.RunLoadTestRequest{
-					ChainState:    chainState,
-					ProviderState: providerState,
-					LoadTestSpec:  *req.EthereumLoadTestSpec,
-					RunnerType:    req.RunnerType,
-					IsEvmChain:    req.IsEvmChain,
-					Mnemonics:     mnemonics,
+					ChainState:      chainState,
+					ProviderState:   providerState,
+					LoadTestSpec:    *req.EthereumLoadTestSpec,
+					RunnerType:      req.RunnerType,
+					IsEvmChain:      req.IsEvmChain,
+					Mnemonics:       mnemonics,
+					CatalystVersion: req.CatalystVersion,
 				},
 			)
 
@@ -289,12 +290,13 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
 				loadTestActivities.RunLoadTest,
 				messages.RunLoadTestRequest{
-					ChainState:    chainState,
-					ProviderState: providerState,
-					LoadTestSpec:  *req.CosmosLoadTestSpec,
-					RunnerType:    req.RunnerType,
-					IsEvmChain:    req.IsEvmChain,
-					Mnemonics:     mnemonics,
+					ChainState:      chainState,
+					ProviderState:   providerState,
+					LoadTestSpec:    *req.CosmosLoadTestSpec,
+					RunnerType:      req.RunnerType,
+					IsEvmChain:      req.IsEvmChain,
+					Mnemonics:       mnemonics,
+					CatalystVersion: req.CatalystVersion,
 				},
 			)
 

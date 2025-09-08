@@ -83,6 +83,7 @@ export interface TestnetWorkflowRequest {
   LaunchLoadBalancer: boolean;
   TestnetDuration: string;
   NumWallets: number;
+  CatalystVersion?: string;
 }
 
 export interface Node {
