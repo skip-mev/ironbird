@@ -176,7 +176,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		catalystTag = req.CatalystVersion
 	}
 	catalystImage := fmt.Sprintf("ghcr.io/skip-mev/catalyst:%s", catalystTag)
-	logger.Info("using catalyst image", zap.String("image", catalystImage), zap.String("version", catalystTag))
+	logger.Info("using catalyst image", zap.String("image", catalystImage))
 
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
