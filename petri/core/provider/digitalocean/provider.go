@@ -28,6 +28,10 @@ import (
 
 var _ provider.ProviderI = (*Provider)(nil)
 
+func isECRImage(imageName string) bool {
+	return strings.Contains(imageName, ".amazonaws.com")
+}
+
 const (
 	providerLabelName = "petri-provider"
 	portsLabelName    = "petri-ports"
@@ -192,7 +196,10 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 	}
 
 	_, _, err = task.dockerClient.ImageInspectWithRaw(ctx, definition.Image.Image)
-	registryAuth := doConfig["docker_auth"]
+	var registryAuth string
+	if isECRImage(definition.Image.Image) {
+		registryAuth = doConfig["docker_auth"]
+	}
 	if err != nil {
 		p.logger.Info("image not found, pulling", zap.String("image", definition.Image.Image))
 		for retries := 5; retries > 0; retries-- {
