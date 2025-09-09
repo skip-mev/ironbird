@@ -60,8 +60,6 @@ type LaunchTestnetRequest struct {
 	ProviderState      []byte
 	SetPersistentPeers bool
 	SetSeedNode        bool
-
-	NumWallets int
 }
 
 type LaunchTestnetResponse struct {
@@ -70,7 +68,6 @@ type LaunchTestnetResponse struct {
 	ChainID       string
 	Nodes         []*pb.Node
 	Validators    []*pb.Node
-	Mnemonics     []string
 }
 
 type TestnetWorkflowRequest struct {

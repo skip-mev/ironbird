@@ -66,7 +66,6 @@ type ChainI interface {
 	GetValidators() []NodeI
 	GetFaucetWallet() WalletI
 	GetValidatorWallets() []WalletI
-	GetUserWallets() []WalletI
 
 	GetNodes() []NodeI
 
@@ -83,9 +82,6 @@ type ChainOptions struct {
 	NodeCreator   NodeCreator     // NodeCreator is a function that creates a node
 
 	WalletConfig WalletConfig // WalletConfig is the default configuration of a chain's wallet
-
-	NumWallets int // NumWallets is the number of user wallets to create and pre-fund in genesis
-	IsEvmChain bool
 }
 
 func (o ChainOptions) ValidateBasic() error {
