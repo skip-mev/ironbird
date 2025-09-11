@@ -95,20 +95,6 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	if req.ChainConfig.Image == "" {
-		switch req.Repo {
-		case "gaia":
-			req.ChainConfig.Image = "gaia"
-		case "evm":
-			req.ChainConfig.Image = "evm"
-		case "cometbft":
-			req.ChainConfig.Image = "simapp"
-		default:
-			// For cosmos-sdk testing, default to simapp
-			req.ChainConfig.Image = "simapp"
-		}
-	}
-
 	var buildResult messages.BuildDockerImageResponse
 	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
 		Repo: req.Repo,
