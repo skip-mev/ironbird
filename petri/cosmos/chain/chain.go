@@ -732,13 +732,11 @@ func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator pet
 	scriptBuilder.WriteString("#!/bin/sh\nset -e\n")
 	useGenesisSubCommand := c.GetConfig().UseGenesisSubCommand
 
-	faucetAmount := ""
+	var faucetAmounts []string
 	for i, coin := range genesisAmounts {
-		if i != 0 {
-			faucetAmount += ","
-		}
-		faucetAmount += fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom)
+		faucetAmounts = append(faucetAmounts, fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom))
 	}
+	faucetAmount := strings.Join(faucetAmounts, ",")
 
 	firstValidatorNode := firstValidator.(*node.Node)
 
