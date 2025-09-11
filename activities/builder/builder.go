@@ -189,7 +189,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace
 	// CometBFT with the specified commit SHA
 	if req.Repo == "cometbft" {
-		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/cosmos/cosmos-sdk")
+		buildArguments["CHAIN_SRC"] = "https://github.com/cosmos/cosmos-sdk"
 		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
 		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
 	} else {
