@@ -116,7 +116,6 @@ func (a *Activity) CreateWallets(ctx context.Context, req messages.CreateWallets
 			}
 		}
 	}
-	time.Sleep(5 * time.Second)
 
 	if a.GRPCClient != nil {
 		walletInfo := &pb.WalletInfo{

@@ -8,9 +8,8 @@ import (
 
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
 
-	"github.com/skip-mev/ironbird/activities/walletcreator"
-
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
+	"github.com/skip-mev/ironbird/activities/walletcreator"
 	petriutil "github.com/skip-mev/ironbird/petri/core/util"
 
 	"log"
@@ -535,7 +534,6 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
-	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 
@@ -553,63 +551,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.NoError(s.env.GetWorkflowError())
 	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 0)
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
-
-	cleanupResources(s)
 }
 
 func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
-}
-
-func cleanupResources(s *TestnetWorkflowTestSuite) {
-	cmd := exec.Command("docker", "ps", "-a", "--filter", "name=ib-", "--format", "{{.Names}}")
-	output, err := cmd.CombinedOutput()
-	s.NoError(err, "failed to list Docker containers")
-
-	containerList := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, containerName := range containerList {
-		if containerName != "" && strings.HasPrefix(containerName, "ib-") {
-			stopCmd := exec.Command("docker", "stop", containerName)
-			_, err = stopCmd.CombinedOutput()
-			s.NoError(err, fmt.Sprintf("failed to stop container: %s", containerName))
-
-			rmCmd := exec.Command("docker", "rm", "-f", containerName)
-			_, err = rmCmd.CombinedOutput()
-			s.NoError(err, fmt.Sprintf("failed to remove container: %s", containerName))
-
-			volumeName := containerName + "-data"
-			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
-			if output, err := rmVolCmd.CombinedOutput(); err != nil {
-				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
-			}
-		}
-	}
-
-	volCmd := exec.Command("docker", "volume", "ls", "--filter", "name=ib-", "--format", "{{.Name}}")
-	volOutput, err := volCmd.CombinedOutput()
-	s.NoError(err, "failed to list Docker volumes")
-
-	volumeList := strings.Split(strings.TrimSpace(string(volOutput)), "\n")
-	for _, volumeName := range volumeList {
-		if volumeName != "" && strings.HasPrefix(volumeName, "ib-") {
-			rmVolCmd := exec.Command("docker", "volume", "rm", volumeName)
-			if output, err := rmVolCmd.CombinedOutput(); err != nil {
-				s.NoError(err, fmt.Sprintf("failed to remove volume %s, output: %s", volumeName, output))
-			}
-		}
-	}
-
-	netCmd := exec.Command("docker", "network", "ls", "--filter", "name=petri", "--format", "{{.Name}}")
-	netOutput, err := netCmd.CombinedOutput()
-	s.NoError(err, "failed to list Docker networks")
-
-	networkList := strings.Split(strings.TrimSpace(string(netOutput)), "\n")
-	for _, networkName := range networkList {
-		if networkName != "" && strings.HasPrefix(networkName, "petri") {
-			rmNetCmd := exec.Command("docker", "network", "rm", networkName)
-			if output, err := rmNetCmd.CombinedOutput(); err != nil {
-				s.NoError(err, fmt.Sprintf("failed to remove network %s, output: %s", networkName, output))
-			}
-		}
-	}
 }

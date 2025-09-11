@@ -59,7 +59,10 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
 		logger.Info("testnet is in long-running mode - will run until workflow is cancelled")
-		f, _ := workflow.NewFuture(ctx)
+		// Use a very long timer so that cancellation unblocks the selector.
+		// Timer futures are canceled when the workflow context is canceled,
+		// which allows shutdownSelector.Select(ctx) to return deterministically
+		f := workflow.NewTimer(ctx, time.Hour*24*365*10)
 		selector.AddFuture(f, func(_ workflow.Future) {})
 	} else {
 		testnetDuration := defaultRuntime

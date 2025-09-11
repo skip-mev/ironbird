@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 
 	sdkmath "cosmossdk.io/math"
@@ -363,30 +364,16 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		v := v
 		idx := idx
 		eg.Go(func() error {
-			c.logger.Info("setting up validator home dir", zap.String("validator", v.GetDefinition().Name))
-			if err := v.InitHome(ctx); err != nil {
-				return fmt.Errorf("error initializing home dir: %v", err)
-			}
+			c.logger.Info("setting up validator", zap.String("validator", v.GetDefinition().Name))
 
-			validatorWallet, err := v.CreateWallet(ctx, petritypes.ValidatorKeyName, opts.WalletConfig)
+			validatorWallet, validatorAddress, err := v.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
 			if err != nil {
-				return err
+				return fmt.Errorf("error in validator setup: %v", err)
 			}
 
 			c.ValidatorWallets[idx] = validatorWallet
 
-			bech32, err := v.KeyBech32(ctx, petritypes.ValidatorKeyName, "acc")
-			if err != nil {
-				return err
-			}
-
-			if err := v.AddGenesisAccount(ctx, bech32, genesisAmounts); err != nil {
-				return err
-			}
-
-			if err := v.GenerateGenTx(ctx, genesisSelfDelegation); err != nil {
-				return err
-			}
+			c.logger.Info("validator setup finished", zap.String("validator", v.GetDefinition().Name), zap.String("address", validatorAddress))
 
 			return nil
 		})
@@ -396,10 +383,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		n := n
 
 		eg.Go(func() error {
-			c.logger.Info("setting up node home dir", zap.String("node", n.GetDefinition().Name))
-			if err := n.InitHome(ctx); err != nil {
+			c.logger.Info("setting up node", zap.String("node", n.GetDefinition().Name))
+
+			if err := n.SetupNode(ctx); err != nil {
 				return err
 			}
+			c.logger.Info("node setup finished", zap.String("node", n.GetDefinition().Name))
 
 			return nil
 		})
@@ -419,31 +408,7 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	firstValidator := c.Validators[0]
 
-	c.logger.Info("first validator name", zap.String("validator", firstValidator.GetDefinition().Name))
-
-	if err := firstValidator.AddGenesisAccount(ctx, faucetWallet.FormattedAddress(), genesisAmounts); err != nil {
-		return err
-	}
-
-	for i := 1; i < len(c.Validators); i++ {
-		validatorN := c.Validators[i]
-
-		bech32, err := validatorN.KeyBech32(ctx, petritypes.ValidatorKeyName, "acc")
-		if err != nil {
-			return err
-		}
-
-		c.logger.Info("setting up validator keys", zap.String("validator", validatorN.GetDefinition().Name), zap.String("address", bech32))
-		if err := firstValidator.AddGenesisAccount(ctx, bech32, genesisAmounts); err != nil {
-			return fmt.Errorf("failed to add validator %s genesis account: %w", validatorN.GetDefinition().Name, err)
-		}
-
-		if err := validatorN.CopyGenTx(ctx, firstValidator); err != nil {
-			return fmt.Errorf("failed to copy gentx from %s: %w", validatorN.GetDefinition().Name, err)
-		}
-	}
-
-	if err := firstValidator.CollectGenTxs(ctx); err != nil {
+	if err := c.executeGenesisOperations(ctx, firstValidator, faucetWallet, genesisAmounts); err != nil {
 		return err
 	}
 
@@ -754,6 +719,78 @@ func (c *Chain) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, er
 	}
 
 	return json.Marshal(state)
+}
+
+// Executes the needed genesis operations for the chain:
+// 1. Add the faucet account to the genesis file
+// 2. Add the validator accounts to the genesis file
+// 3. Collect the gentxs from the validators and create the genesis file
+func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin) error {
+	c.logger.Info("executing genesis operations", zap.String("validator", firstValidator.GetDefinition().Name))
+
+	var scriptBuilder strings.Builder
+	scriptBuilder.WriteString("#!/bin/sh\nset -e\n")
+	useGenesisSubCommand := c.GetConfig().UseGenesisSubCommand
+
+	var faucetAmounts []string
+	for _, coin := range genesisAmounts {
+		faucetAmounts = append(faucetAmounts, fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom))
+	}
+	faucetAmount := strings.Join(faucetAmounts, ",")
+
+	firstValidatorNode := firstValidator.(*node.Node)
+
+	var addFaucetCmd []string
+	if useGenesisSubCommand {
+		addFaucetCmd = append(addFaucetCmd, "genesis")
+	}
+	addFaucetCmd = append(addFaucetCmd, "add-genesis-account", faucetWallet.FormattedAddress(), faucetAmount, "--keyring-backend", "test")
+	faucetCommand := firstValidatorNode.BinCommand(addFaucetCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(faucetCommand, " ")))
+
+	for i := 1; i < len(c.Validators); i++ {
+		validator := c.Validators[i]
+		validatorAddress := c.ValidatorWallets[i].FormattedAddress()
+
+		c.logger.Info("adding validator to genesis script", zap.String("validator", validator.GetDefinition().Name),
+			zap.String("address", validatorAddress))
+
+		var addValidatorCmd []string
+		if useGenesisSubCommand {
+			addValidatorCmd = append(addValidatorCmd, "genesis")
+		}
+		addValidatorCmd = append(addValidatorCmd, "add-genesis-account", validatorAddress, faucetAmount, "--keyring-backend", "test")
+		validatorCommand := firstValidatorNode.BinCommand(addValidatorCmd...)
+		scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(validatorCommand, " ")))
+
+		// Copy gentx from other validators to first validator
+		if err := validator.CopyGenTx(ctx, firstValidator); err != nil {
+			return fmt.Errorf("failed to copy gentx from %s: %w", validator.GetDefinition().Name, err)
+		}
+	}
+
+	var collectCmd []string
+	if useGenesisSubCommand {
+		collectCmd = append(collectCmd, "genesis")
+	}
+	collectCmd = append(collectCmd, "collect-gentxs")
+	collectCommand := firstValidatorNode.BinCommand(collectCmd...)
+	scriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(collectCommand, " ")))
+
+	finalScript := scriptBuilder.String()
+	c.logger.Info("executing genesis operations script")
+	stdout, stderr, exitCode, err := firstValidator.RunCommand(ctx, []string{"/bin/sh", "-c", finalScript})
+	if err != nil {
+		return fmt.Errorf("failed to run final genesis script: %w", err)
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("final genesis script failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
+	}
+
+	c.logger.Debug("final genesis script completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+
+	return nil
 }
 
 func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petritypes.ChainConfig, genbz []byte,

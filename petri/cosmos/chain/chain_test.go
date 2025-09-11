@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	evmhd "github.com/cosmos/evm/crypto/hd"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/skip-mev/ironbird/petri/core/provider"
@@ -67,7 +68,7 @@ var evmChainConfig = types.ChainConfig{
 	GasPrices:            "0.0005atest",
 	Bech32Prefix:         "cosmos",
 	HomeDir:              "/gaia",
-	CoinType:             "118",
+	CoinType:             "60",
 	ChainId:              "cosmos_22222-1",
 	UseGenesisSubCommand: true,
 	SetPersistentPeers:   true,
@@ -76,11 +77,11 @@ var evmChainConfig = types.ChainConfig{
 var evmChainOptions = types.ChainOptions{
 	NodeCreator: node.CreateNode,
 	WalletConfig: types.WalletConfig{
-		SigningAlgorithm: string(hd.Secp256k1.Name()),
+		SigningAlgorithm: "eth_secp256k1",
 		Bech32Prefix:     "cosmos",
-		HDPath:           hd.CreateHDPath(118, 0, 0),
-		DerivationFn:     hd.Secp256k1.Derive(),
-		GenerationFn:     hd.Secp256k1.Generate(),
+		HDPath:           hd.CreateHDPath(60, 0, 0),
+		DerivationFn:     evmhd.EthSecp256k1.Derive(),
+		GenerationFn:     evmhd.EthSecp256k1.Generate(),
 	},
 	ModifyGenesis: chain.ModifyGenesis([]chain.GenesisKV{
 		{

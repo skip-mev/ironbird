@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/skip-mev/ironbird/petri/core/types"
 	"net"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/provider/clients"
+	"github.com/skip-mev/ironbird/petri/core/types"
 
 	"github.com/cilium/ipam/service/ipallocator"
 	"github.com/docker/docker/api/types/network"
@@ -180,9 +180,15 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 	}
 
 	_, _, err := p.dockerClient.ImageInspectWithRaw(ctx, definition.Image.Image)
+	var registryAuth string
+	if provider.IsECRImage(definition.Image.Image) && definition.ProviderSpecificConfig != nil {
+		registryAuth = definition.ProviderSpecificConfig["docker_auth"]
+	}
 	if err != nil {
 		p.logger.Info("image not found, pulling", zap.String("image", definition.Image.Image))
-		if err = p.dockerClient.ImagePull(ctx, p.logger, definition.Image.Image, image.PullOptions{}); err != nil {
+		if err = p.dockerClient.ImagePull(ctx, p.logger, definition.Image.Image, image.PullOptions{
+			RegistryAuth: registryAuth,
+		}); err != nil {
 			return nil, err
 		}
 	}
