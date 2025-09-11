@@ -733,7 +733,7 @@ func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator pet
 	useGenesisSubCommand := c.GetConfig().UseGenesisSubCommand
 
 	var faucetAmounts []string
-	for i, coin := range genesisAmounts {
+	for _, coin := range genesisAmounts {
 		faucetAmounts = append(faucetAmounts, fmt.Sprintf("%s%s", coin.Amount.String(), coin.Denom))
 	}
 	faucetAmount := strings.Join(faucetAmounts, ",")
