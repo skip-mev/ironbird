@@ -178,24 +178,22 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	nodeOptions := petritypes.NodeOptions{}
 
-	if req.RunnerType == messages.DigitalOcean {
-		token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
-		if err != nil {
-			logger.Error("Failed to fetch docker repo token", zap.Error(err))
-		}
+	token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
+	if err != nil {
+		logger.Error("Failed to fetch docker repo token", zap.Error(err))
+	}
 
-		dockerAuth, err := convertECRTokenToDockerAuth(token)
-		if err != nil {
-			logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
-		}
+	dockerAuth, err := convertECRTokenToDockerAuth(token)
+	if err != nil {
+		logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
+	}
 
-		nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-			if definition.ProviderSpecificConfig == nil {
-				definition.ProviderSpecificConfig = make(map[string]string)
-			}
-			definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
-			return definition
+	nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
+		if definition.ProviderSpecificConfig == nil {
+			definition.ProviderSpecificConfig = make(map[string]string)
 		}
+		definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
+		return definition
 	}
 
 	chainConfig, walletConfig := constructChainConfig(req, a.Chains)

@@ -28,10 +28,6 @@ import (
 
 var _ provider.ProviderI = (*Provider)(nil)
 
-func isECRImage(imageName string) bool {
-	return strings.Contains(imageName, ".amazonaws.com")
-}
-
 const (
 	providerLabelName = "petri-provider"
 	portsLabelName    = "petri-ports"
@@ -197,7 +193,7 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 
 	_, _, err = task.dockerClient.ImageInspectWithRaw(ctx, definition.Image.Image)
 	var registryAuth string
-	if isECRImage(definition.Image.Image) {
+	if provider.IsECRImage(definition.Image.Image) {
 		registryAuth = doConfig["docker_auth"]
 	}
 	if err != nil {

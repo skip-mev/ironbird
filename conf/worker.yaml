@@ -5,8 +5,8 @@ temporal:
 builder:
   build_kit_address: "tcp://localhost:1234"
   registry:
-    url: "public.ecr.aws"
-    image_name: "n7v2p5f8/skip-mev/ironbird-local"
+    url: "533266954560.dkr.ecr.us-east-2.amazonaws.com"
+    image_name: "ironbird/images"
 
 tailscale:
   node_tags:

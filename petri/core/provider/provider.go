@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"net"
+	"strings"
 )
 
 // TaskStatus defines the status of a task's underlying workload
@@ -51,4 +52,9 @@ type ProviderI interface {
 	SerializeProvider(context.Context) ([]byte, error)
 	GetType() string
 	GetName() string
+}
+
+// IsECRImage checks if an image name is from Amazon ECR
+func IsECRImage(imageName string) bool {
+	return strings.Contains(imageName, ".amazonaws.com")
 }
