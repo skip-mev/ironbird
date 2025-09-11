@@ -30,6 +30,7 @@ message CreateWorkflowRequest {
     string testnet_duration = 9;
     int32 num_wallets = 10;
     bool launch_load_balancer = 11;
+    string catalyst_version = 12;
 }
 
 message GenesisKV {

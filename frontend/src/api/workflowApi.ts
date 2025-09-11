@@ -93,7 +93,8 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     longRunningTestnet: request.LongRunningTestnet,
     launchLoadBalancer: request.LaunchLoadBalancer,
     testnetDuration: request.TestnetDuration || '',
-    numWallets: request.NumWallets
+    numWallets: request.NumWallets,
+    catalystVersion: request.CatalystVersion || ''
   });
   
   // Convert number values to bigint

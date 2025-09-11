@@ -37,7 +37,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 		logger.Error("failed to serialize provider after error", zap.Error(wrappedErr), zap.Error(serializeErr))
 		return res, fmt.Errorf("%w; also failed to serialize provider: %v", wrappedErr, serializeErr)
 	}
-	
+
 	compressedProviderState, compressErr := util.CompressData(newProviderState)
 	if compressErr != nil {
 		logger.Error("failed to compress provider state after error", zap.Error(wrappedErr), zap.Error(compressErr))
@@ -51,7 +51,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 			logger.Error("failed to serialize chain after error", zap.Error(wrappedErr), zap.Error(chainErr))
 			return res, fmt.Errorf("%w; also failed to serialize chain: %v", wrappedErr, chainErr)
 		}
-		
+
 		compressedChainState, chainCompressErr := util.CompressData(newChainState)
 		if chainCompressErr != nil {
 			logger.Error("failed to compress chain state after error", zap.Error(wrappedErr), zap.Error(chainCompressErr))
@@ -66,6 +66,7 @@ func handleLoadTestError(ctx context.Context, logger *zap.Logger, p provider.Pro
 type PetriChain interface {
 	GetConfig() types.ChainConfig
 	GetValidators() []types.NodeI
+	GetNodes() []types.NodeI
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriChain, chainID string,
@@ -74,7 +75,7 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 	chainConfig := chain.GetConfig()
 
 	var nodes []string
-	for _, v := range chain.GetValidators() {
+	for _, v := range chain.GetNodes() {
 		ipAddr, err := v.GetIP(ctx)
 		if err != nil {
 			return nil, err
@@ -170,10 +171,17 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}
 
+	catalystTag := "main"
+	if req.CatalystVersion != "" {
+		catalystTag = req.CatalystVersion
+	}
+	catalystImage := fmt.Sprintf("ghcr.io/skip-mev/catalyst:%s", catalystTag)
+	logger.Info("using catalyst image", zap.String("image", catalystImage))
+
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
 		Name: "catalyst",
 		Image: provider.ImageDefinition{
-			Image: "ghcr.io/skip-mev/catalyst:latest",
+			Image: catalystImage,
 			UID:   "100",
 			GID:   "100",
 		},

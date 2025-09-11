@@ -62,6 +62,11 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
    */
   launchLoadBalancer = false;
 
+  /**
+   * @generated from field: string catalyst_version = 12;
+   */
+  catalystVersion = "";
+
   constructor(data?: PartialMessage<CreateWorkflowRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -80,6 +85,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 9, name: "testnet_duration", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 10, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 11, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 12, name: "catalyst_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {

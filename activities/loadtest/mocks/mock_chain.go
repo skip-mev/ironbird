@@ -61,3 +61,17 @@ func (mr *MocktheChainMockRecorder) GetValidators() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidators", reflect.TypeOf((*MocktheChain)(nil).GetValidators))
 }
+
+// GetNodes mocks base method.
+func (m *MocktheChain) GetNodes() []types.NodeI {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodes")
+	ret0, _ := ret[0].([]types.NodeI)
+	return ret0
+}
+
+// GetNodes indicates an expected call of GetNodes.
+func (mr *MocktheChainMockRecorder) GetNodes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodes", reflect.TypeOf((*MocktheChain)(nil).GetNodes))
+}

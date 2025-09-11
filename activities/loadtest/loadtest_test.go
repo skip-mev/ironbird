@@ -56,7 +56,7 @@ func TestGenerateSpec(t *testing.T) {
 		mocks.MockNode{IP: "127.0.0.3"},
 		mocks.MockNode{IP: "127.0.0.4"},
 	}
-	chain.EXPECT().GetValidators().Times(1).Return(nodes)
+	chain.EXPECT().GetNodes().Times(1).Return(nodes)
 
 	specBZ, err := generateLoadTestSpec(ctx, logger, chain, chainID, spec, mnemonics)
 	require.NoError(t, err)

@@ -183,6 +183,7 @@ const CreateWorkflow = () => {
     LaunchLoadBalancer: false,
     TestnetDuration: '',
     NumWallets: 2500,
+    CatalystVersion: '',
   });
 
 
@@ -740,6 +741,7 @@ const CreateWorkflow = () => {
       LaunchLoadBalancer: raw.launch_load_balancer ?? raw.LaunchLoadBalancer ?? false,
       TestnetDuration: raw.testnet_duration || raw.TestnetDuration || '',
       NumWallets: raw.num_wallets || raw.NumWallets || 2500,
+      CatalystVersion: raw.catalyst_version || raw.CatalystVersion || '',
     };
     return req;
   };
@@ -1336,6 +1338,23 @@ const CreateWorkflow = () => {
               <NumberInputField placeholder="2500" />
             </NumberInput>
             <FormHelperText>Number of wallets to create</FormHelperText>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Catalyst Version</FormLabel>
+            <Input
+              type="text"
+              value={formData.CatalystVersion || ''}
+              onChange={(e) => setFormData({
+                ...formData,
+                CatalystVersion: e.target.value
+              })}
+              placeholder="main"
+              bg="surface"
+              color="text"
+              borderColor="divider"
+            />
+            <FormHelperText>Docker tag for catalyst image (e.g., "main", "v1.2.3"). Defaults to "main" if empty.</FormHelperText>
           </FormControl>
 
           <Button

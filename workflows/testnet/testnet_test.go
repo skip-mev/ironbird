@@ -3,6 +3,7 @@ package testnet
 import (
 	"context"
 	"fmt"
+
 	ethtypes "github.com/skip-mev/catalyst/chains/ethereum/types"
 
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
@@ -70,21 +71,6 @@ var (
 			},
 		},
 		NumWallets: 20,
-	}
-	callbacks = &testsuite.TestUpdateCallback{
-		OnAccept: func() {
-			log.Println("Chain update accepted")
-		},
-		OnReject: func(err error) {
-			log.Printf("Chain update rejected: %v", err)
-		},
-		OnComplete: func(success interface{}, err error) {
-			if err != nil {
-				log.Printf("Chain update completed with error: %v", err)
-			} else {
-				log.Println("Chain update completed successfully")
-			}
-		},
 	}
 	evmReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: "20m",
