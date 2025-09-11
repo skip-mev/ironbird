@@ -47,7 +47,6 @@ builder:
 chains:
   test-chain:
     name: test-chain
-    version: v1.0.0
     dockerfile: test.dockerfile
     gid: "1000"
     uid: "1000"
@@ -98,7 +97,6 @@ server_address: localhost:9006
 
 		assert.Contains(t, config.Chains, "test-chain")
 		assert.Equal(t, "test-chain", config.Chains["test-chain"].Name)
-		assert.Equal(t, "v1.0.0", config.Chains["test-chain"].Version)
 		assert.Equal(t, "test.dockerfile", config.Chains["test-chain"].Dockerfile)
 		assert.Equal(t, "1000", config.Chains["test-chain"].GID)
 		assert.Equal(t, "1000", config.Chains["test-chain"].UID)
