@@ -98,13 +98,14 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	if req.ChainConfig.Image == "" {
 		switch req.Repo {
 		case "gaia":
-			req.ChainConfig.Image = req.Repo
+			req.ChainConfig.Image = "gaia"
 		case "evm":
-			req.ChainConfig.Image = req.Repo
+			req.ChainConfig.Image = "evm"
+		case "cometbft":
+			req.ChainConfig.Image = "simapp"
 		default:
-			// for SDK testing default to simapp
-			// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
-			req.ChainConfig.Image = "simapp-v53"
+			// For cosmos-sdk testing, default to simapp
+			req.ChainConfig.Image = "simapp"
 		}
 	}
 
@@ -113,8 +114,9 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 		Repo: req.Repo,
 		SHA:  req.SHA,
 		ChainConfig: messages.ChainConfig{
-			Name:  req.ChainConfig.Name,
-			Image: req.ChainConfig.Image,
+			Name:    req.ChainConfig.Name,
+			Image:   req.ChainConfig.Image,
+			Version: req.ChainConfig.Version,
 		},
 	}).Get(ctx, &buildResult)
 	if err != nil {

@@ -12,6 +12,7 @@ export interface RegionConfig {
 export interface ChainConfig {
   Name: string;
   Image: string;
+  Version?: string;
   NumOfNodes?: number;
   NumOfValidators?: number;
   GenesisModifications: GenesisModification[];
