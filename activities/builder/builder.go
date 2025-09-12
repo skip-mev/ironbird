@@ -122,8 +122,8 @@ func generateReplace(dependencies map[string]string, owner, repo, tag string) st
 	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
-func generateTag(version, repo, sha string) string {
-	return fmt.Sprintf("%s-%s-%s", version, repo, sha)
+func generateTag(repo, sha string) string {
+	return fmt.Sprintf("%s-%s", repo, sha)
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
@@ -183,7 +183,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 
 	buildArguments := make(map[string]string)
 
-	tag := generateTag(req.ChainConfig.Version, req.Repo, req.SHA)
+	tag := generateTag(req.Repo, req.SHA)
 	buildArguments["GIT_SHA"] = tag
 
 	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace

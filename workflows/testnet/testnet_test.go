@@ -47,7 +47,7 @@ var (
 		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
 			Name:  "stake-1",
-			Image: "",
+			Image: "simapp",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "consensus.params.block.max_gas",
@@ -79,7 +79,7 @@ var (
 		RunnerType:      messages.Docker,
 		ChainConfig: types.ChainsConfig{
 			Name:  "evmd",
-			Image: "",
+			Image: "evm",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",

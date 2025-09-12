@@ -178,21 +178,26 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 
 	nodeOptions := petritypes.NodeOptions{}
 
-	token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
-	if err != nil {
-		logger.Error("Failed to fetch docker repo token", zap.Error(err))
-	}
-
-	dockerAuth, err := convertECRTokenToDockerAuth(token)
-	if err != nil {
-		logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
+	var dockerAuth string
+	if a.AwsConfig != nil {
+		token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
+		if err != nil {
+			logger.Error("Failed to fetch docker repo token", zap.Error(err))
+		} else {
+			dockerAuth, err = convertECRTokenToDockerAuth(token)
+			if err != nil {
+				logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
+			}
+		}
 	}
 
 	nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 		if definition.ProviderSpecificConfig == nil {
 			definition.ProviderSpecificConfig = make(map[string]string)
 		}
-		definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
+		if dockerAuth != "" {
+			definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
+		}
 		return definition
 	}
 
