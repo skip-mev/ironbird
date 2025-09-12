@@ -186,7 +186,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 
 	buildArguments := make(map[string]string)
 
-	tag := generateTag(req.ImageConfig.Name, req.ImageConfig.Version, req.Repo, req.SHA)
+	tag := generateTag(req.ImageConfig.Image, req.ImageConfig.Version, req.Repo, req.SHA)
 	buildArguments["GIT_SHA"] = tag
 
 	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace
