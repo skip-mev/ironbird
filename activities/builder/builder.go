@@ -119,7 +119,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
 	orig := dependencies[fmt.Sprintf("%s/%s", owner, repo)]
-	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
+	return fmt.Sprintf("go mod edit -replace %s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
 func generateTag(imageName, version, repo, sha string) string {
