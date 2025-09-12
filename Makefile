@@ -88,7 +88,7 @@ proto-tools:
 
 .PHONY: unit-test petri-unit-test petri-docker-e2e petri-digitalocean-e2e petri-e2e-test
 unit-test:
-	go test -p 1 -v -count 1 -timeout 30m ./... -race
+	go test -p 1 -v -count 1 -timeout 30m `go list ./... | grep -v e2e` -race
 
 petri-unit-test:
 	@docker pull nginx:latest
