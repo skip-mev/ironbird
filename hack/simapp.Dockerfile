@@ -1,7 +1,7 @@
 ARG IMG_TAG=latest
 
 # Compile the simapp binary
-FROM golang:1.23-alpine AS simd-builder
+FROM golang:1.25-alpine AS simd-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 

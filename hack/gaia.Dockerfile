@@ -2,7 +2,7 @@
 ARG IMG_TAG=latest
 
 # Compile the gaiad binary
-FROM golang:1.23-alpine AS gaiad-builder
+FROM golang:1.25-alpine AS gaiad-builder
 ARG GIT_SHA
 RUN echo "Ironbird building with SHA: $GIT_SHA"
 WORKDIR /src/
