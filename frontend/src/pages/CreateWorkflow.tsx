@@ -785,7 +785,11 @@ const CreateWorkflow = () => {
         Version: raw.chain_config?.version || raw.ChainConfig?.Version,
         NumOfNodes: raw.chain_config?.num_of_nodes ?? raw.ChainConfig?.NumOfNodes ?? 0,
         NumOfValidators: raw.chain_config?.num_of_validators ?? raw.ChainConfig?.NumOfValidators ?? 0,
-        RegionConfigs: raw.chain_config?.region_configs || raw.ChainConfig?.RegionConfigs || [],
+        RegionConfigs: (raw.chain_config?.region_configs || raw.ChainConfig?.RegionConfigs || []).map((rc: any) => ({
+          name: rc.name,
+          numOfNodes: rc.num_of_nodes ?? rc.numOfNodes ?? 0,
+          numOfValidators: rc.num_of_validators ?? rc.numOfValidators ?? 0
+        })),
         GenesisModifications: raw.chain_config?.genesis_modifications || raw.ChainConfig?.GenesisModifications || [],
         AppConfig: raw.chain_config?.custom_app_config || raw.ChainConfig?.AppConfig,
         ConsensusConfig: raw.chain_config?.custom_consensus_config || raw.ChainConfig?.ConsensusConfig,
