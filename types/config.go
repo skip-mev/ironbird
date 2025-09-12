@@ -89,6 +89,7 @@ type RegistryConfig struct {
 type ChainsConfig struct {
 	Name                  string                    `yaml:"name"`
 	Image                 string                    `yaml:"image"`
+	Version               string                    `yaml:"version,omitempty"`
 	GenesisModifications  []petrichain.GenesisKV    `yaml:"genesis_modifications"`
 	NumOfNodes            uint64                    `yaml:"num_of_nodes"`
 	NumOfValidators       uint64                    `yaml:"num_of_validators"`
@@ -145,7 +146,6 @@ type Chains map[string]ImageConfig
 
 type ImageConfig struct {
 	Name            string   `yaml:"name"`
-	Version         string   `yaml:"version"`
 	Dockerfile      string   `yaml:"dockerfile"`
 	AdditionalFiles []string `yaml:"additional_files"`
 	GID             string   `yaml:"gid"`

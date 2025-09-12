@@ -47,7 +47,7 @@ var (
 		TestnetDuration: "1m",
 		ChainConfig: types.ChainsConfig{
 			Name:  "stake-1",
-			Image: "",
+			Image: "simapp",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "consensus.params.block.max_gas",
@@ -79,7 +79,7 @@ var (
 		RunnerType:      messages.Docker,
 		ChainConfig: types.ChainsConfig{
 			Name:  "evmd",
-			Image: "",
+			Image: "evm",
 			GenesisModifications: []petrichain.GenesisKV{
 				{
 					Key:   "app_state.staking.params.bond_denom",
@@ -424,8 +424,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 
 	// use sdk repo here to test skipping replace workflow
 	dockerReq := simappReq
-	dockerReq.Repo = "ironbird-cosmos-sdk"
-	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.Repo = "cosmos-sdk"
+	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 
@@ -442,8 +442,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 
 	// use cometbft repo here to test replace workflow
 	doReq := simappReq
-	doReq.Repo = "ironbird-cometbft"
-	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
+	doReq.Repo = "cometbft"
+	doReq.SHA = "54602e1c1a39943c2d460c23757e33f1d24f85f0"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = false
@@ -473,8 +473,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	s.setupMockActivitiesDigitalOcean()
 
 	doReq := simappReq
-	doReq.Repo = "ironbird-cometbft"
-	doReq.SHA = "e5fd4c0cacdb4a338e031083ac6d2b16e404b006"
+	doReq.Repo = "cometbft"
+	doReq.SHA = "54602e1c1a39943c2d460c23757e33f1d24f85f0"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = true
@@ -510,8 +510,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	s.setupMockActivitiesDocker()
 
 	dockerReq := simappReq
-	dockerReq.Repo = "ironbird-cosmos-sdk"
-	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.Repo = "cosmos-sdk"
+	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.CosmosLoadTestSpec = nil
@@ -530,8 +530,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.setupMockActivitiesDocker()
 
 	dockerReq := simappReq
-	dockerReq.Repo = "ironbird-cosmos-sdk"
-	dockerReq.SHA = "3de8d67d5feb33fad8d3e54236bec1428af3fe6b"
+	dockerReq.Repo = "cosmos-sdk"
+	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true

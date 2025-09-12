@@ -95,26 +95,14 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	if req.ChainConfig.Image == "" {
-		switch req.Repo {
-		case "gaia":
-			req.ChainConfig.Image = req.Repo
-		case "evm":
-			req.ChainConfig.Image = req.Repo
-		default:
-			// for SDK testing default to simapp
-			// todo(nadim-az): keep just one generic simapp image, and cleanup this logic
-			req.ChainConfig.Image = "simapp-v53"
-		}
-	}
-
 	var buildResult messages.BuildDockerImageResponse
 	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
 		Repo: req.Repo,
 		SHA:  req.SHA,
 		ChainConfig: messages.ChainConfig{
-			Name:  req.ChainConfig.Name,
-			Image: req.ChainConfig.Image,
+			Name:    req.ChainConfig.Name,
+			Image:   req.ChainConfig.Image,
+			Version: req.ChainConfig.Version,
 		},
 	}).Get(ctx, &buildResult)
 	if err != nil {

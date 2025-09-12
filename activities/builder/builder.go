@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"go.uber.org/zap"
@@ -43,26 +42,16 @@ type BuildResult struct {
 }
 
 var (
-	// SKIP_REPLACE_REPOS are repositories where ironbird does not need to run the replace workflow
-	// as checking out to the chain branch tag is sufficient to test the intended changes
-	// (e.g. cosmos-sdk repo does not need to replace a dependency, just to run simapp using the SDK version
-	// based on the commit SHA passed to ironbird. To test cometbft on the other hand, we use a base simapp image
-	// and then replace the cometbft dependency with the intended commit version)
-	SKIP_REPLACE_REPOS = []string{"cosmos-sdk", "ironbird-cosmos-sdk", "gaia", "evm"}
-	dependencies       = map[string]string{
-		"skip-mev/ironbird-cometbft":   "github.com/cometbft/cometbft",
-		"skip-mev/ironbird-cosmos-sdk": "github.com/cosmos/cosmos-sdk",
-		"cometbft/cometbft":            "github.com/cometbft/cometbft",
-		"cosmos/cosmos-sdk":            "github.com/cosmos/cosmos-sdk",
-		"cosmos/evm":                   "github.com/cosmos/evm",
+	dependencies = map[string]string{
+		"cometbft/cometbft": "github.com/cometbft/cometbft",
+		"cosmos/cosmos-sdk": "github.com/cosmos/cosmos-sdk",
+		"cosmos/evm":        "github.com/cosmos/evm",
 	}
 	repoOwners = map[string]string{
-		"ironbird-cometbft":   "skip-mev",
-		"ironbird-cosmos-sdk": "skip-mev",
-		"cometbft":            "cometbft",
-		"cosmos-sdk":          "cosmos",
-		"gaia":                "cosmos",
-		"evm":                 "cosmos",
+		"cometbft":   "cometbft",
+		"cosmos-sdk": "cosmos",
+		"gaia":       "cosmos",
+		"evm":        "cosmos",
 	}
 )
 
@@ -133,8 +122,8 @@ func generateReplace(dependencies map[string]string, owner, repo, tag string) st
 	return fmt.Sprintf("go mod edit -replace github.com/%s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
-func generateTag(chain, version, owner, repo, sha string) string {
-	return fmt.Sprintf("%s%s-%s%s-%s", chain, version, owner, repo, sha)
+func generateTag(repo, sha string) string {
+	return fmt.Sprintf("%s-%s", repo, sha)
 }
 
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
@@ -193,15 +182,19 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	buildArguments := make(map[string]string)
-	buildArguments["GIT_SHA"] = generateTag(req.ChainConfig.Name, image.Version, repoOwners[req.Repo], req.Repo, req.SHA)
-	tag := generateTag(req.ChainConfig.Name, image.Version, "", req.Repo, req.SHA)
 
-	if slices.Contains(SKIP_REPLACE_REPOS, req.Repo) {
+	tag := generateTag(req.Repo, req.SHA)
+	buildArguments["GIT_SHA"] = tag
+
+	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace
+	// CometBFT with the specified commit SHA
+	if req.Repo == "cometbft" {
+		buildArguments["CHAIN_SRC"] = "https://github.com/cosmos/cosmos-sdk"
+		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
+		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
+	} else {
 		buildArguments["CHAIN_TAG"] = req.SHA
 		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", repoOwners[req.Repo], req.Repo)
-	} else {
-		buildArguments["CHAIN_TAG"] = image.Version
-		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
 	}
 
 	for k, v := range buildArguments {

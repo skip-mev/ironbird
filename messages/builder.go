@@ -7,8 +7,9 @@ type BuildDockerImageRequest struct {
 }
 
 type ChainConfig struct {
-	Name  string
-	Image string
+	Name    string
+	Image   string
+	Version string
 }
 
 type BuildDockerImageResponse struct {

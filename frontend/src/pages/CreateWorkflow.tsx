@@ -238,6 +238,7 @@ const CreateWorkflow = () => {
 
     if (data.Repo === 'cometbft') {
       requiredFields.push({ name: 'Chain Image', value: data.ChainConfig.Image });
+      requiredFields.push({ name: 'Simapp Version', value: data.ChainConfig.Version || '' });
     }
 
     if (!data.LongRunningTestnet) {
@@ -590,6 +591,7 @@ const CreateWorkflow = () => {
       ChainConfig: {
         Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
+        Version: formData.ChainConfig.Version,
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
         GenesisModifications: formData.ChainConfig.GenesisModifications || [],
@@ -905,29 +907,58 @@ const CreateWorkflow = () => {
           </FormControl>
 
           {(formData.Repo === 'cometbft') && (
-            <FormControl isRequired>
-              <FormLabel color="text">Chain Image</FormLabel>
-                <Select
-                  value={formData.ChainConfig.Image}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      ChainConfig: {
-                        ...formData.ChainConfig,
-                        Image: e.target.value,
-                      },
-                    })
-                  }
-                  bg="surface"
-                  color="text"
-                  borderColor="divider"
-                  placeholder="Select chain image"
-                >
-                <option value="simapp-v47">Simapp v0.47</option>
-                <option value="simapp-v50">Simapp v0.50</option>
-                <option value="simapp-v53">Simapp v0.53</option>
-              </Select>
-            </FormControl>
+            <>
+              <FormControl isRequired>
+                <FormLabel color="text">Simapp Version</FormLabel>
+                  <Select
+                    value={formData.ChainConfig.Version || 'custom'}
+                    onChange={(e) => {
+                      setFormData({
+                        ...formData,
+                        ChainConfig: {
+                          ...formData.ChainConfig,
+                          Image: 'simapp',
+                          Version: e.target.value === 'custom' ? '' : e.target.value,
+                        },
+                      });
+                    }}
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                    placeholder="Select simapp version"
+                  >
+                  <option value="v0.47.17">Simapp v0.47.17</option>
+                  <option value="v0.50.13">Simapp v0.50.13</option>
+                  <option value="v0.53.0">Simapp v0.53.0</option>
+                  <option value="custom">Custom Version/SHA</option>
+                </Select>
+              </FormControl>
+
+              {(formData.ChainConfig.Version === '' || formData.ChainConfig.Version === 'custom') && (
+                <FormControl isRequired>
+                  <FormLabel color="text">Custom Simapp Version/SHA</FormLabel>
+                  <Input
+                    value={formData.ChainConfig.Version === 'custom' ? '' : (formData.ChainConfig.Version || '')}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ChainConfig: {
+                          ...formData.ChainConfig,
+                          Version: e.target.value,
+                        },
+                      })
+                    }
+                    bg="surface"
+                    color="text"
+                    borderColor="divider"
+                    placeholder="Enter cosmos-sdk version/SHA for simapp build (e.g., v0.50.0 or commit SHA)"
+                  />
+                  <FormHelperText>
+                    This version/SHA will be used to build simapp from cosmos-sdk at the specified commit
+                  </FormHelperText>
+                </FormControl>
+              )}
+            </>
           )}
 
 
