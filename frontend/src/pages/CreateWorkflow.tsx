@@ -404,6 +404,15 @@ const CreateWorkflow = () => {
         const repo = params.get('repo')!;
         newFormData.Repo = repo;
         newFormData.IsEvmChain = repo === 'evm';
+        if (repo === 'evm') {
+          newFormData.ChainConfig.Image = 'evm';
+        } else if (repo === 'cometbft') {
+          newFormData.ChainConfig.Image = 'simapp';
+        } else if (repo === 'cosmos-sdk') {
+          newFormData.ChainConfig.Image = 'simapp';
+        } else if (repo === 'gaia') {
+          newFormData.ChainConfig.Image = 'gaia';
+        }
         hasChanges = true;
       }
       
@@ -774,14 +783,31 @@ const CreateWorkflow = () => {
     const raw = JSON.parse(text);
     
     // Simplified parsing - use the structure as-is from the JSON
+    const repo = raw.repo || raw.Repo || '';
+    const isEvmChain = raw.isEvmChain ?? raw.IsEvmChain ?? false;
+    
+    // Determine correct image based on repository
+    let image = raw.chain_config?.image || raw.ChainConfig?.Image || '';
+    if (!image) {
+      if (repo === 'evm') {
+        image = 'evm';
+      } else if (repo === 'cometbft') {
+        image = 'simapp';
+      } else if (repo === 'cosmos-sdk') {
+        image = 'simapp';
+      } else if (repo === 'gaia') {
+        image = 'gaia';
+      }
+    }
+    
     return {
-      Repo: raw.repo || raw.Repo || '',
+      Repo: repo,
       SHA: raw.sha || raw.SHA || '',
-      IsEvmChain: raw.isEvmChain ?? raw.IsEvmChain ?? false,
+      IsEvmChain: isEvmChain,
       RunnerType: raw.runner_type || raw.RunnerType || '',
       ChainConfig: {
         Name: raw.chain_config?.name || raw.ChainConfig?.Name || '',
-        Image: raw.chain_config?.image || raw.ChainConfig?.Image || '',
+        Image: image,
         Version: raw.chain_config?.version || raw.ChainConfig?.Version,
         NumOfNodes: raw.chain_config?.num_of_nodes ?? raw.ChainConfig?.NumOfNodes ?? 0,
         NumOfValidators: raw.chain_config?.num_of_validators ?? raw.ChainConfig?.NumOfValidators ?? 0,
@@ -872,15 +898,33 @@ const CreateWorkflow = () => {
                     IsEvmChain: newRepo === 'evm'
                   };
 
-                  // Reset simapp version when changing repository
+                  // Set appropriate image and version based on repository
                   if (newRepo === 'cometbft') {
                     updatedFormData.ChainConfig = {
                       ...updatedFormData.ChainConfig,
                       Version: '', // Default to empty for CometBFT
                       Image: 'simapp'
                     };
+                  } else if (newRepo === 'cosmos-sdk') {
+                    updatedFormData.ChainConfig = {
+                      ...updatedFormData.ChainConfig,
+                      Version: undefined,
+                      Image: 'simapp'
+                    };
+                  } else if (newRepo === 'evm') {
+                    updatedFormData.ChainConfig = {
+                      ...updatedFormData.ChainConfig,
+                      Version: undefined,
+                      Image: 'evm'
+                    };
+                  } else if (newRepo === 'gaia') {
+                    updatedFormData.ChainConfig = {
+                      ...updatedFormData.ChainConfig,
+                      Version: undefined,
+                      Image: 'gaia'
+                    };
                   } else {
-                    // Clear version and image for non-cometbft repos
+                    // Fallback for unknown repos
                     updatedFormData.ChainConfig = {
                       ...updatedFormData.ChainConfig,
                       Version: undefined,
