@@ -16,13 +16,9 @@ tailscale:
 
 telemetry:
   prometheus:
-    url: "https://mimir.overseer.skip.build/api/v1/push"
-    username: "overseer"
-    password: "testytest"
+    url: "https://prometheus-prod-10-prod-us-central-0.grafana.net/api/prom/push"
   loki:
-    url: "https://loki.overseer.skip.build/loki/api/v1/push"
-    username: "overseer"
-    password: "testytest"
+    url: "https://logs-prod3.grafana.net/loki/api/v1/push"
   pyroscope:
     url: "https://profiles-prod-003.grafana.net"
 

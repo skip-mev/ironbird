@@ -83,6 +83,17 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 		nodes = append(nodes, ipAddr)
 	}
 
+	// If no nodes are available, add validators to nodeAddresses so load test can still run
+	if len(nodes) == 0 {
+		for _, v := range chain.GetValidators() {
+			ipAddr, err := v.GetIP(ctx)
+			if err != nil {
+				return nil, err
+			}
+			nodes = append(nodes, ipAddr)
+		}
+	}
+
 	var catalystChainConfig ctltypes.ChainConfig
 	switch loadTestSpec.Kind {
 	case "eth":
@@ -171,7 +182,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}
 
-	catalystTag := "main"
+	catalystTag := "latest"
 	if req.CatalystVersion != "" {
 		catalystTag = req.CatalystVersion
 	}

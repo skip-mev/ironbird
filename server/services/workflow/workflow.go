@@ -66,6 +66,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		chainConfig := types.ChainsConfig{
 			Name:                  req.ChainConfig.Name,
 			Image:                 req.ChainConfig.Image,
+			Version:               req.ChainConfig.Version,
 			NumOfNodes:            req.ChainConfig.NumOfNodes,
 			NumOfValidators:       req.ChainConfig.NumOfValidators,
 			SetSeedNode:           req.ChainConfig.SetSeedNode,
@@ -248,6 +249,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	chainConfig := &pb.ChainConfig{
 		Name:                  workflow.Config.ChainConfig.Name,
 		Image:                 workflow.Config.ChainConfig.Image,
+		Version:               workflow.Config.ChainConfig.Version,
 		NumOfNodes:            workflow.Config.ChainConfig.NumOfNodes,
 		NumOfValidators:       workflow.Config.ChainConfig.NumOfValidators,
 		SetSeedNode:           workflow.Config.ChainConfig.SetSeedNode,
@@ -301,6 +303,18 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		NumWallets:         int32(workflow.Config.NumWallets),
 		CatalystVersion:    workflow.Config.CatalystVersion,
 		ChainConfig:        chainConfig,
+	}
+
+	if workflow.Config.EthereumLoadTestSpec != nil {
+		encodedSpec, err := encodeLoadTestSpec(*workflow.Config.EthereumLoadTestSpec)
+		if err == nil {
+			response.Config.EncodedLoadTestSpec = encodedSpec
+		}
+	} else if workflow.Config.CosmosLoadTestSpec != nil {
+		encodedSpec, err := encodeLoadTestSpec(*workflow.Config.CosmosLoadTestSpec)
+		if err == nil {
+			response.Config.EncodedLoadTestSpec = encodedSpec
+		}
 	}
 
 	return response, nil

@@ -283,7 +283,7 @@ func (x *ChainConfig) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChainConfig.ProtoReflect.Descriptor instead.
+// Deprecated: Use ImageConfig.ProtoReflect.Descriptor instead.
 func (*ChainConfig) Descriptor() ([]byte, []int) {
 	return file_proto_ironbird_proto_rawDescGZIP(), []int{3}
 }
@@ -1557,7 +1557,7 @@ var file_proto_ironbird_proto_goTypes = []any{
 	(*CreateWorkflowRequest)(nil),     // 0: skip.ironbird.CreateWorkflowRequest
 	(*GenesisKV)(nil),                 // 1: skip.ironbird.GenesisKV
 	(*RegionConfig)(nil),              // 2: skip.ironbird.RegionConfig
-	(*ChainConfig)(nil),               // 3: skip.ironbird.ChainConfig
+	(*ChainConfig)(nil),               // 3: skip.ironbird.ImageConfig
 	(*NodeAddress)(nil),               // 4: skip.ironbird.NodeAddress
 	(*LoadTestMsg)(nil),               // 5: skip.ironbird.LoadTestMsg
 	(*LoadTestSpec)(nil),              // 6: skip.ironbird.LoadTestSpec
@@ -1577,10 +1577,10 @@ var file_proto_ironbird_proto_goTypes = []any{
 	nil,                               // 20: skip.ironbird.UpdateWorkflowDataRequest.MonitoringEntry
 }
 var file_proto_ironbird_proto_depIdxs = []int32{
-	3,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ChainConfig
+	3,  // 0: skip.ironbird.CreateWorkflowRequest.chain_config:type_name -> skip.ironbird.ImageConfig
 	6,  // 1: skip.ironbird.CreateWorkflowRequest.load_test_spec:type_name -> skip.ironbird.LoadTestSpec
-	1,  // 2: skip.ironbird.ChainConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
-	2,  // 3: skip.ironbird.ChainConfig.region_configs:type_name -> skip.ironbird.RegionConfig
+	1,  // 2: skip.ironbird.ImageConfig.genesis_modifications:type_name -> skip.ironbird.GenesisKV
+	2,  // 3: skip.ironbird.ImageConfig.region_configs:type_name -> skip.ironbird.RegionConfig
 	4,  // 4: skip.ironbird.LoadTestSpec.nodes_addresses:type_name -> skip.ironbird.NodeAddress
 	5,  // 5: skip.ironbird.LoadTestSpec.msgs:type_name -> skip.ironbird.LoadTestMsg
 	6,  // 6: skip.ironbird.RunLoadTestRequest.load_test_spec:type_name -> skip.ironbird.LoadTestSpec

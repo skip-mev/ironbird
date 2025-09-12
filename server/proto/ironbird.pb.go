@@ -271,6 +271,7 @@ type ChainConfig struct {
 	SetSeedNode           bool                   `protobuf:"varint,9,opt,name=set_seed_node,json=setSeedNode,proto3" json:"set_seed_node,omitempty"`
 	SetPersistentPeers    bool                   `protobuf:"varint,10,opt,name=set_persistent_peers,json=setPersistentPeers,proto3" json:"set_persistent_peers,omitempty"`
 	RegionConfigs         []*RegionConfig        `protobuf:"bytes,11,rep,name=region_configs,json=regionConfigs,proto3" json:"region_configs,omitempty"`
+	Version               string                 `protobuf:"bytes,12,opt,name=version,proto3" json:"version,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -380,6 +381,13 @@ func (x *ChainConfig) GetRegionConfigs() []*RegionConfig {
 		return x.RegionConfigs
 	}
 	return nil
+}
+
+func (x *ChainConfig) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
 }
 
 type GetWorkflowRequest struct {
@@ -1203,7 +1211,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\fnum_of_nodes\x18\x02 \x01(\x04R\n" +
 	"numOfNodes\x12*\n" +
-	"\x11num_of_validators\x18\x03 \x01(\x04R\x0fnumOfValidators\"\x84\x04\n" +
+	"\x11num_of_validators\x18\x03 \x01(\x04R\x0fnumOfValidators\"\x9e\x04\n" +
 	"\vChainConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\fnum_of_nodes\x18\x02 \x01(\x04R\n" +
@@ -1217,7 +1225,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\rset_seed_node\x18\t \x01(\bR\vsetSeedNode\x120\n" +
 	"\x14set_persistent_peers\x18\n" +
 	" \x01(\bR\x12setPersistentPeers\x12B\n" +
-	"\x0eregion_configs\x18\v \x03(\v2\x1b.skip.ironbird.RegionConfigR\rregionConfigs\"5\n" +
+	"\x0eregion_configs\x18\v \x03(\v2\x1b.skip.ironbird.RegionConfigR\rregionConfigs\x12\x18\n" +
+	"\aversion\x18\f \x01(\tR\aversion\"5\n" +
 	"\x12GetWorkflowRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\"D\n" +

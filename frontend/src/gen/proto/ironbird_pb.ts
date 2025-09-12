@@ -256,6 +256,11 @@ export class ChainConfig extends Message<ChainConfig> {
    */
   regionConfigs: RegionConfig[] = [];
 
+  /**
+   * @generated from field: string version = 12;
+   */
+  version = "";
+
   constructor(data?: PartialMessage<ChainConfig>) {
     super();
     proto3.util.initPartial(data, this);
@@ -275,6 +280,7 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 9, name: "set_seed_node", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 10, name: "set_persistent_peers", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 11, name: "region_configs", kind: "message", T: RegionConfig, repeated: true },
+    { no: 12, name: "version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ChainConfig {

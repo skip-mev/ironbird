@@ -99,7 +99,7 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
 		Repo: req.Repo,
 		SHA:  req.SHA,
-		ChainConfig: messages.ChainConfig{
+		ImageConfig: messages.ImageConfig{
 			Name:    req.ChainConfig.Name,
 			Image:   req.ChainConfig.Image,
 			Version: req.ChainConfig.Version,

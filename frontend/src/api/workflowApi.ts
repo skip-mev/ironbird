@@ -54,6 +54,7 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     numOfNodes: request.ChainConfig.NumOfNodes !== undefined ? protoInt64.parse(request.ChainConfig.NumOfNodes.toString()) : protoInt64.zero,
     numOfValidators: request.ChainConfig.NumOfValidators !== undefined ? protoInt64.parse(request.ChainConfig.NumOfValidators.toString()) : protoInt64.zero,
     image: request.ChainConfig.Image,
+    version: request.ChainConfig.Version || "",
     genesisModifications: [],
     setSeedNode: request.ChainConfig.SetSeedNode || false,
     setPersistentPeers: request.ChainConfig.SetPersistentPeers || false,
@@ -106,7 +107,9 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
     grpcRequest.chainConfig!.numOfValidators = protoInt64.parse(request.ChainConfig.NumOfValidators.toString());
   }
   
-  if (request.LoadTestSpec) {
+  if (request.EncodedLoadTestSpec) {
+    grpcRequest.encodedLoadTestSpec = request.EncodedLoadTestSpec;
+  } else if (request.LoadTestSpec) {
     grpcRequest.encodedLoadTestSpec = convertLoadTestSpecToYaml(request.LoadTestSpec);
   }
 
@@ -136,9 +139,11 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       LaunchLoadBalancer: workflow.config.launchLoadBalancer,
       TestnetDuration: workflow.config.testnetDuration,
       NumWallets: workflow.config.numWallets,
+      EncodedLoadTestSpec: workflow.config.encodedLoadTestSpec,
       ChainConfig: {
         Name: workflow.config.chainConfig?.name || '',
         Image: workflow.config.chainConfig?.image || '',
+        Version: workflow.config.chainConfig?.version || '',
         NumOfNodes: workflow.config.chainConfig?.numOfNodes ? Number(workflow.config.chainConfig.numOfNodes) : 0,
         NumOfValidators: workflow.config.chainConfig?.numOfValidators ? Number(workflow.config.chainConfig.numOfValidators) : 0,
         GenesisModifications: (workflow.config.chainConfig?.genesisModifications || []).map((gm: any) => {

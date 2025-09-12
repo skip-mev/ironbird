@@ -13,7 +13,6 @@ export interface ChainConfig {
   Name: string;
   Image: string;
   Version?: string;
-  CustomVersion?: string; // For custom cosmos-sdk SHA when Version is 'custom'
   NumOfNodes?: number;
   NumOfValidators?: number;
   GenesisModifications: GenesisModification[];
@@ -81,6 +80,7 @@ export interface TestnetWorkflowRequest {
   LoadTestSpec?: LoadTestSpec;
   EthereumLoadTestSpec?: LoadTestSpec;
   CosmosLoadTestSpec?: LoadTestSpec;
+  EncodedLoadTestSpec?: string; // YAML-encoded load test spec
   LongRunningTestnet: boolean;
   LaunchLoadBalancer: boolean;
   TestnetDuration: string;

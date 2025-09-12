@@ -142,9 +142,9 @@ type ServerConfig struct {
 	GrpcWebAddress string         `yaml:"grpc_web_address"`
 }
 
-type Chains map[string]ImageConfig
+type Chains map[string]ChainImageConfig
 
-type ImageConfig struct {
+type ChainImageConfig struct {
 	Name            string   `yaml:"name"`
 	Dockerfile      string   `yaml:"dockerfile"`
 	AdditionalFiles []string `yaml:"additional_files"`

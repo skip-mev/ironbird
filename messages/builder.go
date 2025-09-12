@@ -3,10 +3,10 @@ package messages
 type BuildDockerImageRequest struct {
 	Repo        string
 	SHA         string
-	ChainConfig ChainConfig
+	ImageConfig ImageConfig
 }
 
-type ChainConfig struct {
+type ImageConfig struct {
 	Name    string
 	Image   string
 	Version string

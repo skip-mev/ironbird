@@ -25,6 +25,89 @@ import {
 import { useMutation } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
 import type { TestnetWorkflowRequest, LoadTestSpec } from '../types/workflow';
+
+// Simple YAML parser for load test specs
+const parseYamlToLoadTestSpec = (yamlString: string): LoadTestSpec | null => {
+  try {
+    const lines = yamlString.split('\n');
+    const result: any = {};
+    let currentMsgIndex = -1;
+    let inMsgsSection = false;
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      
+      if (trimmed === 'msgs:') {
+        inMsgsSection = true;
+        result.msgs = [];
+        continue;
+      }
+      
+      if (inMsgsSection && trimmed.startsWith('-')) {
+        // New message entry
+        currentMsgIndex++;
+        result.msgs[currentMsgIndex] = {};
+        // Parse the key-value pairs on the same line
+        const msgLine = trimmed.substring(1).trim();
+        if (msgLine) {
+          const [key, value] = msgLine.split(':').map(s => s.trim());
+          if (key && value) {
+            result.msgs[currentMsgIndex][key] = isNaN(Number(value)) ? value : Number(value);
+          }
+        }
+      } else if (inMsgsSection && trimmed.includes(':') && !trimmed.startsWith('-')) {
+        // Message property
+        const [key, value] = trimmed.split(':').map(s => s.trim());
+        if (key && value && currentMsgIndex >= 0) {
+          result.msgs[currentMsgIndex][key] = isNaN(Number(value)) ? value : Number(value);
+        }
+      } else if (trimmed.includes(':') && !inMsgsSection) {
+        // Top-level property
+        const [key, value] = trimmed.split(':').map(s => s.trim());
+        if (key && value) {
+          if (value === '[]') {
+            result[key] = [];
+          } else if (value.endsWith('s') && !isNaN(Number(value.slice(0, -1)))) {
+            // Handle time values like "0s"
+            result[key] = value;
+          } else if (!isNaN(Number(value))) {
+            result[key] = Number(value);
+          } else {
+            result[key] = value;
+          }
+        }
+      }
+    }
+    
+    // Convert to LoadTestSpec format expected by the frontend
+    const loadTestSpec: LoadTestSpec = {
+      name: result.name || '',
+      description: result.description || '',
+      kind: result.kind || 'cosmos',
+      chain_id: result.chain_id || '',
+      NumOfBlocks: result.num_of_blocks || 0,
+      NumOfTxs: result.num_of_txs || 0,
+      unordered_txs: result.unordered_txs || false,
+      tx_timeout: result.tx_timeout || '',
+      send_interval: result.send_interval || '',
+      num_batches: result.num_batches || 0,
+      gas_denom: result.gas_denom || '',
+      bech32_prefix: result.bech32_prefix || '',
+      msgs: (result.msgs || []).map((msg: any) => ({
+        type: msg.type || '',
+        weight: msg.weight || 0,
+        NumMsgs: msg.num_msgs || 1,
+        num_msgs: msg.num_msgs || 1
+      }))
+    };
+    
+    return loadTestSpec;
+  } catch (error) {
+    console.error('Error parsing YAML:', error);
+    return null;
+  }
+};
 import { AddIcon, DeleteIcon, InfoIcon } from '@chakra-ui/icons';
 import LoadTestForm from '../components/LoadTestForm';
 import ChainConfigsModal from '../components/ChainConfigsModal';
@@ -171,6 +254,7 @@ const CreateWorkflow = () => {
     ChainConfig: {
       Name: '',
       Image: '',
+      Version: '',
       GenesisModifications: [],
       NumOfNodes: 0,
       NumOfValidators: 0,
@@ -238,10 +322,8 @@ const CreateWorkflow = () => {
 
     if (data.Repo === 'cometbft') {
       requiredFields.push({ name: 'Chain Image', value: data.ChainConfig.Image });
-      const versionValue = data.ChainConfig.Version === 'custom' 
-        ? data.ChainConfig.CustomVersion || ''
-        : data.ChainConfig.Version || '';
-      requiredFields.push({ name: 'Simapp Version', value: versionValue });
+      // For cometbft, version is required
+      requiredFields.push({ name: 'Simapp Version', value: data.ChainConfig.Version || '' });
     }
 
     if (!data.LongRunningTestnet) {
@@ -260,6 +342,23 @@ const CreateWorkflow = () => {
 
     if (!data.ChainConfig.SetSeedNode && !data.ChainConfig.SetPersistentPeers) {
       return 'At least one of "Set Seed Node" or "Set Persistent Peers" must be enabled';
+    }
+
+    // Validate that if SetSeedNode is true, there must be at least 1 node configured
+    if (data.ChainConfig.SetSeedNode) {
+      if (data.RunnerType === 'Docker') {
+        if (!data.ChainConfig.NumOfNodes || data.ChainConfig.NumOfNodes < 1) {
+          return 'When "Set Seed Node" is enabled, you must configure at least 1 node';
+        }
+      } else if (data.RunnerType === 'DigitalOcean') {
+        if (!data.ChainConfig.RegionConfigs || data.ChainConfig.RegionConfigs.length === 0) {
+          return 'When "Set Seed Node" is enabled with DigitalOcean deployment, regional configuration is required';
+        }
+        const totalNodes = data.ChainConfig.RegionConfigs.reduce((sum, rc) => sum + (rc.numOfNodes || 0), 0);
+        if (totalNodes < 1) {
+          return 'When "Set Seed Node" is enabled, at least one region must have 1 or more nodes configured';
+        }
+      }
     }
 
     if (data.LaunchLoadBalancer && data.RunnerType !== 'DigitalOcean') {
@@ -285,6 +384,7 @@ const CreateWorkflow = () => {
         ChainConfig: {
           Name: '',
           Image: '',
+          Version: '',
           GenesisModifications: [],
           NumOfNodes: 0,
           NumOfValidators: 0,
@@ -447,49 +547,47 @@ const CreateWorkflow = () => {
         }
       }
       
-      // Handle load test specs - check for any of the possible parameter names
-      const loadTestSpecParam = params.get('loadTestSpec') || 
-                                 params.get('ethereumLoadTestSpec') || 
-                                 params.get('cosmosLoadTestSpec');
-      if (loadTestSpecParam) {
+      // Handle load test specs - simplified logic
+      const encodedLoadTestSpecParam = params.get('encodedLoadTestSpec');
+      const loadTestSpecParam = params.get('loadTestSpec');
+      
+      if (encodedLoadTestSpecParam) {
+        try {
+          // Parse the YAML-like encoded load test spec and convert to LoadTestSpec object
+          const decodedYaml = decodeURIComponent(encodedLoadTestSpecParam);
+          console.log("Decoded YAML:", decodedYaml);
+          
+          // Parse the YAML manually (simple key-value parsing)
+          const loadTestSpec = parseYamlToLoadTestSpec(decodedYaml);
+          console.log("Parsed LoadTestSpec:", loadTestSpec);
+          
+          if (loadTestSpec) {
+            newFormData.LoadTestSpec = loadTestSpec;
+            newFormData.EncodedLoadTestSpec = encodedLoadTestSpecParam; // Keep for submission
+            setHasLoadTest(true);
+            hasChanges = true;
+            console.log("Successfully parsed and set load test spec from encoded YAML");
+          } else {
+            // Fallback: just set the encoded spec for backend processing
+            newFormData.EncodedLoadTestSpec = encodedLoadTestSpecParam;
+            setHasLoadTest(true);
+            hasChanges = true;
+            console.log("Could not parse YAML, using encoded spec for backend processing");
+          }
+        } catch (e) {
+          console.error("Failed to parse encoded load test spec:", e);
+          // Fallback: just set the encoded spec for backend processing
+          newFormData.EncodedLoadTestSpec = encodedLoadTestSpecParam;
+          setHasLoadTest(true);
+          hasChanges = true;
+        }
+      } else if (loadTestSpecParam) {
         try {
           const parsedLoadTestSpec = JSON.parse(loadTestSpecParam);
           console.log("Parsed loadTestSpec from URL:", parsedLoadTestSpec);
           
-          // Normalize the LoadTestSpec structure to match the expected interface
-          const normalizedLoadTestSpec: LoadTestSpec = {
-            name: parsedLoadTestSpec.Name || parsedLoadTestSpec.name || "",
-            description: parsedLoadTestSpec.Description || parsedLoadTestSpec.description || "",
-            chain_id: parsedLoadTestSpec.ChainID || parsedLoadTestSpec.chain_id || "",
-            kind: parsedLoadTestSpec.Kind || parsedLoadTestSpec.kind || (newFormData.Repo === 'evm' ? 'eth' : 'cosmos'),
-            NumOfBlocks: parsedLoadTestSpec.NumOfBlocks || 0,
-            NumOfTxs: parsedLoadTestSpec.NumOfTxs || 0,
-            msgs: Array.isArray(parsedLoadTestSpec.Msgs) 
-              ? parsedLoadTestSpec.Msgs.map((msg: any) => ({
-                  type: msg.Type || msg.type,
-                  weight: msg.Weight || msg.weight || 0,
-                  NumMsgs: msg.NumMsgs || msg.numMsgs,
-                  ContainedType: msg.ContainedType || msg.containedType,
-                  NumOfRecipients: msg.NumOfRecipients || msg.numOfRecipients,
-                  // Handle Ethereum-specific fields
-                  num_msgs: msg.num_msgs || msg.NumMsgs || msg.numMsgs
-                }))
-              : (Array.isArray(parsedLoadTestSpec.msgs) 
-                ? parsedLoadTestSpec.msgs 
-                : []),
-            unordered_txs: parsedLoadTestSpec.unordered_txs || false,
-            tx_timeout: parsedLoadTestSpec.tx_timeout || "",
-            // Handle Ethereum-specific fields
-            send_interval: parsedLoadTestSpec.send_interval || "",
-            num_batches: parsedLoadTestSpec.num_batches || 0,
-            // Handle Cosmos-specific fields  
-            gas_denom: parsedLoadTestSpec.gas_denom || "",
-            bech32_prefix: parsedLoadTestSpec.bech32_prefix || "",
-          };
-          
-          console.log("Normalized loadTestSpec:", normalizedLoadTestSpec);
-          
-          newFormData.LoadTestSpec = normalizedLoadTestSpec;
+          // Use the parsed spec directly without complex normalization
+          newFormData.LoadTestSpec = parsedLoadTestSpec;
           setHasLoadTest(true);
           hasChanges = true;
         } catch (e) {
@@ -510,6 +608,22 @@ const CreateWorkflow = () => {
         } catch (e) {
           console.error('Failed to parse region configs', e);
         }
+      }
+
+      // Handle version parameter for dropdown selection
+      if (params.get('version')) {
+        const version = params.get('version')!;
+        // Check if this is a predefined version for the dropdown
+        const predefinedVersions = ['v0.47.17', 'v0.50.13', 'v0.53.0'];
+        if (predefinedVersions.includes(version)) {
+          newFormData.ChainConfig.Version = version;
+          setIsCustomVersion(false);
+        } else {
+          // This is a custom version, store it in the Version field
+          newFormData.ChainConfig.Version = version;
+          setIsCustomVersion(true);
+        }
+        hasChanges = true;
       }
 
       // After all parameters are parsed, ensure proper initialization based on runner type
@@ -558,6 +672,9 @@ const CreateWorkflow = () => {
 
   // Genesis modifications modal state
   const [isGenesisModsModalOpen, setIsGenesisModsModalOpen] = useState(false);
+  
+  // Track when custom version mode is active
+  const [isCustomVersion, setIsCustomVersion] = useState(false);
 
   const createWorkflowMutation = useMutation({
     mutationFn: workflowApi.createWorkflow,
@@ -582,6 +699,7 @@ const CreateWorkflow = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     const validationError = validateRequest(formData);
     if (validationError) {
       toast({ title: 'Validation Error', description: validationError, status: 'error', duration: 5000 });
@@ -594,9 +712,7 @@ const CreateWorkflow = () => {
       ChainConfig: {
         Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
-        Version: formData.ChainConfig.Version === 'custom' 
-          ? formData.ChainConfig.CustomVersion 
-          : formData.ChainConfig.Version,
+        Version: formData.ChainConfig.Version,
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
         GenesisModifications: formData.ChainConfig.GenesisModifications || [],
@@ -612,6 +728,7 @@ const CreateWorkflow = () => {
       LoadTestSpec: formData.LoadTestSpec,
       EthereumLoadTestSpec: formData.LoadTestSpec?.kind === 'eth' ? formData.LoadTestSpec : undefined,
       CosmosLoadTestSpec: formData.LoadTestSpec?.kind === 'cosmos' ? formData.LoadTestSpec : undefined,
+      EncodedLoadTestSpec: formData.EncodedLoadTestSpec,
       LongRunningTestnet: formData.LongRunningTestnet,
       LaunchLoadBalancer: formData.LaunchLoadBalancer,
       TestnetDuration: formData.TestnetDuration,
@@ -653,104 +770,39 @@ const CreateWorkflow = () => {
   };
 
   // --- JSON Mode helpers ---
-  const parseMaybeJson = (v: any) => {
-    if (typeof v === 'string') {
-      try { return JSON.parse(v); } catch { return undefined; }
-    }
-    return v !== undefined ? v : undefined;
-  };
-
-  const normalizeLoadTestSpec = (specIn: any, repo: string): LoadTestSpec | undefined => {
-    if (!specIn) return undefined;
-    let obj = specIn;
-    if (typeof specIn === 'string') {
-      try { obj = JSON.parse(specIn); } catch { return undefined; }
-    }
-    return {
-      name: obj.Name || obj.name || '',
-      description: obj.Description || obj.description || '',
-      chain_id: obj.ChainID || obj.chain_id || '',
-      kind: obj.Kind || obj.kind || (repo === 'evm' ? 'eth' : 'cosmos'),
-      NumOfBlocks: obj.NumOfBlocks || obj.num_of_blocks || 0,
-      NumOfTxs: obj.NumOfTxs || obj.num_of_txs || 0,
-      msgs: Array.isArray(obj.Msgs) ? obj.Msgs.map((m: any) => ({
-        type: m.Type || m.type,
-        weight: m.Weight || m.weight || 0,
-        NumMsgs: m.NumMsgs || m.numMsgs,
-        ContainedType: m.ContainedType || m.containedType || m.contained_type,
-        NumOfRecipients: m.NumOfRecipients || m.num_of_recipients,
-        num_msgs: m.num_msgs || m.NumMsgs || m.numMsgs,
-        NumOfIterations: m.NumOfIterations || m.num_of_iterations,
-        CalldataSize: m.CalldataSize || m.calldata_size,
-      })) : (Array.isArray(obj.msgs) ? obj.msgs.map((m: any) => ({
-        type: m.type,
-        weight: m.weight || 0,
-        NumMsgs: m.NumMsgs || m.numMsgs,
-        ContainedType: m.ContainedType || m.contained_type,
-        NumOfRecipients: m.NumOfRecipients || m.num_of_recipients,
-        num_msgs: m.num_msgs || m.NumMsgs || m.numMsgs,
-        NumOfIterations: m.NumOfIterations || m.num_of_iterations,
-        CalldataSize: m.CalldataSize || m.calldata_size,
-      })) : []),
-      unordered_txs: obj.unordered_txs || false,
-      tx_timeout: obj.tx_timeout || '',
-      send_interval: obj.send_interval || '',
-      num_batches: obj.num_batches || 0,
-      gas_denom: obj.gas_denom || '',
-      bech32_prefix: obj.bech32_prefix || '',
-    };
-  };
-
   const parseWorkflowJson = (text: string): TestnetWorkflowRequest => {
     const raw = JSON.parse(text);
-    const repo = raw.repo || raw.Repo || '';
-    const runner = raw.runner_type || raw.RunnerType || '';
-    const chain = raw.chain_config || raw.ChainConfig || {};
-
-    const regionCfgs = chain.region_configs || chain.RegionConfigs || [];
-    const parsedRegionCfgs = Array.isArray(regionCfgs)
-      ? regionCfgs.map((rc: any) => ({
-          name: rc.name || rc.Name,
-          numOfNodes: rc.num_of_nodes || rc.NumOfNodes || 0,
-          numOfValidators: rc.num_of_validators || rc.NumOfValidators || 0,
-        }))
-      : [];
-
-    const loadSpec = normalizeLoadTestSpec(
-      raw.encoded_load_test_spec || raw.load_test_spec || raw.LoadTestSpec || raw.EthereumLoadTestSpec || raw.CosmosLoadTestSpec,
-      repo,
-    );
-
-    const req: TestnetWorkflowRequest = {
-      Repo: repo,
+    
+    // Simplified parsing - use the structure as-is from the JSON
+    return {
+      Repo: raw.repo || raw.Repo || '',
       SHA: raw.sha || raw.SHA || '',
-      IsEvmChain: (raw.isEvmChain !== undefined ? raw.isEvmChain : (repo === 'evm')) || false,
-      RunnerType: runner,
+      IsEvmChain: raw.isEvmChain ?? raw.IsEvmChain ?? false,
+      RunnerType: raw.runner_type || raw.RunnerType || '',
       ChainConfig: {
-        Name: chain.name || chain.Name || '',
-        Image: chain.image || chain.Image || '',
-        NumOfNodes: chain.num_of_nodes || chain.NumOfNodes || 0,
-        NumOfValidators: chain.num_of_validators || chain.NumOfValidators || 0,
-        RegionConfigs: parsedRegionCfgs,
-        GenesisModifications: Array.isArray(chain.genesis_modifications || chain.GenesisModifications)
-          ? (chain.genesis_modifications || chain.GenesisModifications)
-          : [],
-        AppConfig: parseMaybeJson(chain.custom_app_config || chain.AppConfig),
-        ConsensusConfig: parseMaybeJson(chain.custom_consensus_config || chain.ConsensusConfig),
-        ClientConfig: parseMaybeJson(chain.custom_client_config || chain.ClientConfig),
-        SetSeedNode: (chain.set_seed_node || chain.SetSeedNode) ?? false,
-        SetPersistentPeers: (chain.set_persistent_peers || chain.SetPersistentPeers) ?? false,
+        Name: raw.chain_config?.name || raw.ChainConfig?.Name || '',
+        Image: raw.chain_config?.image || raw.ChainConfig?.Image || '',
+        Version: raw.chain_config?.version || raw.ChainConfig?.Version,
+        NumOfNodes: raw.chain_config?.num_of_nodes ?? raw.ChainConfig?.NumOfNodes ?? 0,
+        NumOfValidators: raw.chain_config?.num_of_validators ?? raw.ChainConfig?.NumOfValidators ?? 0,
+        RegionConfigs: raw.chain_config?.region_configs || raw.ChainConfig?.RegionConfigs || [],
+        GenesisModifications: raw.chain_config?.genesis_modifications || raw.ChainConfig?.GenesisModifications || [],
+        AppConfig: raw.chain_config?.custom_app_config || raw.ChainConfig?.AppConfig,
+        ConsensusConfig: raw.chain_config?.custom_consensus_config || raw.ChainConfig?.ConsensusConfig,
+        ClientConfig: raw.chain_config?.custom_client_config || raw.ChainConfig?.ClientConfig,
+        SetSeedNode: raw.chain_config?.set_seed_node ?? raw.ChainConfig?.SetSeedNode ?? false,
+        SetPersistentPeers: raw.chain_config?.set_persistent_peers ?? raw.ChainConfig?.SetPersistentPeers ?? false,
       },
-      LoadTestSpec: loadSpec,
-      EthereumLoadTestSpec: loadSpec?.kind === 'eth' ? loadSpec : undefined,
-      CosmosLoadTestSpec: loadSpec?.kind === 'cosmos' ? loadSpec : undefined,
+      LoadTestSpec: raw.load_test_spec || raw.LoadTestSpec,
+      EthereumLoadTestSpec: raw.ethereum_load_test_spec || raw.EthereumLoadTestSpec,
+      CosmosLoadTestSpec: raw.cosmos_load_test_spec || raw.CosmosLoadTestSpec,
+      EncodedLoadTestSpec: raw.encoded_load_test_spec || raw.EncodedLoadTestSpec,
       LongRunningTestnet: raw.long_running_testnet ?? raw.LongRunningTestnet ?? false,
       LaunchLoadBalancer: raw.launch_load_balancer ?? raw.LaunchLoadBalancer ?? false,
       TestnetDuration: raw.testnet_duration || raw.TestnetDuration || '',
       NumWallets: raw.num_wallets || raw.NumWallets || 2500,
       CatalystVersion: raw.catalyst_version || raw.CatalystVersion || '',
     };
-    return req;
   };
 
   const handleJsonSubmit = async () => {
@@ -932,17 +984,33 @@ const CreateWorkflow = () => {
               <FormControl isRequired>
                 <FormLabel color="text">Simapp Version</FormLabel>
                   <Select
-                    value={formData.ChainConfig.Version || ''}
+                    value={isCustomVersion ? 'custom' : (formData.ChainConfig.Version || '')}
                     onChange={(e) => {
                       const selectedValue = e.target.value;
-                      setFormData({
-                        ...formData,
-                        ChainConfig: {
-                          ...formData.ChainConfig,
-                          Image: 'simapp',
-                          Version: selectedValue,
-                        },
-                      });
+                      
+                      if (selectedValue === 'custom') {
+                        // Only reset Version to empty if we're switching FROM a predefined version TO custom
+                        const shouldResetVersion = !isCustomVersion;
+                        setIsCustomVersion(true);
+                        setFormData({
+                          ...formData,
+                          ChainConfig: {
+                            ...formData.ChainConfig,
+                            Image: 'simapp',
+                            Version: shouldResetVersion ? '' : formData.ChainConfig.Version,
+                          },
+                        });
+                      } else {
+                        setIsCustomVersion(false);
+                        setFormData({
+                          ...formData,
+                          ChainConfig: {
+                            ...formData.ChainConfig,
+                            Image: 'simapp',
+                            Version: selectedValue,
+                          },
+                        });
+                      }
                     }}
                     bg="surface"
                     color="text"
@@ -956,17 +1024,17 @@ const CreateWorkflow = () => {
                 </Select>
               </FormControl>
 
-              {formData.ChainConfig.Version === 'custom' && (
+              {isCustomVersion && (
                 <FormControl isRequired>
                   <FormLabel color="text">Custom Simapp Version/SHA</FormLabel>
                   <Input
-                    value={formData.ChainConfig.CustomVersion || ''}
+                    value={formData.ChainConfig.Version || ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         ChainConfig: {
                           ...formData.ChainConfig,
-                          CustomVersion: e.target.value,
+                          Version: e.target.value,
                         },
                       })
                     }
@@ -1402,12 +1470,12 @@ const CreateWorkflow = () => {
                 ...formData,
                 CatalystVersion: e.target.value
               })}
-              placeholder="main"
+              placeholder="latest"
               bg="surface"
               color="text"
               borderColor="divider"
             />
-            <FormHelperText>Docker tag for catalyst image (e.g., "main", "v1.2.3"). Defaults to "main" if empty.</FormHelperText>
+            <FormHelperText>Docker tag for catalyst image (e.g., "main", "v1.2.3"). cDefaults to "latest" if empty.</FormHelperText>
           </FormControl>
 
           <Button

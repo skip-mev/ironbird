@@ -56,6 +56,7 @@ message ChainConfig {
     bool set_seed_node = 9;
     bool set_persistent_peers = 10;
     repeated RegionConfig region_configs = 11;
+    string version = 12;
 }
 
 

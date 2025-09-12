@@ -142,10 +142,6 @@ const WorkflowDetails = () => {
   const handleCloneWorkflow = () => {
     if (!workflow) return;
     
-    console.log("Cloning workflow:", workflow);
-    console.log("Workflow config:", workflow.config);
-    console.log("Chain config:", workflow.config?.ChainConfig);
-    
     // Create query parameters with workflow data
     const params = new URLSearchParams();
     
@@ -237,16 +233,20 @@ const WorkflowDetails = () => {
         if (workflow.config.ChainConfig.SetPersistentPeers !== undefined) {
           params.append('setPersistentPeers', workflow.config.ChainConfig.SetPersistentPeers.toString());
         }
+        
+        // Handle simapp version for cometbft repos
+        if (workflow.config.Repo === 'cometbft') {
+          // Version field contains the simapp version (both predefined and custom)
+          if (workflow.config.ChainConfig.Version !== undefined && workflow.config.ChainConfig.Version !== '') {
+            params.append('version', workflow.config.ChainConfig.Version);
+          }
+        }
       }
     }
     
-    // LoadTestSpec - check all possible locations for load test configurations
-    const loadTestSpec = workflow.config?.LoadTestSpec || 
-                         workflow.config?.EthereumLoadTestSpec || 
-                         workflow.config?.CosmosLoadTestSpec || 
-                         workflow.loadTestSpec;
-    if (loadTestSpec) {
-      params.append('loadTestSpec', JSON.stringify(loadTestSpec));
+    // LoadTestSpec - use EncodedLoadTestSpec (YAML format) as that's what's actually available
+    if (workflow.config?.EncodedLoadTestSpec) {
+      params.append('encodedLoadTestSpec', workflow.config.EncodedLoadTestSpec);
     }
         
     // Navigate to root path (which is the create workflow page) with parameters

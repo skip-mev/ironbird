@@ -143,9 +143,9 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 	defer bkClient.Close()
 
-	image, exists := a.Chains[req.ChainConfig.Image]
+	image, exists := a.Chains[req.ImageConfig.Image]
 	if !exists {
-		return messages.BuildDockerImageResponse{}, fmt.Errorf("image config not found for %s", req.ChainConfig.Image)
+		return messages.BuildDockerImageResponse{}, fmt.Errorf("image config not found for %s", req.ImageConfig.Image)
 	}
 
 	dockerfileContent, err := os.ReadFile(image.Dockerfile)
@@ -190,7 +190,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	// CometBFT with the specified commit SHA
 	if req.Repo == "cometbft" {
 		buildArguments["CHAIN_SRC"] = "https://github.com/cosmos/cosmos-sdk"
-		buildArguments["CHAIN_TAG"] = req.ChainConfig.Version
+		buildArguments["CHAIN_TAG"] = req.ImageConfig.Version
 		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
 	} else {
 		buildArguments["CHAIN_TAG"] = req.SHA
