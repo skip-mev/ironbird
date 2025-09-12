@@ -13,6 +13,7 @@ export interface ChainConfig {
   Name: string;
   Image: string;
   Version?: string;
+  CustomVersion?: string; // For custom cosmos-sdk SHA when Version is 'custom'
   NumOfNodes?: number;
   NumOfValidators?: number;
   GenesisModifications: GenesisModification[];

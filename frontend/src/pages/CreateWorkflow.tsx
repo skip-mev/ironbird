@@ -238,7 +238,10 @@ const CreateWorkflow = () => {
 
     if (data.Repo === 'cometbft') {
       requiredFields.push({ name: 'Chain Image', value: data.ChainConfig.Image });
-      requiredFields.push({ name: 'Simapp Version', value: data.ChainConfig.Version || '' });
+      const versionValue = data.ChainConfig.Version === 'custom' 
+        ? data.ChainConfig.CustomVersion || ''
+        : data.ChainConfig.Version || '';
+      requiredFields.push({ name: 'Simapp Version', value: versionValue });
     }
 
     if (!data.LongRunningTestnet) {
@@ -591,7 +594,9 @@ const CreateWorkflow = () => {
       ChainConfig: {
         Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
-        Version: formData.ChainConfig.Version,
+        Version: formData.ChainConfig.Version === 'custom' 
+          ? formData.ChainConfig.CustomVersion 
+          : formData.ChainConfig.Version,
         NumOfNodes: formData.ChainConfig.NumOfNodes,
         NumOfValidators: formData.ChainConfig.NumOfValidators,
         GenesisModifications: formData.ChainConfig.GenesisModifications || [],
@@ -810,6 +815,22 @@ const CreateWorkflow = () => {
                     Repo: newRepo,
                     IsEvmChain: newRepo === 'evm'
                   };
+
+                  // Reset simapp version when changing repository
+                  if (newRepo === 'cometbft') {
+                    updatedFormData.ChainConfig = {
+                      ...updatedFormData.ChainConfig,
+                      Version: '', // Default to empty for CometBFT
+                      Image: 'simapp'
+                    };
+                  } else {
+                    // Clear version and image for non-cometbft repos
+                    updatedFormData.ChainConfig = {
+                      ...updatedFormData.ChainConfig,
+                      Version: undefined,
+                      Image: ''
+                    };
+                  }
                                     
                   // Update LoadTestSpec kind if it exists based on new repository
                   if (updatedFormData.LoadTestSpec) {
@@ -911,14 +932,15 @@ const CreateWorkflow = () => {
               <FormControl isRequired>
                 <FormLabel color="text">Simapp Version</FormLabel>
                   <Select
-                    value={formData.ChainConfig.Version || 'custom'}
+                    value={formData.ChainConfig.Version || ''}
                     onChange={(e) => {
+                      const selectedValue = e.target.value;
                       setFormData({
                         ...formData,
                         ChainConfig: {
                           ...formData.ChainConfig,
                           Image: 'simapp',
-                          Version: e.target.value === 'custom' ? '' : e.target.value,
+                          Version: selectedValue,
                         },
                       });
                     }}
@@ -934,17 +956,17 @@ const CreateWorkflow = () => {
                 </Select>
               </FormControl>
 
-              {(formData.ChainConfig.Version === '' || formData.ChainConfig.Version === 'custom') && (
+              {formData.ChainConfig.Version === 'custom' && (
                 <FormControl isRequired>
                   <FormLabel color="text">Custom Simapp Version/SHA</FormLabel>
                   <Input
-                    value={formData.ChainConfig.Version === 'custom' ? '' : (formData.ChainConfig.Version || '')}
+                    value={formData.ChainConfig.CustomVersion || ''}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         ChainConfig: {
                           ...formData.ChainConfig,
-                          Version: e.target.value,
+                          CustomVersion: e.target.value,
                         },
                       })
                     }
