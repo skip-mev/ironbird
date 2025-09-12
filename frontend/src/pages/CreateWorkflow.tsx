@@ -779,6 +779,18 @@ const CreateWorkflow = () => {
   };
 
   // --- JSON Mode helpers ---
+  const parseJsonConfig = (jsonStr: string | undefined | null): any => {
+    if (!jsonStr || typeof jsonStr !== 'string') {
+      return undefined;
+    }
+    try {
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      console.warn('Failed to parse custom config JSON:', jsonStr, e);
+      return undefined;
+    }
+  };
+
   const parseWorkflowJson = (text: string): TestnetWorkflowRequest => {
     const raw = JSON.parse(text);
     
@@ -817,9 +829,9 @@ const CreateWorkflow = () => {
           numOfValidators: rc.num_of_validators ?? rc.numOfValidators ?? 0
         })),
         GenesisModifications: raw.chain_config?.genesis_modifications || raw.ChainConfig?.GenesisModifications || [],
-        AppConfig: raw.chain_config?.custom_app_config || raw.ChainConfig?.AppConfig,
-        ConsensusConfig: raw.chain_config?.custom_consensus_config || raw.ChainConfig?.ConsensusConfig,
-        ClientConfig: raw.chain_config?.custom_client_config || raw.ChainConfig?.ClientConfig,
+        AppConfig: parseJsonConfig(raw.chain_config?.custom_app_config) || raw.ChainConfig?.AppConfig,
+        ConsensusConfig: parseJsonConfig(raw.chain_config?.custom_consensus_config) || raw.ChainConfig?.ConsensusConfig,
+        ClientConfig: parseJsonConfig(raw.chain_config?.custom_client_config) || raw.ChainConfig?.ClientConfig,
         SetSeedNode: raw.chain_config?.set_seed_node ?? raw.ChainConfig?.SetSeedNode ?? false,
         SetPersistentPeers: raw.chain_config?.set_persistent_peers ?? raw.ChainConfig?.SetPersistentPeers ?? false,
       },
