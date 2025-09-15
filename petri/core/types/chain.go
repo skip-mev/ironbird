@@ -147,7 +147,7 @@ type ChainConfig struct {
 
 func (c ChainConfig) GetGenesisBalance() *big.Int {
 	if c.GenesisBalance == nil {
-		return big.NewInt(10_000_000)
+		return big.NewInt(100_000_000)
 	}
 	return c.GenesisBalance
 }
