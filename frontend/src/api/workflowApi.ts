@@ -254,7 +254,7 @@ export const workflowApi = {
     return convertFromGrpcWorkflowResponse(response);
   },
 
-  listWorkflows: async (): Promise<{Workflows: Array<{WorkflowID: string; Status: string; StartTime: string; Repo?: string; SHA?: string; Provider?: string; TemplateID?: string; TemplateName?: string; RunName?: string}>; Count: number}> => {
+  listWorkflows: async (): Promise<{Workflows: Array<{WorkflowID: string; Status: string; StartTime: string; Repo?: string; SHA?: string; Provider?: string; TemplateID?: string; RunName?: string}>; Count: number}> => {
     const response = await grpcWorkflowApi.listWorkflows();
     return {
       Workflows: (response.workflows || []).map((workflow: any) => ({
@@ -265,7 +265,6 @@ export const workflowApi = {
         SHA: workflow.sha,
         Provider: workflow.provider || '',
         TemplateID: workflow.templateId || '',
-        TemplateName: workflow.templateName || '',
         RunName: workflow.runName || ''
       })),
       Count: response.count || 0

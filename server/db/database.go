@@ -145,12 +145,11 @@ func (s *DatabaseService) UpdateWorkflowLoadBalancers(workflowID string, loadbal
 	return nil
 }
 
-func (s *DatabaseService) CreateWorkflowTemplate(templateID, name, description string, config messages.TestnetWorkflowRequest, createdBy string) error {
+func (s *DatabaseService) CreateWorkflowTemplate(templateID, description string, config messages.TestnetWorkflowRequest, createdBy string) error {
 	s.Logger.Info("Creating workflow template", zap.String("template_id", templateID))
 
 	template := &WorkflowTemplate{
-		TemplateID:  templateID,
-		Name:        name,
+		ID:          templateID,
 		Description: description,
 		Config:      config,
 		CreatedBy:   createdBy,

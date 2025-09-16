@@ -180,10 +180,10 @@ const WorkflowList = () => {
                       </Text>
                     </Td>
                     <Td>
-                      {workflow.TemplateName ? (
+                      {workflow.TemplateID ? (
                         <Box>
                           <Text fontWeight="medium" fontSize="sm">
-                            {workflow.TemplateName}
+                            {workflow.TemplateID}
                           </Text>
                           {workflow.RunName && (
                             <Text fontSize="xs" color="textSecondary">

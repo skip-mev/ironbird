@@ -131,7 +131,7 @@ const CreateWorkflow = () => {
   
   // Save as template modal state
   const { isOpen: isTemplateModalOpen, onOpen: onTemplateModalOpen, onClose: onTemplateModalClose } = useDisclosure();
-  const [templateName, setTemplateName] = useState('');
+  const [templateId, setTemplateId] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
 
   // Default JSON content from hack/create-workflow.json
@@ -746,7 +746,7 @@ const CreateWorkflow = () => {
       queryClient.invalidateQueries({ queryKey: ['templates'] });
       onTemplateModalClose();
       // Reset template form
-      setTemplateName('');
+      setTemplateId('');
       setTemplateDescription('');
     },
     onError: (error: any) => {
@@ -818,9 +818,9 @@ const CreateWorkflow = () => {
   };
 
   const handleConfirmSaveTemplate = () => {
-    if (!templateName.trim()) {
+    if (!templateId.trim()) {
       toast({
-        title: 'Template name is required',
+        title: 'Template ID is required',
         status: 'error',
         duration: 3000,
       });
@@ -847,7 +847,7 @@ const CreateWorkflow = () => {
     console.log("Saving template with config:", templateConfig);
 
     createTemplateMutation.mutate({
-      name: templateName,
+      templateId: templateId,
       description: templateDescription,
       templateConfig,
     });
@@ -1816,11 +1816,11 @@ const CreateWorkflow = () => {
           <ModalBody>
             <VStack spacing={4} align="stretch">
               <FormControl isRequired>
-                <FormLabel>Template Name</FormLabel>
+                <FormLabel>Template ID</FormLabel>
                 <Input
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="e.g., Skip Protocol Testnet"
+                  value={templateId}
+                  onChange={(e) => setTemplateId(e.target.value)}
+                  placeholder="e.g., skip-protocol-testnet"
                 />
               </FormControl>
 

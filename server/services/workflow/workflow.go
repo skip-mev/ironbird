@@ -343,23 +343,15 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		status := db.WorkflowStatusToString(workflow.Status)
 		startTime := workflow.CreatedAt.Format("2006-01-02 15:04:05")
 
-		templateName := ""
-		if workflow.TemplateID != "" {
-			if template, err := s.db.GetWorkflowTemplate(workflow.TemplateID); err == nil {
-				templateName = template.Name
-			}
-		}
-
 		response.Workflows = append(response.Workflows, &pb.WorkflowSummary{
-			WorkflowId:   workflow.WorkflowID,
-			Status:       status,
-			StartTime:    startTime,
-			Repo:         workflow.Config.Repo,
-			Sha:          workflow.Config.SHA,
-			Provider:     workflow.Provider,
-			TemplateId:   workflow.TemplateID,
-			TemplateName: templateName,
-			RunName:      workflow.RunName,
+			WorkflowId: workflow.WorkflowID,
+			Status:     status,
+			StartTime:  startTime,
+			Repo:       workflow.Config.Repo,
+			Sha:        workflow.Config.SHA,
+			Provider:   workflow.Provider,
+			TemplateId: workflow.TemplateID,
+			RunName:    workflow.RunName,
 		})
 	}
 
@@ -582,13 +574,10 @@ func encodeLoadTestSpec(s catalysttypes.LoadTestSpec) (string, error) {
 func (s *Service) CreateWorkflowTemplate(ctx context.Context, req *pb.CreateWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
 	s.logger.Info("CreateWorkflowTemplate request received", zap.Any("request", req))
 
-	templateID := fmt.Sprintf("template-%d", time.Now().Unix())
-
 	config := s.convertProtoToWorkflowRequest(req.TemplateConfig)
 
 	err := s.db.CreateWorkflowTemplate(&db.WorkflowTemplate{
-		TemplateID:  templateID,
-		Name:        req.Name,
+		ID:          req.Id,
 		Description: req.Description,
 		Config:      config,
 	})
@@ -598,15 +587,14 @@ func (s *Service) CreateWorkflowTemplate(ctx context.Context, req *pb.CreateWork
 	}
 
 	return &pb.WorkflowTemplateResponse{
-		TemplateId: templateID,
-		Message:    "Template created successfully",
+		Id: req.Id,
 	}, nil
 }
 
 func (s *Service) GetWorkflowTemplate(ctx context.Context, req *pb.GetWorkflowTemplateRequest) (*pb.WorkflowTemplate, error) {
-	s.logger.Info("GetWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+	s.logger.Info("GetWorkflowTemplate request received", zap.String("template_id", req.Id))
 
-	template, err := s.db.GetWorkflowTemplate(req.TemplateId)
+	template, err := s.db.GetWorkflowTemplate(req.Id)
 	if err != nil {
 		s.logger.Error("Failed to get workflow template", zap.Error(err))
 		return nil, fmt.Errorf("failed to get workflow template: %w", err)
@@ -632,13 +620,15 @@ func (s *Service) ListWorkflowTemplates(ctx context.Context, req *pb.ListWorkflo
 
 	protoTemplates := make([]*pb.WorkflowTemplateSummary, len(templates))
 	for i, template := range templates {
-		runCount, _ := s.getTemplateRunCount(template.TemplateID) // Ignore error for now
+		runCount, err := s.getTemplateRunCount(template.ID)
+		if err != nil {
+			s.logger.Error("Failed to get template run count", zap.Error(err))
+			return nil, fmt.Errorf("failed to get template run count: %w", err)
+		}
 		protoTemplates[i] = &pb.WorkflowTemplateSummary{
-			TemplateId:  template.TemplateID,
-			Name:        template.Name,
+			Id:          template.ID,
 			Description: template.Description,
 			CreatedAt:   template.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:   template.UpdatedAt.Format(time.RFC3339),
 			RunCount:    int32(runCount),
 		}
 	}
@@ -650,47 +640,44 @@ func (s *Service) ListWorkflowTemplates(ctx context.Context, req *pb.ListWorkflo
 }
 
 func (s *Service) UpdateWorkflowTemplate(ctx context.Context, req *pb.UpdateWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
-	s.logger.Info("UpdateWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+	s.logger.Info("UpdateWorkflowTemplate request received", zap.String("template_id", req.Id))
 
 	config := s.convertProtoToWorkflowRequest(req.TemplateConfig)
 
 	template := &db.WorkflowTemplate{
-		Name:        req.Name,
 		Description: req.Description,
 		Config:      config,
 	}
 
-	err := s.db.UpdateWorkflowTemplate(req.TemplateId, template)
+	err := s.db.UpdateWorkflowTemplate(req.Id, template)
 	if err != nil {
 		s.logger.Error("Failed to update workflow template", zap.Error(err))
 		return nil, fmt.Errorf("failed to update workflow template: %w", err)
 	}
 
 	return &pb.WorkflowTemplateResponse{
-		TemplateId: req.TemplateId,
-		Message:    "Template updated successfully",
+		Id: req.Id,
 	}, nil
 }
 
 func (s *Service) DeleteWorkflowTemplate(ctx context.Context, req *pb.DeleteWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
-	s.logger.Info("DeleteWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+	s.logger.Info("DeleteWorkflowTemplate request received", zap.String("template_id", req.Id))
 
-	err := s.db.DeleteWorkflowTemplate(req.TemplateId)
+	err := s.db.DeleteWorkflowTemplate(req.Id)
 	if err != nil {
 		s.logger.Error("Failed to delete workflow template", zap.Error(err))
 		return nil, fmt.Errorf("failed to delete workflow template: %w", err)
 	}
 
 	return &pb.WorkflowTemplateResponse{
-		TemplateId: req.TemplateId,
-		Message:    "Template deleted successfully",
+		Id: req.Id,
 	}, nil
 }
 
 func (s *Service) ExecuteWorkflowTemplate(ctx context.Context, req *pb.ExecuteWorkflowTemplateRequest) (*pb.WorkflowResponse, error) {
 	s.logger.Info("ExecuteWorkflowTemplate request received", zap.Any("request", req))
 
-	template, err := s.db.GetWorkflowTemplate(req.TemplateId)
+	template, err := s.db.GetWorkflowTemplate(req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workflow template: %w", err)
 	}
@@ -706,7 +693,7 @@ func (s *Service) ExecuteWorkflowTemplate(ctx context.Context, req *pb.ExecuteWo
 	}
 
 	update := db.WorkflowUpdate{
-		TemplateID: &req.TemplateId,
+		TemplateID: &req.Id,
 		RunName:    &req.RunName,
 	}
 	err = s.db.UpdateWorkflow(workflowResp.WorkflowId, update)
@@ -718,14 +705,14 @@ func (s *Service) ExecuteWorkflowTemplate(ctx context.Context, req *pb.ExecuteWo
 }
 
 func (s *Service) GetTemplateRunHistory(ctx context.Context, req *pb.GetTemplateRunHistoryRequest) (*pb.TemplateRunHistoryResponse, error) {
-	s.logger.Info("GetTemplateRunHistory request received", zap.String("template_id", req.TemplateId))
+	s.logger.Info("GetTemplateRunHistory request received", zap.String("template_id", req.Id))
 
 	limit := int(req.Limit)
 	if limit <= 0 {
 		limit = 50
 	}
 
-	workflows, err := s.db.ListTemplateWorkflows(req.TemplateId, limit, int(req.Offset))
+	workflows, err := s.db.ListTemplateWorkflows(req.Id, limit, int(req.Offset))
 	if err != nil {
 		s.logger.Error("Failed to list template workflows", zap.Error(err))
 		return nil, fmt.Errorf("failed to list template workflows: %w", err)
@@ -890,12 +877,10 @@ func (s *Service) convertWorkflowRequestToProto(req messages.TestnetWorkflowRequ
 
 func (s *Service) convertTemplateToProto(template *db.WorkflowTemplate) *pb.WorkflowTemplate {
 	protoTemplate := &pb.WorkflowTemplate{
-		TemplateId:     template.TemplateID,
-		Name:           template.Name,
+		Id:             template.ID,
 		Description:    template.Description,
 		TemplateConfig: s.convertWorkflowRequestToProto(template.Config),
 		CreatedAt:      template.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:      template.UpdatedAt.Format(time.RFC3339),
 		CreatedBy:      template.CreatedBy,
 	}
 	return protoTemplate

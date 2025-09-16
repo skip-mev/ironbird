@@ -963,8 +963,7 @@ type WorkflowSummary struct {
 	Sha           string                 `protobuf:"bytes,5,opt,name=sha,proto3" json:"sha,omitempty"`
 	Provider      string                 `protobuf:"bytes,6,opt,name=provider,proto3" json:"provider,omitempty"`
 	TemplateId    string                 `protobuf:"bytes,7,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	TemplateName  string                 `protobuf:"bytes,8,opt,name=template_name,json=templateName,proto3" json:"template_name,omitempty"`
-	RunName       string                 `protobuf:"bytes,9,opt,name=run_name,json=runName,proto3" json:"run_name,omitempty"`
+	RunName       string                 `protobuf:"bytes,8,opt,name=run_name,json=runName,proto3" json:"run_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1044,13 +1043,6 @@ func (x *WorkflowSummary) GetProvider() string {
 func (x *WorkflowSummary) GetTemplateId() string {
 	if x != nil {
 		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *WorkflowSummary) GetTemplateName() string {
-	if x != nil {
-		return x.TemplateName
 	}
 	return ""
 }
@@ -1208,13 +1200,11 @@ func (x *WorkflowListResponse) GetCount() int32 {
 
 type WorkflowTemplate struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId     string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	TemplateConfig *CreateWorkflowRequest `protobuf:"bytes,4,opt,name=template_config,json=templateConfig,proto3" json:"template_config,omitempty"`
-	CreatedAt      string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt      string                 `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	CreatedBy      string                 `protobuf:"bytes,7,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	TemplateConfig *CreateWorkflowRequest `protobuf:"bytes,3,opt,name=template_config,json=templateConfig,proto3" json:"template_config,omitempty"`
+	CreatedAt      string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CreatedBy      string                 `protobuf:"bytes,5,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1249,16 +1239,9 @@ func (*WorkflowTemplate) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{16}
 }
 
-func (x *WorkflowTemplate) GetTemplateId() string {
+func (x *WorkflowTemplate) GetId() string {
 	if x != nil {
-		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *WorkflowTemplate) GetName() string {
-	if x != nil {
-		return x.Name
+		return x.Id
 	}
 	return ""
 }
@@ -1284,13 +1267,6 @@ func (x *WorkflowTemplate) GetCreatedAt() string {
 	return ""
 }
 
-func (x *WorkflowTemplate) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return ""
-}
-
 func (x *WorkflowTemplate) GetCreatedBy() string {
 	if x != nil {
 		return x.CreatedBy
@@ -1300,7 +1276,7 @@ func (x *WorkflowTemplate) GetCreatedBy() string {
 
 type CreateWorkflowTemplateRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
 	TemplateConfig *CreateWorkflowRequest `protobuf:"bytes,3,opt,name=template_config,json=templateConfig,proto3" json:"template_config,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -1337,9 +1313,9 @@ func (*CreateWorkflowTemplateRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{17}
 }
 
-func (x *CreateWorkflowTemplateRequest) GetName() string {
+func (x *CreateWorkflowTemplateRequest) GetId() string {
 	if x != nil {
-		return x.Name
+		return x.Id
 	}
 	return ""
 }
@@ -1360,7 +1336,7 @@ func (x *CreateWorkflowTemplateRequest) GetTemplateConfig() *CreateWorkflowReque
 
 type GetWorkflowTemplateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1395,9 +1371,9 @@ func (*GetWorkflowTemplateRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetWorkflowTemplateRequest) GetTemplateId() string {
+func (x *GetWorkflowTemplateRequest) GetId() string {
 	if x != nil {
-		return x.TemplateId
+		return x.Id
 	}
 	return ""
 }
@@ -1456,10 +1432,9 @@ func (x *ListWorkflowTemplatesRequest) GetOffset() int32 {
 
 type UpdateWorkflowTemplateRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId     string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description    string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	TemplateConfig *CreateWorkflowRequest `protobuf:"bytes,4,opt,name=template_config,json=templateConfig,proto3" json:"template_config,omitempty"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description    string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	TemplateConfig *CreateWorkflowRequest `protobuf:"bytes,3,opt,name=template_config,json=templateConfig,proto3" json:"template_config,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1494,16 +1469,9 @@ func (*UpdateWorkflowTemplateRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{20}
 }
 
-func (x *UpdateWorkflowTemplateRequest) GetTemplateId() string {
+func (x *UpdateWorkflowTemplateRequest) GetId() string {
 	if x != nil {
-		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *UpdateWorkflowTemplateRequest) GetName() string {
-	if x != nil {
-		return x.Name
+		return x.Id
 	}
 	return ""
 }
@@ -1524,7 +1492,7 @@ func (x *UpdateWorkflowTemplateRequest) GetTemplateConfig() *CreateWorkflowReque
 
 type DeleteWorkflowTemplateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1559,17 +1527,16 @@ func (*DeleteWorkflowTemplateRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{21}
 }
 
-func (x *DeleteWorkflowTemplateRequest) GetTemplateId() string {
+func (x *DeleteWorkflowTemplateRequest) GetId() string {
 	if x != nil {
-		return x.TemplateId
+		return x.Id
 	}
 	return ""
 }
 
 type WorkflowTemplateResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1604,28 +1571,19 @@ func (*WorkflowTemplateResponse) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{22}
 }
 
-func (x *WorkflowTemplateResponse) GetTemplateId() string {
+func (x *WorkflowTemplateResponse) GetId() string {
 	if x != nil {
-		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *WorkflowTemplateResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
+		return x.Id
 	}
 	return ""
 }
 
 type WorkflowTemplateSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	RunCount      int32                  `protobuf:"varint,6,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	RunCount      int32                  `protobuf:"varint,4,opt,name=run_count,json=runCount,proto3" json:"run_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1660,16 +1618,9 @@ func (*WorkflowTemplateSummary) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{23}
 }
 
-func (x *WorkflowTemplateSummary) GetTemplateId() string {
+func (x *WorkflowTemplateSummary) GetId() string {
 	if x != nil {
-		return x.TemplateId
-	}
-	return ""
-}
-
-func (x *WorkflowTemplateSummary) GetName() string {
-	if x != nil {
-		return x.Name
+		return x.Id
 	}
 	return ""
 }
@@ -1684,13 +1635,6 @@ func (x *WorkflowTemplateSummary) GetDescription() string {
 func (x *WorkflowTemplateSummary) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
-	}
-	return ""
-}
-
-func (x *WorkflowTemplateSummary) GetUpdatedAt() string {
-	if x != nil {
-		return x.UpdatedAt
 	}
 	return ""
 }
@@ -1756,9 +1700,9 @@ func (x *WorkflowTemplateListResponse) GetCount() int32 {
 
 type ExecuteWorkflowTemplateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Sha           string                 `protobuf:"bytes,2,opt,name=sha,proto3" json:"sha,omitempty"`                        // The SHA to use for this execution
-	RunName       string                 `protobuf:"bytes,3,opt,name=run_name,json=runName,proto3" json:"run_name,omitempty"` // Optional custom name for this run
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Sha           string                 `protobuf:"bytes,2,opt,name=sha,proto3" json:"sha,omitempty"`
+	RunName       string                 `protobuf:"bytes,3,opt,name=run_name,json=runName,proto3" json:"run_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1793,9 +1737,9 @@ func (*ExecuteWorkflowTemplateRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{25}
 }
 
-func (x *ExecuteWorkflowTemplateRequest) GetTemplateId() string {
+func (x *ExecuteWorkflowTemplateRequest) GetId() string {
 	if x != nil {
-		return x.TemplateId
+		return x.Id
 	}
 	return ""
 }
@@ -1814,18 +1758,17 @@ func (x *ExecuteWorkflowTemplateRequest) GetRunName() string {
 	return ""
 }
 
-// Run history for templates
 type TemplateRun struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	RunId           string                 `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	WorkflowId      string                 `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"` // The actual workflow ID that was created
+	WorkflowId      string                 `protobuf:"bytes,2,opt,name=workflow_id,json=workflowId,proto3" json:"workflow_id,omitempty"`
 	TemplateId      string                 `protobuf:"bytes,3,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
 	Sha             string                 `protobuf:"bytes,4,opt,name=sha,proto3" json:"sha,omitempty"`
 	RunName         string                 `protobuf:"bytes,5,opt,name=run_name,json=runName,proto3" json:"run_name,omitempty"`
 	Status          string                 `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	StartedAt       string                 `protobuf:"bytes,7,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
 	CompletedAt     string                 `protobuf:"bytes,8,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	MonitoringLinks map[string]string      `protobuf:"bytes,9,rep,name=monitoring_links,json=monitoringLinks,proto3" json:"monitoring_links,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Direct links to metrics/profiling
+	MonitoringLinks map[string]string      `protobuf:"bytes,9,rep,name=monitoring_links,json=monitoringLinks,proto3" json:"monitoring_links,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Provider        string                 `protobuf:"bytes,10,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -1933,7 +1876,7 @@ func (x *TemplateRun) GetProvider() string {
 
 type GetTemplateRunHistoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	TemplateId    string                 `protobuf:"bytes,1,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1970,9 +1913,9 @@ func (*GetTemplateRunHistoryRequest) Descriptor() ([]byte, []int) {
 	return file_server_proto_ironbird_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *GetTemplateRunHistoryRequest) GetTemplateId() string {
+func (x *GetTemplateRunHistoryRequest) GetId() string {
 	if x != nil {
-		return x.TemplateId
+		return x.Id
 	}
 	return ""
 }
@@ -2142,7 +2085,7 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\bend_time\x18\x15 \x01(\tR\aendTime\x1a=\n" +
 	"\x0fMonitoringEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8c\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe7\x01\n" +
 	"\x0fWorkflowSummary\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12\x16\n" +
@@ -2153,9 +2096,8 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x03sha\x18\x05 \x01(\tR\x03sha\x12\x1a\n" +
 	"\bprovider\x18\x06 \x01(\tR\bprovider\x12\x1f\n" +
 	"\vtemplate_id\x18\a \x01(\tR\n" +
-	"templateId\x12#\n" +
-	"\rtemplate_name\x18\b \x01(\tR\ftemplateName\x12\x19\n" +
-	"\brun_name\x18\t \x01(\tR\arunName\"\xc2\x03\n" +
+	"templateId\x12\x19\n" +
+	"\brun_name\x18\b \x01(\tR\arunName\"\xc2\x03\n" +
 	"\x19UpdateWorkflowDataRequest\x12\x1f\n" +
 	"\vworkflow_id\x18\x01 \x01(\tR\n" +
 	"workflowId\x12:\n" +
@@ -2174,58 +2116,43 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"j\n" +
 	"\x14WorkflowListResponse\x12<\n" +
 	"\tworkflows\x18\x01 \x03(\v2\x1e.skip.ironbird.WorkflowSummaryR\tworkflows\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count\"\x95\x02\n" +
-	"\x10WorkflowTemplate\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12M\n" +
-	"\x0ftemplate_config\x18\x04 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\x12\x1d\n" +
-	"\n" +
-	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
-	"\n" +
-	"updated_at\x18\x06 \x01(\tR\tupdatedAt\x12\x1d\n" +
-	"\n" +
-	"created_by\x18\a \x01(\tR\tcreatedBy\"\xa4\x01\n" +
-	"\x1dCreateWorkflowTemplateRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"\xd1\x01\n" +
+	"\x10WorkflowTemplate\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12M\n" +
-	"\x0ftemplate_config\x18\x03 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\"=\n" +
-	"\x1aGetWorkflowTemplateRequest\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\"L\n" +
-	"\x1cListWorkflowTemplatesRequest\x12\x14\n" +
-	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x02 \x01(\x05R\x06offset\"\xc5\x01\n" +
-	"\x1dUpdateWorkflowTemplateRequest\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12M\n" +
-	"\x0ftemplate_config\x18\x04 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\"@\n" +
-	"\x1dDeleteWorkflowTemplateRequest\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\"U\n" +
-	"\x18WorkflowTemplateResponse\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xcb\x01\n" +
-	"\x17WorkflowTemplateSummary\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1d\n" +
+	"\x0ftemplate_config\x18\x03 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\tR\tupdatedAt\x12\x1b\n" +
-	"\trun_count\x18\x06 \x01(\x05R\brunCount\"z\n" +
+	"created_by\x18\x05 \x01(\tR\tcreatedBy\"\xa0\x01\n" +
+	"\x1dCreateWorkflowTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12M\n" +
+	"\x0ftemplate_config\x18\x03 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\",\n" +
+	"\x1aGetWorkflowTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"L\n" +
+	"\x1cListWorkflowTemplatesRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"\xa0\x01\n" +
+	"\x1dUpdateWorkflowTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12M\n" +
+	"\x0ftemplate_config\x18\x03 \x01(\v2$.skip.ironbird.CreateWorkflowRequestR\x0etemplateConfig\"/\n" +
+	"\x1dDeleteWorkflowTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"*\n" +
+	"\x18WorkflowTemplateResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x87\x01\n" +
+	"\x17WorkflowTemplateSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12\x1b\n" +
+	"\trun_count\x18\x04 \x01(\x05R\brunCount\"z\n" +
 	"\x1cWorkflowTemplateListResponse\x12D\n" +
 	"\ttemplates\x18\x01 \x03(\v2&.skip.ironbird.WorkflowTemplateSummaryR\ttemplates\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x05R\x05count\"n\n" +
-	"\x1eExecuteWorkflowTemplateRequest\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x10\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\"]\n" +
+	"\x1eExecuteWorkflowTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x19\n" +
 	"\brun_name\x18\x03 \x01(\tR\arunName\"\xa9\x03\n" +
 	"\vTemplateRun\x12\x15\n" +
@@ -2245,10 +2172,9 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	" \x01(\tR\bprovider\x1aB\n" +
 	"\x14MonitoringLinksEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"m\n" +
-	"\x1cGetTemplateRunHistoryRequest\x12\x1f\n" +
-	"\vtemplate_id\x18\x01 \x01(\tR\n" +
-	"templateId\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\\\n" +
+	"\x1cGetTemplateRunHistoryRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\"b\n" +
 	"\x1aTemplateRunHistoryResponse\x12.\n" +

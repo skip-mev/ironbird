@@ -126,7 +126,7 @@ const TemplateRunHistory = () => {
             <Heading size="lg" color="text">Template Run History</Heading>
             {templateData && (
               <Text color="textSecondary">
-                {templateData.name}
+                {templateData.templateId}
               </Text>
             )}
           </VStack>

@@ -454,16 +454,14 @@ func (s *SQLiteDB) CreateWorkflowTemplate(template *WorkflowTemplate) error {
 	}
 
 	query := `
-		INSERT INTO workflow_templates (template_id, name, description, config, created_at, updated_at, created_by)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`
+		INSERT INTO workflow_templates (template_id, description, config, created_at, created_by)
+		VALUES (?, ?, ?, ?, ?)`
 
 	now := time.Now()
 	_, err = s.db.Exec(query,
-		template.TemplateID,
-		template.Name,
+		template.ID,
 		template.Description,
 		string(configJSON),
-		now,
 		now,
 		template.CreatedBy,
 	)
@@ -479,7 +477,7 @@ func (s *SQLiteDB) GetWorkflowTemplate(templateID string) (*WorkflowTemplate, er
 	defer cancel()
 
 	query := `
-		SELECT id, template_id, name, description, config, created_at, updated_at, created_by
+		SELECT template_id, description, config, created_at, created_by
 		FROM workflow_templates
 		WHERE template_id = ?`
 
@@ -488,12 +486,9 @@ func (s *SQLiteDB) GetWorkflowTemplate(templateID string) (*WorkflowTemplate, er
 
 	err := s.db.QueryRowContext(ctx, query, templateID).Scan(
 		&template.ID,
-		&template.TemplateID,
-		&template.Name,
 		&template.Description,
 		&configJSON,
 		&template.CreatedAt,
-		&template.UpdatedAt,
 		&template.CreatedBy,
 	)
 	if err != nil {
@@ -518,14 +513,12 @@ func (s *SQLiteDB) UpdateWorkflowTemplate(templateID string, template *WorkflowT
 
 	query := `
 		UPDATE workflow_templates 
-		SET name = ?, description = ?, config = ?, updated_at = ?
+		SET description = ?, config = ?
 		WHERE template_id = ?`
 
 	result, err := s.db.Exec(query,
-		template.Name,
 		template.Description,
 		string(configJSON),
-		time.Now(),
 		templateID,
 	)
 	if err != nil {
@@ -549,7 +542,7 @@ func (s *SQLiteDB) ListWorkflowTemplates(limit, offset int) (templates []Workflo
 	defer cancel()
 
 	query := `
-		SELECT id, template_id, name, description, config, created_at, updated_at, created_by
+		SELECT template_id, description, config, created_at, created_by
 		FROM workflow_templates
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -570,12 +563,9 @@ func (s *SQLiteDB) ListWorkflowTemplates(limit, offset int) (templates []Workflo
 
 		err := rows.Scan(
 			&template.ID,
-			&template.TemplateID,
-			&template.Name,
 			&template.Description,
 			&configJSON,
 			&template.CreatedAt,
-			&template.UpdatedAt,
 			&template.CreatedBy,
 		)
 		if err != nil {
@@ -583,8 +573,8 @@ func (s *SQLiteDB) ListWorkflowTemplates(limit, offset int) (templates []Workflo
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &template.Config); err != nil {
-			s.logger.Error("failed to unmarshal config for template", zap.String("template_id", template.TemplateID), zap.Error(err))
-			return nil, fmt.Errorf("failed to unmarshal config for template %s: %w", template.TemplateID, err)
+			s.logger.Error("failed to unmarshal config for template", zap.String("template_id", template.ID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal config for template %s: %w", template.ID, err)
 		}
 
 		templates = append(templates, template)

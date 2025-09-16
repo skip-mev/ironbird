@@ -799,12 +799,7 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
   templateId = "";
 
   /**
-   * @generated from field: string template_name = 8;
-   */
-  templateName = "";
-
-  /**
-   * @generated from field: string run_name = 9;
+   * @generated from field: string run_name = 8;
    */
   runName = "";
 
@@ -823,8 +818,7 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
     { no: 5, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 8, name: "template_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 9, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowSummary {
@@ -965,37 +959,27 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
  */
 export class WorkflowTemplate extends Message<WorkflowTemplate> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   /**
-   * @generated from field: string name = 2;
-   */
-  name = "";
-
-  /**
-   * @generated from field: string description = 3;
+   * @generated from field: string description = 2;
    */
   description = "";
 
   /**
-   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 4;
+   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 3;
    */
   templateConfig?: CreateWorkflowRequest;
 
   /**
-   * @generated from field: string created_at = 5;
+   * @generated from field: string created_at = 4;
    */
   createdAt = "";
 
   /**
-   * @generated from field: string updated_at = 6;
-   */
-  updatedAt = "";
-
-  /**
-   * @generated from field: string created_by = 7;
+   * @generated from field: string created_by = 5;
    */
   createdBy = "";
 
@@ -1007,13 +991,11 @@ export class WorkflowTemplate extends Message<WorkflowTemplate> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.WorkflowTemplate";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "template_config", kind: "message", T: CreateWorkflowRequest },
-    { no: 5, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 7, name: "created_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "template_config", kind: "message", T: CreateWorkflowRequest },
+    { no: 4, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "created_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplate {
@@ -1038,9 +1020,9 @@ export class WorkflowTemplate extends Message<WorkflowTemplate> {
  */
 export class CreateWorkflowTemplateRequest extends Message<CreateWorkflowTemplateRequest> {
   /**
-   * @generated from field: string name = 1;
+   * @generated from field: string id = 1;
    */
-  name = "";
+  id = "";
 
   /**
    * @generated from field: string description = 2;
@@ -1060,7 +1042,7 @@ export class CreateWorkflowTemplateRequest extends Message<CreateWorkflowTemplat
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.CreateWorkflowTemplateRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "template_config", kind: "message", T: CreateWorkflowRequest },
   ]);
@@ -1087,9 +1069,9 @@ export class CreateWorkflowTemplateRequest extends Message<CreateWorkflowTemplat
  */
 export class GetWorkflowTemplateRequest extends Message<GetWorkflowTemplateRequest> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   constructor(data?: PartialMessage<GetWorkflowTemplateRequest>) {
     super();
@@ -1099,7 +1081,7 @@ export class GetWorkflowTemplateRequest extends Message<GetWorkflowTemplateReque
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.GetWorkflowTemplateRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetWorkflowTemplateRequest {
@@ -1167,22 +1149,17 @@ export class ListWorkflowTemplatesRequest extends Message<ListWorkflowTemplatesR
  */
 export class UpdateWorkflowTemplateRequest extends Message<UpdateWorkflowTemplateRequest> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   /**
-   * @generated from field: string name = 2;
-   */
-  name = "";
-
-  /**
-   * @generated from field: string description = 3;
+   * @generated from field: string description = 2;
    */
   description = "";
 
   /**
-   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 4;
+   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 3;
    */
   templateConfig?: CreateWorkflowRequest;
 
@@ -1194,10 +1171,9 @@ export class UpdateWorkflowTemplateRequest extends Message<UpdateWorkflowTemplat
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.UpdateWorkflowTemplateRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "template_config", kind: "message", T: CreateWorkflowRequest },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "template_config", kind: "message", T: CreateWorkflowRequest },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateWorkflowTemplateRequest {
@@ -1222,9 +1198,9 @@ export class UpdateWorkflowTemplateRequest extends Message<UpdateWorkflowTemplat
  */
 export class DeleteWorkflowTemplateRequest extends Message<DeleteWorkflowTemplateRequest> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   constructor(data?: PartialMessage<DeleteWorkflowTemplateRequest>) {
     super();
@@ -1234,7 +1210,7 @@ export class DeleteWorkflowTemplateRequest extends Message<DeleteWorkflowTemplat
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.DeleteWorkflowTemplateRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteWorkflowTemplateRequest {
@@ -1259,14 +1235,9 @@ export class DeleteWorkflowTemplateRequest extends Message<DeleteWorkflowTemplat
  */
 export class WorkflowTemplateResponse extends Message<WorkflowTemplateResponse> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
-
-  /**
-   * @generated from field: string message = 2;
-   */
-  message = "";
+  id = "";
 
   constructor(data?: PartialMessage<WorkflowTemplateResponse>) {
     super();
@@ -1276,8 +1247,7 @@ export class WorkflowTemplateResponse extends Message<WorkflowTemplateResponse> 
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.WorkflowTemplateResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateResponse {
@@ -1302,32 +1272,22 @@ export class WorkflowTemplateResponse extends Message<WorkflowTemplateResponse> 
  */
 export class WorkflowTemplateSummary extends Message<WorkflowTemplateSummary> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   /**
-   * @generated from field: string name = 2;
-   */
-  name = "";
-
-  /**
-   * @generated from field: string description = 3;
+   * @generated from field: string description = 2;
    */
   description = "";
 
   /**
-   * @generated from field: string created_at = 4;
+   * @generated from field: string created_at = 3;
    */
   createdAt = "";
 
   /**
-   * @generated from field: string updated_at = 5;
-   */
-  updatedAt = "";
-
-  /**
-   * @generated from field: int32 run_count = 6;
+   * @generated from field: int32 run_count = 4;
    */
   runCount = 0;
 
@@ -1339,12 +1299,10 @@ export class WorkflowTemplateSummary extends Message<WorkflowTemplateSummary> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.WorkflowTemplateSummary";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 4, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 5, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
-    { no: 6, name: "run_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "run_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateSummary {
@@ -1412,20 +1370,16 @@ export class WorkflowTemplateListResponse extends Message<WorkflowTemplateListRe
  */
 export class ExecuteWorkflowTemplateRequest extends Message<ExecuteWorkflowTemplateRequest> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   /**
-   * The SHA to use for this execution
-   *
    * @generated from field: string sha = 2;
    */
   sha = "";
 
   /**
-   * Optional custom name for this run
-   *
    * @generated from field: string run_name = 3;
    */
   runName = "";
@@ -1438,7 +1392,7 @@ export class ExecuteWorkflowTemplateRequest extends Message<ExecuteWorkflowTempl
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.ExecuteWorkflowTemplateRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
@@ -1461,8 +1415,6 @@ export class ExecuteWorkflowTemplateRequest extends Message<ExecuteWorkflowTempl
 }
 
 /**
- * Run history for templates
- *
  * @generated from message skip.ironbird.TemplateRun
  */
 export class TemplateRun extends Message<TemplateRun> {
@@ -1472,8 +1424,6 @@ export class TemplateRun extends Message<TemplateRun> {
   runId = "";
 
   /**
-   * The actual workflow ID that was created
-   *
    * @generated from field: string workflow_id = 2;
    */
   workflowId = "";
@@ -1509,8 +1459,6 @@ export class TemplateRun extends Message<TemplateRun> {
   completedAt = "";
 
   /**
-   * Direct links to metrics/profiling
-   *
    * @generated from field: map<string, string> monitoring_links = 9;
    */
   monitoringLinks: { [key: string]: string } = {};
@@ -1562,9 +1510,9 @@ export class TemplateRun extends Message<TemplateRun> {
  */
 export class GetTemplateRunHistoryRequest extends Message<GetTemplateRunHistoryRequest> {
   /**
-   * @generated from field: string template_id = 1;
+   * @generated from field: string id = 1;
    */
-  templateId = "";
+  id = "";
 
   /**
    * @generated from field: int32 limit = 2;
@@ -1584,7 +1532,7 @@ export class GetTemplateRunHistoryRequest extends Message<GetTemplateRunHistoryR
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "skip.ironbird.GetTemplateRunHistoryRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);

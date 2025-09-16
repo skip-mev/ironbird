@@ -27,7 +27,7 @@ const safeJSONParse = (jsonString: string): any => {
 // Helper function to convert frontend template request to protobuf
 const convertToProtoTemplateRequest = (request: CreateWorkflowTemplateRequest): ProtoCreateRequest => {
   const protoRequest = new ProtoCreateRequest({
-    name: request.name,
+    id: request.templateId,
     description: request.description,
     templateConfig: convertToGrpcCreateWorkflowRequest(request.templateConfig),
   });
@@ -38,12 +38,10 @@ const convertToProtoTemplateRequest = (request: CreateWorkflowTemplateRequest): 
 // Helper function to convert protobuf template to frontend type
 const convertFromProtoTemplate = (protoTemplate: any): WorkflowTemplate => {
   return {
-    templateId: protoTemplate.templateId,
-    name: protoTemplate.name,
+    templateId: protoTemplate.id,
     description: protoTemplate.description,
     templateConfig: convertFromProtoWorkflowRequest(protoTemplate.templateConfig),
     createdAt: protoTemplate.createdAt,
-    updatedAt: protoTemplate.updatedAt,
     createdBy: protoTemplate.createdBy,
   };
 };
@@ -99,8 +97,7 @@ export const templateApi = {
     const protoRequest = convertToProtoTemplateRequest(request);
     const response = await grpcWorkflowApi.createWorkflowTemplate(protoRequest);
     return {
-      templateId: response.templateId,
-      message: response.message,
+      templateId: response.id,
     };
   },
 
@@ -113,11 +110,9 @@ export const templateApi = {
     const response = await grpcWorkflowApi.listWorkflowTemplates(limit, offset);
     
     const templates: WorkflowTemplateSummary[] = (response.templates || []).map((template: any) => ({
-      templateId: template.templateId,
-      name: template.name,
+      templateId: template.id,
       description: template.description,
       createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
       runCount: template.runCount || 0,
     }));
 
@@ -130,14 +125,13 @@ export const templateApi = {
   deleteTemplate: async (templateId: string): Promise<WorkflowTemplateResponse> => {
     const response = await grpcWorkflowApi.deleteWorkflowTemplate(templateId);
     return {
-      templateId: response.templateId,
-      message: response.message,
+      templateId: response.id,
     };
   },
 
   executeTemplate: async (request: ExecuteWorkflowTemplateRequest): Promise<{workflowId: string}> => {
     const protoRequest = new ProtoExecuteRequest({
-      templateId: request.templateId,
+      id: request.templateId,
       sha: request.sha,
       runName: request.runName || '',
     });

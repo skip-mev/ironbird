@@ -97,13 +97,10 @@ func (w *Workflow) LoadTestSpecJSON() ([]byte, error) {
 
 // Workflow template for pre-configured workflows
 type WorkflowTemplate struct {
-	ID          int                             `json:"id" db:"id"`
-	TemplateID  string                          `json:"template_id" db:"template_id"`
-	Name        string                          `json:"name" db:"name"`
+	ID          string                          `json:"template_id" db:"template_id"`
 	Description string                          `json:"description" db:"description"`
 	Config      messages.TestnetWorkflowRequest `json:"config" db:"config"`
 	CreatedAt   time.Time                       `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time                       `json:"updated_at" db:"updated_at"`
 	CreatedBy   string                          `json:"created_by" db:"created_by"`
 }
 

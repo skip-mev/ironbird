@@ -231,7 +231,7 @@ const TemplateList = () => {
                     <Td>
                       <VStack align="start" spacing={1}>
                         <Text fontWeight="semibold" color="text">
-                          {template.name}
+                          {template.templateId}
                         </Text>
                         <Text 
                           fontSize="xs" 
@@ -254,7 +254,7 @@ const TemplateList = () => {
                     </Td>
                     <Td>
                       <Text fontSize="sm" color="textSecondary">
-                        {formatDate(template.updatedAt)}
+                        {formatDate(template.createdAt)}
                       </Text>
                     </Td>
                     <Td>
@@ -317,7 +317,7 @@ const TemplateList = () => {
           <ModalCloseButton />
           <ModalBody>
             <Text>
-              Are you sure you want to delete the template "{selectedTemplate?.name}"? 
+              Are you sure you want to delete the template "{selectedTemplate?.templateId}"? 
               This action cannot be undone.
             </Text>
           </ModalBody>
@@ -402,7 +402,7 @@ const TemplateList = () => {
             ) : templateConfig ? (
               <VStack spacing={4} align="stretch">
                 <Box>
-                  <Text fontWeight="semibold" mb={2}>Template: {templateConfig.name}</Text>
+                  <Text fontWeight="semibold" mb={2}>Template: {templateConfig.templateId}</Text>
                   <Text fontSize="sm" color="textSecondary" mb={4}>
                     {templateConfig.description || 'No description provided'}
                   </Text>

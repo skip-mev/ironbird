@@ -135,8 +135,7 @@ message WorkflowSummary {
     string sha = 5;
     string provider = 6;
     string template_id = 7;
-    string template_name = 8;
-    string run_name = 9;
+    string run_name = 8;
 }
 
 message UpdateWorkflowDataRequest {
@@ -155,23 +154,21 @@ message WorkflowListResponse {
 }
 
 message WorkflowTemplate {
-    string template_id = 1;
-    string name = 2;
-    string description = 3;
-    CreateWorkflowRequest template_config = 4; 
-    string created_at = 5;
-    string updated_at = 6;
-    string created_by = 7;
+    string id = 1;
+    string description = 2;
+    CreateWorkflowRequest template_config = 3; 
+    string created_at = 4;
+    string created_by = 5;
 }
 
 message CreateWorkflowTemplateRequest {
-    string name = 1;
+    string id = 1;
     string description = 2;
     CreateWorkflowRequest template_config = 3; 
 }
 
 message GetWorkflowTemplateRequest {
-    string template_id = 1;
+    string id = 1;
 }
 
 message ListWorkflowTemplatesRequest {
@@ -180,28 +177,24 @@ message ListWorkflowTemplatesRequest {
 }
 
 message UpdateWorkflowTemplateRequest {
-    string template_id = 1;
-    string name = 2;
-    string description = 3;
-    CreateWorkflowRequest template_config = 4;
+    string id = 1;
+    string description = 2;
+    CreateWorkflowRequest template_config = 3;
 }
 
 message DeleteWorkflowTemplateRequest {
-    string template_id = 1;
+    string id = 1;
 }
 
 message WorkflowTemplateResponse {
-    string template_id = 1;
-    string message = 2;
+    string id = 1;
 }
 
 message WorkflowTemplateSummary {
-    string template_id = 1;
-    string name = 2;
-    string description = 3;
-    string created_at = 4;
-    string updated_at = 5;
-    int32 run_count = 6; 
+    string id = 1;
+    string description = 2;
+    string created_at = 3;
+    int32 run_count = 4; 
 }
 
 message WorkflowTemplateListResponse {
@@ -210,27 +203,26 @@ message WorkflowTemplateListResponse {
 }
 
 message ExecuteWorkflowTemplateRequest {
-    string template_id = 1;
-    string sha = 2; // The SHA to use for this execution
-    string run_name = 3; // Optional custom name for this run
+    string id = 1;
+    string sha = 2; 
+    string run_name = 3; 
 }
 
-// Run history for templates
 message TemplateRun {
     string run_id = 1;
-    string workflow_id = 2; // The actual workflow ID that was created
+    string workflow_id = 2; 
     string template_id = 3;
     string sha = 4;
     string run_name = 5;
     string status = 6;
     string started_at = 7;
     string completed_at = 8;
-    map<string, string> monitoring_links = 9; // Direct links to metrics/profiling
+    map<string, string> monitoring_links = 9; 
     string provider = 10;
 }
 
 message GetTemplateRunHistoryRequest {
-    string template_id = 1;
+    string id = 1;
     int32 limit = 2;
     int32 offset = 3;
 }
