@@ -112,7 +112,7 @@ export const grpcWorkflowApi = {
 
   getWorkflowTemplate: async (templateId: string): Promise<WorkflowTemplate> => {
     const request = new GetWorkflowTemplateRequest({
-      templateId: templateId
+      id: templateId
     });
     return await client.getWorkflowTemplate(request) as WorkflowTemplate;
   },
@@ -139,7 +139,7 @@ export const grpcWorkflowApi = {
 
   deleteWorkflowTemplate: async (templateId: string): Promise<WorkflowTemplateResponse> => {
     const request = new DeleteWorkflowTemplateRequest({
-      templateId: templateId
+      id: templateId
     });
     return await client.deleteWorkflowTemplate(request) as WorkflowTemplateResponse;
   },
@@ -158,7 +158,7 @@ export const grpcWorkflowApi = {
 
   getTemplateRunHistory: async (templateId: string, limit?: number, offset?: number): Promise<TemplateRunHistoryResponse> => {
     const request = new GetTemplateRunHistoryRequest({
-      templateId: templateId,
+      id: templateId,
       limit: limit || 50,
       offset: offset || 0
     });
