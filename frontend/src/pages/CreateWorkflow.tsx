@@ -20,10 +20,19 @@ import {
   Flex,
   FormHelperText,
   Tooltip,
-    Textarea,
+  Textarea,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
 } from '@chakra-ui/react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
+import { templateApi } from '../api/templateApi';
 import type { TestnetWorkflowRequest, LoadTestSpec } from '../types/workflow';
 
 // Simple YAML parser for load test specs
@@ -33,17 +42,17 @@ const parseYamlToLoadTestSpec = (yamlString: string): LoadTestSpec | null => {
     const result: any = {};
     let currentMsgIndex = -1;
     let inMsgsSection = false;
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
-      
+
       if (trimmed === 'msgs:') {
         inMsgsSection = true;
         result.msgs = [];
         continue;
       }
-      
+
       if (inMsgsSection && trimmed.startsWith('-')) {
         // New message entry
         currentMsgIndex++;
@@ -79,7 +88,7 @@ const parseYamlToLoadTestSpec = (yamlString: string): LoadTestSpec | null => {
         }
       }
     }
-    
+
     // Convert to LoadTestSpec format expected by the frontend
     const loadTestSpec: LoadTestSpec = {
       name: result.name || '',
@@ -101,7 +110,7 @@ const parseYamlToLoadTestSpec = (yamlString: string): LoadTestSpec | null => {
         num_msgs: msg.num_msgs || 1
       }))
     };
-    
+
     return loadTestSpec;
   } catch (error) {
     console.error('Error parsing YAML:', error);
@@ -117,8 +126,14 @@ const CreateWorkflow = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [jsonMode, setJsonMode] = useState(false);
   
+  // Save as template modal state
+  const { isOpen: isTemplateModalOpen, onOpen: onTemplateModalOpen, onClose: onTemplateModalClose } = useDisclosure();
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+
   // Default JSON content from hack/create-workflow.json
   const defaultJsonContent = `{
   "repo": "evm",
@@ -293,6 +308,20 @@ const CreateWorkflow = () => {
       }));
     }
   }, [formData.RunnerType, formData.LaunchLoadBalancer]);
+
+  // Update hasLoadTest state when in JSON mode and JSON input changes
+  useEffect(() => {
+    if (jsonMode) {
+      try {
+        const parsed = parseWorkflowJson(jsonInput);
+        const hasSpec = !!(parsed.LoadTestSpec || parsed.EncodedLoadTestSpec);
+        setHasLoadTest(hasSpec);
+      } catch (e) {
+        // If JSON parsing fails, assume no load test
+        setHasLoadTest(false);
+      }
+    }
+  }, [jsonMode, jsonInput]);
 
   // Shared validation between form mode and JSON mode
   const validateRequest = (data: TestnetWorkflowRequest): string | null => {
@@ -559,17 +588,17 @@ const CreateWorkflow = () => {
       // Handle load test specs - simplified logic
       const encodedLoadTestSpecParam = params.get('encodedLoadTestSpec');
       const loadTestSpecParam = params.get('loadTestSpec');
-      
+
       if (encodedLoadTestSpecParam) {
         try {
           // Parse the YAML-like encoded load test spec and convert to LoadTestSpec object
           const decodedYaml = decodeURIComponent(encodedLoadTestSpecParam);
           console.log("Decoded YAML:", decodedYaml);
-          
+
           // Parse the YAML manually (simple key-value parsing)
           const loadTestSpec = parseYamlToLoadTestSpec(decodedYaml);
           console.log("Parsed LoadTestSpec:", loadTestSpec);
-          
+
           if (loadTestSpec) {
             newFormData.LoadTestSpec = loadTestSpec;
             newFormData.EncodedLoadTestSpec = encodedLoadTestSpecParam; // Keep for submission
@@ -681,7 +710,7 @@ const CreateWorkflow = () => {
 
   // Genesis modifications modal state
   const [isGenesisModsModalOpen, setIsGenesisModsModalOpen] = useState(false);
-  
+
   // Track when custom version mode is active
   const [isCustomVersion, setIsCustomVersion] = useState(false);
 
@@ -706,9 +735,127 @@ const CreateWorkflow = () => {
     },
   });
 
+  const createTemplateMutation = useMutation({
+    mutationFn: templateApi.createTemplate,
+    onSuccess: () => {
+      toast({
+        title: 'Template created successfully',
+        status: 'success',
+        duration: 3000,
+      });
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      onTemplateModalClose();
+      // Reset template form
+      setTemplateName('');
+      setTemplateDescription('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error creating template',
+        description: error.message || 'An unknown error occurred',
+        status: 'error',
+        duration: 5000,
+      });
+    },
+  });
+
+
+  const handleSaveAsTemplate = () => {
+    // If in JSON mode, validate JSON first
+    if (jsonMode) {
+      try {
+        const parsed = parseWorkflowJson(jsonInput);
+        // Basic validation
+        if (!parsed.Repo || !parsed.ChainConfig?.Name || !parsed.RunnerType) {
+          toast({
+            title: 'Invalid JSON Configuration',
+            description: 'JSON must contain at least repo, chain_config.name, and runner_type fields',
+            status: 'error',
+            duration: 5000,
+          });
+          return;
+        }
+        
+        // Log parsed load test spec for debugging
+        if (parsed.LoadTestSpec || parsed.EncodedLoadTestSpec) {
+          console.log('Parsed load test spec:', parsed.LoadTestSpec);
+          console.log('Encoded load test spec:', parsed.EncodedLoadTestSpec);
+        }
+      } catch (error) {
+        toast({
+          title: 'Invalid JSON',
+          description: `Cannot save template: ${error instanceof Error ? error.message : 'Invalid JSON format'}`,
+          status: 'error',
+          duration: 5000,
+        });
+        return;
+      }
+    }
+    onTemplateModalOpen();
+  };
+
+  const getCurrentWorkflowConfig = (): TestnetWorkflowRequest => {
+    if (jsonMode) {
+      try {
+        const parsed = parseWorkflowJson(jsonInput);
+        console.log("Successfully parsed JSON for template:", parsed);
+        return parsed;
+      } catch (error) {
+        console.error("Failed to parse JSON for template:", error);
+        console.log("JSON input was:", jsonInput);
+        // Show error to user instead of silently falling back
+        toast({
+          title: 'JSON Parse Error',
+          description: `Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          status: 'error',
+          duration: 5000,
+        });
+        // Return current formData if JSON parsing fails
+        return formData;
+      }
+    }
+    return formData;
+  };
+
+  const handleConfirmSaveTemplate = () => {
+    if (!templateName.trim()) {
+      toast({
+        title: 'Template name is required',
+        status: 'error',
+        duration: 3000,
+      });
+      return;
+    }
+
+    const config = getCurrentWorkflowConfig();
+    
+    // Validate that we have meaningful config data
+    if (!config.Repo || !config.ChainConfig?.Name || !config.RunnerType) {
+      toast({
+        title: 'Invalid Template Configuration',
+        description: 'Template must have at least Repository, Chain Name, and Runner Type configured',
+        status: 'error',
+        duration: 5000,
+      });
+      return;
+    }
+    
+    // Remove SHA from template config
+    const templateConfig = { ...config };
+    templateConfig.SHA = '';
+
+    console.log("Saving template with config:", templateConfig);
+
+    createTemplateMutation.mutate({
+      name: templateName,
+      description: templateDescription,
+      templateConfig,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const validationError = validateRequest(formData);
     if (validationError) {
       toast({ title: 'Validation Error', description: validationError, status: 'error', duration: 5000 });
@@ -793,11 +940,11 @@ const CreateWorkflow = () => {
 
   const parseWorkflowJson = (text: string): TestnetWorkflowRequest => {
     const raw = JSON.parse(text);
-    
+
     // Simplified parsing - use the structure as-is from the JSON
     const repo = raw.repo || raw.Repo || '';
     const isEvmChain = raw.isEvmChain ?? raw.IsEvmChain ?? false;
-    
+
     // Determine correct image based on repository
     let image = raw.chain_config?.image || raw.ChainConfig?.Image || '';
     if (!image) {
@@ -811,7 +958,7 @@ const CreateWorkflow = () => {
         image = 'gaia';
       }
     }
-    
+
     return {
       Repo: repo,
       SHA: raw.sha || raw.SHA || '',
@@ -835,7 +982,50 @@ const CreateWorkflow = () => {
         SetSeedNode: raw.chain_config?.set_seed_node ?? raw.ChainConfig?.SetSeedNode ?? false,
         SetPersistentPeers: raw.chain_config?.set_persistent_peers ?? raw.ChainConfig?.SetPersistentPeers ?? false,
       },
-      LoadTestSpec: raw.load_test_spec || raw.LoadTestSpec,
+      LoadTestSpec: (() => {
+        // First try direct load test spec fields
+        if (raw.load_test_spec || raw.LoadTestSpec) {
+          return raw.load_test_spec || raw.LoadTestSpec;
+        }
+        
+        // Then try to parse encoded load test spec
+        const encodedSpec = raw.encoded_load_test_spec || raw.EncodedLoadTestSpec;
+        if (encodedSpec) {
+          try {
+            const parsedSpec = JSON.parse(encodedSpec);
+            // Convert to frontend LoadTestSpec format
+            return {
+              name: parsedSpec.name || '',
+              description: parsedSpec.description || '',
+              kind: parsedSpec.kind || 'cosmos',
+              chain_id: parsedSpec.chain_id || '',
+              NumOfBlocks: parsedSpec.num_of_blocks || parsedSpec.NumOfBlocks || 0,
+              NumOfTxs: parsedSpec.num_of_txs || parsedSpec.NumOfTxs || 0,
+              unordered_txs: parsedSpec.unordered_txs || false,
+              tx_timeout: parsedSpec.tx_timeout || '',
+              send_interval: parsedSpec.send_interval || '',
+              num_batches: parsedSpec.num_batches || 0,
+              gas_denom: parsedSpec.gas_denom || '',
+              bech32_prefix: parsedSpec.bech32_prefix || '',
+              msgs: (parsedSpec.msgs || []).map((msg: any) => ({
+                type: msg.type || '',
+                weight: msg.weight || 0,
+                NumMsgs: msg.num_msgs || msg.NumMsgs || 1,
+                num_msgs: msg.num_msgs || msg.NumMsgs || 1,
+                ContainedType: msg.contained_type || msg.ContainedType,
+                NumOfRecipients: msg.num_of_recipients || msg.NumOfRecipients,
+                NumOfIterations: msg.num_of_iterations || msg.NumOfIterations,
+                CalldataSize: msg.calldata_size || msg.CalldataSize
+              }))
+            };
+          } catch (e) {
+            console.warn('Failed to parse encoded_load_test_spec:', e);
+            return undefined;
+          }
+        }
+        
+        return undefined;
+      })(),
       EthereumLoadTestSpec: raw.ethereum_load_test_spec || raw.EthereumLoadTestSpec,
       CosmosLoadTestSpec: raw.cosmos_load_test_spec || raw.CosmosLoadTestSpec,
       EncodedLoadTestSpec: raw.encoded_load_test_spec || raw.EncodedLoadTestSpec,
@@ -892,9 +1082,23 @@ const CreateWorkflow = () => {
                 w="100%"
               />
             </FormControl>
-            <Button colorScheme="blue" isLoading={isParsing || createWorkflowMutation.isPending} onClick={handleJsonSubmit}>
-              Create Testnet
-            </Button>
+            <HStack spacing={4}>
+              <Button
+                variant="outline"
+                colorScheme="blue"
+                onClick={handleSaveAsTemplate}
+                isDisabled={createWorkflowMutation.isPending || createTemplateMutation.isPending}
+              >
+                Save as Template
+              </Button>
+              <Button
+                colorScheme="blue"
+                isLoading={isParsing || createWorkflowMutation.isPending}
+                onClick={handleJsonSubmit}
+              >
+                Create Testnet
+              </Button>
+            </HStack>
           </Stack>
         ) : (
         <Stack direction="column" gap={4}>
@@ -943,7 +1147,7 @@ const CreateWorkflow = () => {
                       Image: ''
                     };
                   }
-                                    
+
                   // Update LoadTestSpec kind if it exists based on new repository
                   if (updatedFormData.LoadTestSpec) {
                     updatedFormData.LoadTestSpec = {
@@ -1047,7 +1251,7 @@ const CreateWorkflow = () => {
                     value={isCustomVersion ? 'custom' : (formData.ChainConfig.Version || '')}
                     onChange={(e) => {
                       const selectedValue = e.target.value;
-                      
+
                       if (selectedValue === 'custom') {
                         // Only reset Version to empty if we're switching FROM a predefined version TO custom
                         const shouldResetVersion = !isCustomVersion;
@@ -1538,14 +1742,23 @@ const CreateWorkflow = () => {
             <FormHelperText>Docker tag for catalyst image (e.g., "main", "v1.2.3"). cDefaults to "latest" if empty.</FormHelperText>
           </FormControl>
 
-          <Button
-            mt={4}
-            colorScheme="blue"
-            disabled={createWorkflowMutation.isPending}
-            type="submit"
-          >
-            Create Testnet
-          </Button>
+          <HStack spacing={4} mt={4}>
+            <Button
+              variant="outline"
+              colorScheme="blue"
+              onClick={handleSaveAsTemplate}
+              disabled={createWorkflowMutation.isPending || createTemplateMutation.isPending}
+            >
+              Save as Template
+            </Button>
+            <Button
+              colorScheme="blue"
+              disabled={createWorkflowMutation.isPending}
+              type="submit"
+            >
+              Create Testnet
+            </Button>
+          </HStack>
         </Stack>
         )}
       </Box>
@@ -1593,6 +1806,56 @@ const CreateWorkflow = () => {
           },
         })}
       />
+
+      {/* Save as Template Modal */}
+      <Modal isOpen={isTemplateModalOpen} onClose={onTemplateModalClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Save as Template</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <FormControl isRequired>
+                <FormLabel>Template Name</FormLabel>
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Skip Protocol Testnet"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Description</FormLabel>
+                <Textarea
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  placeholder="Describe this template..."
+                  rows={3}
+                />
+              </FormControl>
+
+
+              <Text fontSize="sm" color="gray.500">
+                Note: The SHA will be removed from the template and can be specified when executing the template.
+              </Text>
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onTemplateModalClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="brand"
+              onClick={handleConfirmSaveTemplate}
+              isLoading={createTemplateMutation.isPending}
+              loadingText="Saving..."
+            >
+              Save Template
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 };

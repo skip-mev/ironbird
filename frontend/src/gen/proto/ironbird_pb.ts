@@ -793,6 +793,21 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
    */
   provider = "";
 
+  /**
+   * @generated from field: string template_id = 7;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string template_name = 8;
+   */
+  templateName = "";
+
+  /**
+   * @generated from field: string run_name = 9;
+   */
+  runName = "";
+
   constructor(data?: PartialMessage<WorkflowSummary>) {
     super();
     proto3.util.initPartial(data, this);
@@ -807,6 +822,9 @@ export class WorkflowSummary extends Message<WorkflowSummary> {
     { no: 4, name: "repo", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "template_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowSummary {
@@ -939,6 +957,695 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
 
   static equals(a: WorkflowListResponse | PlainMessage<WorkflowListResponse> | undefined, b: WorkflowListResponse | PlainMessage<WorkflowListResponse> | undefined): boolean {
     return proto3.util.equals(WorkflowListResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.WorkflowTemplate
+ */
+export class WorkflowTemplate extends Message<WorkflowTemplate> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description = "";
+
+  /**
+   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 4;
+   */
+  templateConfig?: CreateWorkflowRequest;
+
+  /**
+   * @generated from field: string created_at = 5;
+   */
+  createdAt = "";
+
+  /**
+   * @generated from field: string updated_at = 6;
+   */
+  updatedAt = "";
+
+  /**
+   * @generated from field: string created_by = 7;
+   */
+  createdBy = "";
+
+  constructor(data?: PartialMessage<WorkflowTemplate>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.WorkflowTemplate";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "template_config", kind: "message", T: CreateWorkflowRequest },
+    { no: 5, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "created_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplate {
+    return new WorkflowTemplate().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkflowTemplate {
+    return new WorkflowTemplate().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkflowTemplate {
+    return new WorkflowTemplate().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WorkflowTemplate | PlainMessage<WorkflowTemplate> | undefined, b: WorkflowTemplate | PlainMessage<WorkflowTemplate> | undefined): boolean {
+    return proto3.util.equals(WorkflowTemplate, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.CreateWorkflowTemplateRequest
+ */
+export class CreateWorkflowTemplateRequest extends Message<CreateWorkflowTemplateRequest> {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description = "";
+
+  /**
+   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 3;
+   */
+  templateConfig?: CreateWorkflowRequest;
+
+  constructor(data?: PartialMessage<CreateWorkflowTemplateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.CreateWorkflowTemplateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "template_config", kind: "message", T: CreateWorkflowRequest },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowTemplateRequest {
+    return new CreateWorkflowTemplateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CreateWorkflowTemplateRequest {
+    return new CreateWorkflowTemplateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CreateWorkflowTemplateRequest {
+    return new CreateWorkflowTemplateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CreateWorkflowTemplateRequest | PlainMessage<CreateWorkflowTemplateRequest> | undefined, b: CreateWorkflowTemplateRequest | PlainMessage<CreateWorkflowTemplateRequest> | undefined): boolean {
+    return proto3.util.equals(CreateWorkflowTemplateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.GetWorkflowTemplateRequest
+ */
+export class GetWorkflowTemplateRequest extends Message<GetWorkflowTemplateRequest> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  constructor(data?: PartialMessage<GetWorkflowTemplateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.GetWorkflowTemplateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetWorkflowTemplateRequest {
+    return new GetWorkflowTemplateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetWorkflowTemplateRequest {
+    return new GetWorkflowTemplateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetWorkflowTemplateRequest {
+    return new GetWorkflowTemplateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetWorkflowTemplateRequest | PlainMessage<GetWorkflowTemplateRequest> | undefined, b: GetWorkflowTemplateRequest | PlainMessage<GetWorkflowTemplateRequest> | undefined): boolean {
+    return proto3.util.equals(GetWorkflowTemplateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.ListWorkflowTemplatesRequest
+ */
+export class ListWorkflowTemplatesRequest extends Message<ListWorkflowTemplatesRequest> {
+  /**
+   * @generated from field: int32 limit = 1;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 2;
+   */
+  offset = 0;
+
+  constructor(data?: PartialMessage<ListWorkflowTemplatesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.ListWorkflowTemplatesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListWorkflowTemplatesRequest {
+    return new ListWorkflowTemplatesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListWorkflowTemplatesRequest {
+    return new ListWorkflowTemplatesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListWorkflowTemplatesRequest {
+    return new ListWorkflowTemplatesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListWorkflowTemplatesRequest | PlainMessage<ListWorkflowTemplatesRequest> | undefined, b: ListWorkflowTemplatesRequest | PlainMessage<ListWorkflowTemplatesRequest> | undefined): boolean {
+    return proto3.util.equals(ListWorkflowTemplatesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.UpdateWorkflowTemplateRequest
+ */
+export class UpdateWorkflowTemplateRequest extends Message<UpdateWorkflowTemplateRequest> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description = "";
+
+  /**
+   * @generated from field: skip.ironbird.CreateWorkflowRequest template_config = 4;
+   */
+  templateConfig?: CreateWorkflowRequest;
+
+  constructor(data?: PartialMessage<UpdateWorkflowTemplateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.UpdateWorkflowTemplateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "template_config", kind: "message", T: CreateWorkflowRequest },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateWorkflowTemplateRequest {
+    return new UpdateWorkflowTemplateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UpdateWorkflowTemplateRequest {
+    return new UpdateWorkflowTemplateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UpdateWorkflowTemplateRequest {
+    return new UpdateWorkflowTemplateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UpdateWorkflowTemplateRequest | PlainMessage<UpdateWorkflowTemplateRequest> | undefined, b: UpdateWorkflowTemplateRequest | PlainMessage<UpdateWorkflowTemplateRequest> | undefined): boolean {
+    return proto3.util.equals(UpdateWorkflowTemplateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.DeleteWorkflowTemplateRequest
+ */
+export class DeleteWorkflowTemplateRequest extends Message<DeleteWorkflowTemplateRequest> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  constructor(data?: PartialMessage<DeleteWorkflowTemplateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.DeleteWorkflowTemplateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteWorkflowTemplateRequest {
+    return new DeleteWorkflowTemplateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteWorkflowTemplateRequest {
+    return new DeleteWorkflowTemplateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteWorkflowTemplateRequest {
+    return new DeleteWorkflowTemplateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteWorkflowTemplateRequest | PlainMessage<DeleteWorkflowTemplateRequest> | undefined, b: DeleteWorkflowTemplateRequest | PlainMessage<DeleteWorkflowTemplateRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteWorkflowTemplateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.WorkflowTemplateResponse
+ */
+export class WorkflowTemplateResponse extends Message<WorkflowTemplateResponse> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message = "";
+
+  constructor(data?: PartialMessage<WorkflowTemplateResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.WorkflowTemplateResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateResponse {
+    return new WorkflowTemplateResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkflowTemplateResponse {
+    return new WorkflowTemplateResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkflowTemplateResponse {
+    return new WorkflowTemplateResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WorkflowTemplateResponse | PlainMessage<WorkflowTemplateResponse> | undefined, b: WorkflowTemplateResponse | PlainMessage<WorkflowTemplateResponse> | undefined): boolean {
+    return proto3.util.equals(WorkflowTemplateResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.WorkflowTemplateSummary
+ */
+export class WorkflowTemplateSummary extends Message<WorkflowTemplateSummary> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description = "";
+
+  /**
+   * @generated from field: string created_at = 4;
+   */
+  createdAt = "";
+
+  /**
+   * @generated from field: string updated_at = 5;
+   */
+  updatedAt = "";
+
+  /**
+   * @generated from field: int32 run_count = 6;
+   */
+  runCount = 0;
+
+  constructor(data?: PartialMessage<WorkflowTemplateSummary>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.WorkflowTemplateSummary";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "description", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "created_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "updated_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "run_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateSummary {
+    return new WorkflowTemplateSummary().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkflowTemplateSummary {
+    return new WorkflowTemplateSummary().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkflowTemplateSummary {
+    return new WorkflowTemplateSummary().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WorkflowTemplateSummary | PlainMessage<WorkflowTemplateSummary> | undefined, b: WorkflowTemplateSummary | PlainMessage<WorkflowTemplateSummary> | undefined): boolean {
+    return proto3.util.equals(WorkflowTemplateSummary, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.WorkflowTemplateListResponse
+ */
+export class WorkflowTemplateListResponse extends Message<WorkflowTemplateListResponse> {
+  /**
+   * @generated from field: repeated skip.ironbird.WorkflowTemplateSummary templates = 1;
+   */
+  templates: WorkflowTemplateSummary[] = [];
+
+  /**
+   * @generated from field: int32 count = 2;
+   */
+  count = 0;
+
+  constructor(data?: PartialMessage<WorkflowTemplateListResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.WorkflowTemplateListResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "templates", kind: "message", T: WorkflowTemplateSummary, repeated: true },
+    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateListResponse {
+    return new WorkflowTemplateListResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): WorkflowTemplateListResponse {
+    return new WorkflowTemplateListResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): WorkflowTemplateListResponse {
+    return new WorkflowTemplateListResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: WorkflowTemplateListResponse | PlainMessage<WorkflowTemplateListResponse> | undefined, b: WorkflowTemplateListResponse | PlainMessage<WorkflowTemplateListResponse> | undefined): boolean {
+    return proto3.util.equals(WorkflowTemplateListResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.ExecuteWorkflowTemplateRequest
+ */
+export class ExecuteWorkflowTemplateRequest extends Message<ExecuteWorkflowTemplateRequest> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * The SHA to use for this execution
+   *
+   * @generated from field: string sha = 2;
+   */
+  sha = "";
+
+  /**
+   * Optional custom name for this run
+   *
+   * @generated from field: string run_name = 3;
+   */
+  runName = "";
+
+  constructor(data?: PartialMessage<ExecuteWorkflowTemplateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.ExecuteWorkflowTemplateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ExecuteWorkflowTemplateRequest {
+    return new ExecuteWorkflowTemplateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ExecuteWorkflowTemplateRequest {
+    return new ExecuteWorkflowTemplateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ExecuteWorkflowTemplateRequest {
+    return new ExecuteWorkflowTemplateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ExecuteWorkflowTemplateRequest | PlainMessage<ExecuteWorkflowTemplateRequest> | undefined, b: ExecuteWorkflowTemplateRequest | PlainMessage<ExecuteWorkflowTemplateRequest> | undefined): boolean {
+    return proto3.util.equals(ExecuteWorkflowTemplateRequest, a, b);
+  }
+}
+
+/**
+ * Run history for templates
+ *
+ * @generated from message skip.ironbird.TemplateRun
+ */
+export class TemplateRun extends Message<TemplateRun> {
+  /**
+   * @generated from field: string run_id = 1;
+   */
+  runId = "";
+
+  /**
+   * The actual workflow ID that was created
+   *
+   * @generated from field: string workflow_id = 2;
+   */
+  workflowId = "";
+
+  /**
+   * @generated from field: string template_id = 3;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: string sha = 4;
+   */
+  sha = "";
+
+  /**
+   * @generated from field: string run_name = 5;
+   */
+  runName = "";
+
+  /**
+   * @generated from field: string status = 6;
+   */
+  status = "";
+
+  /**
+   * @generated from field: string started_at = 7;
+   */
+  startedAt = "";
+
+  /**
+   * @generated from field: string completed_at = 8;
+   */
+  completedAt = "";
+
+  /**
+   * Direct links to metrics/profiling
+   *
+   * @generated from field: map<string, string> monitoring_links = 9;
+   */
+  monitoringLinks: { [key: string]: string } = {};
+
+  /**
+   * @generated from field: string provider = 10;
+   */
+  provider = "";
+
+  constructor(data?: PartialMessage<TemplateRun>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.TemplateRun";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "run_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "workflow_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "run_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "started_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "completed_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "monitoring_links", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
+    { no: 10, name: "provider", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TemplateRun {
+    return new TemplateRun().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TemplateRun {
+    return new TemplateRun().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TemplateRun {
+    return new TemplateRun().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: TemplateRun | PlainMessage<TemplateRun> | undefined, b: TemplateRun | PlainMessage<TemplateRun> | undefined): boolean {
+    return proto3.util.equals(TemplateRun, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.GetTemplateRunHistoryRequest
+ */
+export class GetTemplateRunHistoryRequest extends Message<GetTemplateRunHistoryRequest> {
+  /**
+   * @generated from field: string template_id = 1;
+   */
+  templateId = "";
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
+  constructor(data?: PartialMessage<GetTemplateRunHistoryRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.GetTemplateRunHistoryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "template_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTemplateRunHistoryRequest {
+    return new GetTemplateRunHistoryRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTemplateRunHistoryRequest {
+    return new GetTemplateRunHistoryRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTemplateRunHistoryRequest {
+    return new GetTemplateRunHistoryRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTemplateRunHistoryRequest | PlainMessage<GetTemplateRunHistoryRequest> | undefined, b: GetTemplateRunHistoryRequest | PlainMessage<GetTemplateRunHistoryRequest> | undefined): boolean {
+    return proto3.util.equals(GetTemplateRunHistoryRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message skip.ironbird.TemplateRunHistoryResponse
+ */
+export class TemplateRunHistoryResponse extends Message<TemplateRunHistoryResponse> {
+  /**
+   * @generated from field: repeated skip.ironbird.TemplateRun runs = 1;
+   */
+  runs: TemplateRun[] = [];
+
+  /**
+   * @generated from field: int32 count = 2;
+   */
+  count = 0;
+
+  constructor(data?: PartialMessage<TemplateRunHistoryResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "skip.ironbird.TemplateRunHistoryResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "runs", kind: "message", T: TemplateRun, repeated: true },
+    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TemplateRunHistoryResponse {
+    return new TemplateRunHistoryResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): TemplateRunHistoryResponse {
+    return new TemplateRunHistoryResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): TemplateRunHistoryResponse {
+    return new TemplateRunHistoryResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: TemplateRunHistoryResponse | PlainMessage<TemplateRunHistoryResponse> | undefined, b: TemplateRunHistoryResponse | PlainMessage<TemplateRunHistoryResponse> | undefined): boolean {
+    return proto3.util.equals(TemplateRunHistoryResponse, a, b);
   }
 }
 

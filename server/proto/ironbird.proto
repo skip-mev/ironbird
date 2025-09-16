@@ -14,6 +14,16 @@ service IronbirdService {
     rpc RunLoadTest(RunLoadTestRequest) returns (WorkflowResponse) {}
 
     rpc UpdateWorkflowData(UpdateWorkflowDataRequest) returns (WorkflowResponse) {}
+
+    rpc CreateWorkflowTemplate(CreateWorkflowTemplateRequest) returns (WorkflowTemplateResponse) {}
+    rpc GetWorkflowTemplate(GetWorkflowTemplateRequest) returns (WorkflowTemplate) {}
+    rpc ListWorkflowTemplates(ListWorkflowTemplatesRequest) returns (WorkflowTemplateListResponse) {}
+    rpc UpdateWorkflowTemplate(UpdateWorkflowTemplateRequest) returns (WorkflowTemplateResponse) {}
+    rpc DeleteWorkflowTemplate(DeleteWorkflowTemplateRequest) returns (WorkflowTemplateResponse) {}
+    
+    rpc ExecuteWorkflowTemplate(ExecuteWorkflowTemplateRequest) returns (WorkflowResponse) {}
+    rpc GetTemplateRunHistory(GetTemplateRunHistoryRequest) returns (TemplateRunHistoryResponse) {}
+
 }
 
 // Request and response messages
@@ -124,6 +134,9 @@ message WorkflowSummary {
     string repo = 4;
     string sha = 5;
     string provider = 6;
+    string template_id = 7;
+    string template_name = 8;
+    string run_name = 9;
 }
 
 message UpdateWorkflowDataRequest {
@@ -138,5 +151,91 @@ message UpdateWorkflowDataRequest {
 
 message WorkflowListResponse {
     repeated WorkflowSummary workflows = 1;
+    int32 count = 2;
+}
+
+message WorkflowTemplate {
+    string template_id = 1;
+    string name = 2;
+    string description = 3;
+    CreateWorkflowRequest template_config = 4; 
+    string created_at = 5;
+    string updated_at = 6;
+    string created_by = 7;
+}
+
+message CreateWorkflowTemplateRequest {
+    string name = 1;
+    string description = 2;
+    CreateWorkflowRequest template_config = 3; 
+}
+
+message GetWorkflowTemplateRequest {
+    string template_id = 1;
+}
+
+message ListWorkflowTemplatesRequest {
+    int32 limit = 1;
+    int32 offset = 2;
+}
+
+message UpdateWorkflowTemplateRequest {
+    string template_id = 1;
+    string name = 2;
+    string description = 3;
+    CreateWorkflowRequest template_config = 4;
+}
+
+message DeleteWorkflowTemplateRequest {
+    string template_id = 1;
+}
+
+message WorkflowTemplateResponse {
+    string template_id = 1;
+    string message = 2;
+}
+
+message WorkflowTemplateSummary {
+    string template_id = 1;
+    string name = 2;
+    string description = 3;
+    string created_at = 4;
+    string updated_at = 5;
+    int32 run_count = 6; 
+}
+
+message WorkflowTemplateListResponse {
+    repeated WorkflowTemplateSummary templates = 1;
+    int32 count = 2;
+}
+
+message ExecuteWorkflowTemplateRequest {
+    string template_id = 1;
+    string sha = 2; // The SHA to use for this execution
+    string run_name = 3; // Optional custom name for this run
+}
+
+// Run history for templates
+message TemplateRun {
+    string run_id = 1;
+    string workflow_id = 2; // The actual workflow ID that was created
+    string template_id = 3;
+    string sha = 4;
+    string run_name = 5;
+    string status = 6;
+    string started_at = 7;
+    string completed_at = 8;
+    map<string, string> monitoring_links = 9; // Direct links to metrics/profiling
+    string provider = 10;
+}
+
+message GetTemplateRunHistoryRequest {
+    string template_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+
+message TemplateRunHistoryResponse {
+    repeated TemplateRun runs = 1;
     int32 count = 2;
 }

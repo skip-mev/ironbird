@@ -157,6 +157,7 @@ const WorkflowList = () => {
               <Thead>
                 <Tr>
                   <Th>Workflow ID</Th>
+                  <Th>Template</Th>
                   <Th>Provider</Th>
                   <Th>Repository</Th>
                   <Th>SHA</Th>
@@ -177,6 +178,24 @@ const WorkflowList = () => {
                       >
                         {workflow.WorkflowID}
                       </Text>
+                    </Td>
+                    <Td>
+                      {workflow.TemplateName ? (
+                        <Box>
+                          <Text fontWeight="medium" fontSize="sm">
+                            {workflow.TemplateName}
+                          </Text>
+                          {workflow.RunName && (
+                            <Text fontSize="xs" color="textSecondary">
+                              Run: {workflow.RunName}
+                            </Text>
+                          )}
+                        </Box>
+                      ) : (
+                        <Badge colorScheme="gray" variant="subtle">
+                          Manual
+                        </Badge>
+                      )}
                     </Td>
                     <Td>
                       <Badge colorScheme="blue" variant="subtle">

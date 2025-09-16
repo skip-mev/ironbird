@@ -47,6 +47,8 @@ type Workflow struct {
 	Config          messages.TestnetWorkflowRequest `json:"config" db:"config"`
 	LoadTestSpec    json.RawMessage                 `json:"load_test_spec" db:"load_test_spec"`
 	Provider        string                          `json:"provider" db:"provider"`
+	TemplateID      string                          `json:"template_id" db:"template_id"`
+	RunName         string                          `json:"run_name" db:"run_name"`
 	CreatedAt       time.Time                       `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time                       `json:"updated_at" db:"updated_at"`
 }
@@ -59,6 +61,8 @@ type WorkflowUpdate struct {
 	MonitoringLinks *map[string]string `json:"monitoring_links,omitempty"`
 	Status          *WorkflowStatus    `json:"status,omitempty"`
 	Provider        *string            `json:"provider,omitempty"`
+	TemplateID      *string            `json:"template_id,omitempty"`
+	RunName         *string            `json:"run_name,omitempty"`
 }
 
 func (w *Workflow) NodesJSON() ([]byte, error) {
@@ -89,4 +93,20 @@ func (w *Workflow) LoadTestSpecJSON() ([]byte, error) {
 		return []byte("{}"), nil
 	}
 	return w.LoadTestSpec, nil
+}
+
+// Workflow template for pre-configured workflows
+type WorkflowTemplate struct {
+	ID          int                             `json:"id" db:"id"`
+	TemplateID  string                          `json:"template_id" db:"template_id"`
+	Name        string                          `json:"name" db:"name"`
+	Description string                          `json:"description" db:"description"`
+	Config      messages.TestnetWorkflowRequest `json:"config" db:"config"`
+	CreatedAt   time.Time                       `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time                       `json:"updated_at" db:"updated_at"`
+	CreatedBy   string                          `json:"created_by" db:"created_by"`
+}
+
+func (wt *WorkflowTemplate) ConfigJSON() ([]byte, error) {
+	return json.Marshal(wt.Config)
 }

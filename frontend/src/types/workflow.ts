@@ -123,3 +123,58 @@ export interface WorkflowResponse {
   Status: string;
   Data?: Record<string, any>;
 }
+
+// Template-related types
+export interface WorkflowTemplate {
+  templateId: string;
+  name: string;
+  description: string;
+  templateConfig: TestnetWorkflowRequest;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface WorkflowTemplateSummary {
+  templateId: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  runCount: number;
+}
+
+export interface CreateWorkflowTemplateRequest {
+  name: string;
+  description: string;
+  templateConfig: TestnetWorkflowRequest;
+}
+
+export interface WorkflowTemplateResponse {
+  templateId: string;
+  message: string;
+}
+
+export interface ExecuteWorkflowTemplateRequest {
+  templateId: string;
+  sha: string;
+  runName?: string;
+}
+
+export interface TemplateRun {
+  runId: string;
+  workflowId: string;
+  templateId: string;
+  sha: string;
+  runName?: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  monitoringLinks: Record<string, string>;
+  provider: string;
+}
+
+export interface TemplateRunHistoryResponse {
+  runs: TemplateRun[];
+  count: number;
+}

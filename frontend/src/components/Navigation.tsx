@@ -66,6 +66,18 @@ const Navigation = () => {
           >
             View Testnets
           </Button>
+          <Button
+            as={RouterLink}
+            to="/templates"
+            variant={location.pathname.startsWith('/template') ? 'solid' : 'ghost'}
+            colorScheme="brand"
+            justifyContent="flex-start"
+            w="100%"
+            leftIcon={<Box w="1em" />}
+            _hover={{ bg: colorMode === 'light' ? 'gray.200' : 'gray.700' }}
+          >
+            Templates
+          </Button>
         </VStack>
       </VStack>
     </Box>

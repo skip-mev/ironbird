@@ -19,13 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	IronbirdService_CreateWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/CreateWorkflow"
-	IronbirdService_GetWorkflow_FullMethodName        = "/skip.ironbird.IronbirdService/GetWorkflow"
-	IronbirdService_ListWorkflows_FullMethodName      = "/skip.ironbird.IronbirdService/ListWorkflows"
-	IronbirdService_CancelWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/CancelWorkflow"
-	IronbirdService_SignalWorkflow_FullMethodName     = "/skip.ironbird.IronbirdService/SignalWorkflow"
-	IronbirdService_RunLoadTest_FullMethodName        = "/skip.ironbird.IronbirdService/RunLoadTest"
-	IronbirdService_UpdateWorkflowData_FullMethodName = "/skip.ironbird.IronbirdService/UpdateWorkflowData"
+	IronbirdService_CreateWorkflow_FullMethodName          = "/skip.ironbird.IronbirdService/CreateWorkflow"
+	IronbirdService_GetWorkflow_FullMethodName             = "/skip.ironbird.IronbirdService/GetWorkflow"
+	IronbirdService_ListWorkflows_FullMethodName           = "/skip.ironbird.IronbirdService/ListWorkflows"
+	IronbirdService_CancelWorkflow_FullMethodName          = "/skip.ironbird.IronbirdService/CancelWorkflow"
+	IronbirdService_SignalWorkflow_FullMethodName          = "/skip.ironbird.IronbirdService/SignalWorkflow"
+	IronbirdService_RunLoadTest_FullMethodName             = "/skip.ironbird.IronbirdService/RunLoadTest"
+	IronbirdService_UpdateWorkflowData_FullMethodName      = "/skip.ironbird.IronbirdService/UpdateWorkflowData"
+	IronbirdService_CreateWorkflowTemplate_FullMethodName  = "/skip.ironbird.IronbirdService/CreateWorkflowTemplate"
+	IronbirdService_GetWorkflowTemplate_FullMethodName     = "/skip.ironbird.IronbirdService/GetWorkflowTemplate"
+	IronbirdService_ListWorkflowTemplates_FullMethodName   = "/skip.ironbird.IronbirdService/ListWorkflowTemplates"
+	IronbirdService_UpdateWorkflowTemplate_FullMethodName  = "/skip.ironbird.IronbirdService/UpdateWorkflowTemplate"
+	IronbirdService_DeleteWorkflowTemplate_FullMethodName  = "/skip.ironbird.IronbirdService/DeleteWorkflowTemplate"
+	IronbirdService_ExecuteWorkflowTemplate_FullMethodName = "/skip.ironbird.IronbirdService/ExecuteWorkflowTemplate"
+	IronbirdService_GetTemplateRunHistory_FullMethodName   = "/skip.ironbird.IronbirdService/GetTemplateRunHistory"
 )
 
 // IronbirdServiceClient is the client API for IronbirdService service.
@@ -39,6 +46,13 @@ type IronbirdServiceClient interface {
 	SignalWorkflow(ctx context.Context, in *SignalWorkflowRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 	RunLoadTest(ctx context.Context, in *RunLoadTestRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
 	UpdateWorkflowData(ctx context.Context, in *UpdateWorkflowDataRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
+	CreateWorkflowTemplate(ctx context.Context, in *CreateWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error)
+	GetWorkflowTemplate(ctx context.Context, in *GetWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplate, error)
+	ListWorkflowTemplates(ctx context.Context, in *ListWorkflowTemplatesRequest, opts ...grpc.CallOption) (*WorkflowTemplateListResponse, error)
+	UpdateWorkflowTemplate(ctx context.Context, in *UpdateWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error)
+	DeleteWorkflowTemplate(ctx context.Context, in *DeleteWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error)
+	ExecuteWorkflowTemplate(ctx context.Context, in *ExecuteWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowResponse, error)
+	GetTemplateRunHistory(ctx context.Context, in *GetTemplateRunHistoryRequest, opts ...grpc.CallOption) (*TemplateRunHistoryResponse, error)
 }
 
 type ironbirdServiceClient struct {
@@ -119,6 +133,76 @@ func (c *ironbirdServiceClient) UpdateWorkflowData(ctx context.Context, in *Upda
 	return out, nil
 }
 
+func (c *ironbirdServiceClient) CreateWorkflowTemplate(ctx context.Context, in *CreateWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowTemplateResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_CreateWorkflowTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) GetWorkflowTemplate(ctx context.Context, in *GetWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowTemplate)
+	err := c.cc.Invoke(ctx, IronbirdService_GetWorkflowTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) ListWorkflowTemplates(ctx context.Context, in *ListWorkflowTemplatesRequest, opts ...grpc.CallOption) (*WorkflowTemplateListResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowTemplateListResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_ListWorkflowTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) UpdateWorkflowTemplate(ctx context.Context, in *UpdateWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowTemplateResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_UpdateWorkflowTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) DeleteWorkflowTemplate(ctx context.Context, in *DeleteWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowTemplateResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_DeleteWorkflowTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) ExecuteWorkflowTemplate(ctx context.Context, in *ExecuteWorkflowTemplateRequest, opts ...grpc.CallOption) (*WorkflowResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WorkflowResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_ExecuteWorkflowTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *ironbirdServiceClient) GetTemplateRunHistory(ctx context.Context, in *GetTemplateRunHistoryRequest, opts ...grpc.CallOption) (*TemplateRunHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TemplateRunHistoryResponse)
+	err := c.cc.Invoke(ctx, IronbirdService_GetTemplateRunHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IronbirdServiceServer is the server API for IronbirdService service.
 // All implementations must embed UnimplementedIronbirdServiceServer
 // for forward compatibility.
@@ -130,6 +214,13 @@ type IronbirdServiceServer interface {
 	SignalWorkflow(context.Context, *SignalWorkflowRequest) (*WorkflowResponse, error)
 	RunLoadTest(context.Context, *RunLoadTestRequest) (*WorkflowResponse, error)
 	UpdateWorkflowData(context.Context, *UpdateWorkflowDataRequest) (*WorkflowResponse, error)
+	CreateWorkflowTemplate(context.Context, *CreateWorkflowTemplateRequest) (*WorkflowTemplateResponse, error)
+	GetWorkflowTemplate(context.Context, *GetWorkflowTemplateRequest) (*WorkflowTemplate, error)
+	ListWorkflowTemplates(context.Context, *ListWorkflowTemplatesRequest) (*WorkflowTemplateListResponse, error)
+	UpdateWorkflowTemplate(context.Context, *UpdateWorkflowTemplateRequest) (*WorkflowTemplateResponse, error)
+	DeleteWorkflowTemplate(context.Context, *DeleteWorkflowTemplateRequest) (*WorkflowTemplateResponse, error)
+	ExecuteWorkflowTemplate(context.Context, *ExecuteWorkflowTemplateRequest) (*WorkflowResponse, error)
+	GetTemplateRunHistory(context.Context, *GetTemplateRunHistoryRequest) (*TemplateRunHistoryResponse, error)
 	mustEmbedUnimplementedIronbirdServiceServer()
 }
 
@@ -160,6 +251,27 @@ func (UnimplementedIronbirdServiceServer) RunLoadTest(context.Context, *RunLoadT
 }
 func (UnimplementedIronbirdServiceServer) UpdateWorkflowData(context.Context, *UpdateWorkflowDataRequest) (*WorkflowResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateWorkflowData not implemented")
+}
+func (UnimplementedIronbirdServiceServer) CreateWorkflowTemplate(context.Context, *CreateWorkflowTemplateRequest) (*WorkflowTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateWorkflowTemplate not implemented")
+}
+func (UnimplementedIronbirdServiceServer) GetWorkflowTemplate(context.Context, *GetWorkflowTemplateRequest) (*WorkflowTemplate, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetWorkflowTemplate not implemented")
+}
+func (UnimplementedIronbirdServiceServer) ListWorkflowTemplates(context.Context, *ListWorkflowTemplatesRequest) (*WorkflowTemplateListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListWorkflowTemplates not implemented")
+}
+func (UnimplementedIronbirdServiceServer) UpdateWorkflowTemplate(context.Context, *UpdateWorkflowTemplateRequest) (*WorkflowTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateWorkflowTemplate not implemented")
+}
+func (UnimplementedIronbirdServiceServer) DeleteWorkflowTemplate(context.Context, *DeleteWorkflowTemplateRequest) (*WorkflowTemplateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteWorkflowTemplate not implemented")
+}
+func (UnimplementedIronbirdServiceServer) ExecuteWorkflowTemplate(context.Context, *ExecuteWorkflowTemplateRequest) (*WorkflowResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteWorkflowTemplate not implemented")
+}
+func (UnimplementedIronbirdServiceServer) GetTemplateRunHistory(context.Context, *GetTemplateRunHistoryRequest) (*TemplateRunHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTemplateRunHistory not implemented")
 }
 func (UnimplementedIronbirdServiceServer) mustEmbedUnimplementedIronbirdServiceServer() {}
 func (UnimplementedIronbirdServiceServer) testEmbeddedByValue()                         {}
@@ -308,6 +420,132 @@ func _IronbirdService_UpdateWorkflowData_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IronbirdService_CreateWorkflowTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateWorkflowTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).CreateWorkflowTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_CreateWorkflowTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).CreateWorkflowTemplate(ctx, req.(*CreateWorkflowTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_GetWorkflowTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWorkflowTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).GetWorkflowTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_GetWorkflowTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).GetWorkflowTemplate(ctx, req.(*GetWorkflowTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_ListWorkflowTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWorkflowTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).ListWorkflowTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_ListWorkflowTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).ListWorkflowTemplates(ctx, req.(*ListWorkflowTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_UpdateWorkflowTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateWorkflowTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).UpdateWorkflowTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_UpdateWorkflowTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).UpdateWorkflowTemplate(ctx, req.(*UpdateWorkflowTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_DeleteWorkflowTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteWorkflowTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).DeleteWorkflowTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_DeleteWorkflowTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).DeleteWorkflowTemplate(ctx, req.(*DeleteWorkflowTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_ExecuteWorkflowTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExecuteWorkflowTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).ExecuteWorkflowTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_ExecuteWorkflowTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).ExecuteWorkflowTemplate(ctx, req.(*ExecuteWorkflowTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IronbirdService_GetTemplateRunHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTemplateRunHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IronbirdServiceServer).GetTemplateRunHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IronbirdService_GetTemplateRunHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IronbirdServiceServer).GetTemplateRunHistory(ctx, req.(*GetTemplateRunHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IronbirdService_ServiceDesc is the grpc.ServiceDesc for IronbirdService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +580,34 @@ var IronbirdService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateWorkflowData",
 			Handler:    _IronbirdService_UpdateWorkflowData_Handler,
+		},
+		{
+			MethodName: "CreateWorkflowTemplate",
+			Handler:    _IronbirdService_CreateWorkflowTemplate_Handler,
+		},
+		{
+			MethodName: "GetWorkflowTemplate",
+			Handler:    _IronbirdService_GetWorkflowTemplate_Handler,
+		},
+		{
+			MethodName: "ListWorkflowTemplates",
+			Handler:    _IronbirdService_ListWorkflowTemplates_Handler,
+		},
+		{
+			MethodName: "UpdateWorkflowTemplate",
+			Handler:    _IronbirdService_UpdateWorkflowTemplate_Handler,
+		},
+		{
+			MethodName: "DeleteWorkflowTemplate",
+			Handler:    _IronbirdService_DeleteWorkflowTemplate_Handler,
+		},
+		{
+			MethodName: "ExecuteWorkflowTemplate",
+			Handler:    _IronbirdService_ExecuteWorkflowTemplate_Handler,
+		},
+		{
+			MethodName: "GetTemplateRunHistory",
+			Handler:    _IronbirdService_GetTemplateRunHistory_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

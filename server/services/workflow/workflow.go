@@ -343,13 +343,23 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		status := db.WorkflowStatusToString(workflow.Status)
 		startTime := workflow.CreatedAt.Format("2006-01-02 15:04:05")
 
+		templateName := ""
+		if workflow.TemplateID != "" {
+			if template, err := s.db.GetWorkflowTemplate(workflow.TemplateID); err == nil {
+				templateName = template.Name
+			}
+		}
+
 		response.Workflows = append(response.Workflows, &pb.WorkflowSummary{
-			WorkflowId: workflow.WorkflowID,
-			Status:     status,
-			StartTime:  startTime,
-			Repo:       workflow.Config.Repo,
-			Sha:        workflow.Config.SHA,
-			Provider:   workflow.Provider,
+			WorkflowId:   workflow.WorkflowID,
+			Status:       status,
+			StartTime:    startTime,
+			Repo:         workflow.Config.Repo,
+			Sha:          workflow.Config.SHA,
+			Provider:     workflow.Provider,
+			TemplateId:   workflow.TemplateID,
+			TemplateName: templateName,
+			RunName:      workflow.RunName,
 		})
 	}
 
@@ -567,4 +577,334 @@ func decodeLoadTestSpec(s string) (catalysttypes.LoadTestSpec, error) {
 func encodeLoadTestSpec(s catalysttypes.LoadTestSpec) (string, error) {
 	bz, err := yaml.Marshal(s)
 	return string(bz), err
+}
+
+func (s *Service) CreateWorkflowTemplate(ctx context.Context, req *pb.CreateWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
+	s.logger.Info("CreateWorkflowTemplate request received", zap.Any("request", req))
+
+	templateID := fmt.Sprintf("template-%d", time.Now().Unix())
+
+	config := s.convertProtoToWorkflowRequest(req.TemplateConfig)
+
+	err := s.db.CreateWorkflowTemplate(&db.WorkflowTemplate{
+		TemplateID:  templateID,
+		Name:        req.Name,
+		Description: req.Description,
+		Config:      config,
+	})
+	if err != nil {
+		s.logger.Error("Failed to create workflow template", zap.Error(err))
+		return nil, fmt.Errorf("failed to create workflow template: %w", err)
+	}
+
+	return &pb.WorkflowTemplateResponse{
+		TemplateId: templateID,
+		Message:    "Template created successfully",
+	}, nil
+}
+
+func (s *Service) GetWorkflowTemplate(ctx context.Context, req *pb.GetWorkflowTemplateRequest) (*pb.WorkflowTemplate, error) {
+	s.logger.Info("GetWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+
+	template, err := s.db.GetWorkflowTemplate(req.TemplateId)
+	if err != nil {
+		s.logger.Error("Failed to get workflow template", zap.Error(err))
+		return nil, fmt.Errorf("failed to get workflow template: %w", err)
+	}
+
+	protoTemplate := s.convertTemplateToProto(template)
+	return protoTemplate, nil
+}
+
+func (s *Service) ListWorkflowTemplates(ctx context.Context, req *pb.ListWorkflowTemplatesRequest) (*pb.WorkflowTemplateListResponse, error) {
+	s.logger.Info("ListWorkflowTemplates request received", zap.Any("request", req))
+
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 100
+	}
+
+	templates, err := s.db.ListWorkflowTemplates(limit, int(req.Offset))
+	if err != nil {
+		s.logger.Error("Failed to list workflow templates", zap.Error(err))
+		return nil, fmt.Errorf("failed to list workflow templates: %w", err)
+	}
+
+	protoTemplates := make([]*pb.WorkflowTemplateSummary, len(templates))
+	for i, template := range templates {
+		runCount, _ := s.getTemplateRunCount(template.TemplateID) // Ignore error for now
+		protoTemplates[i] = &pb.WorkflowTemplateSummary{
+			TemplateId:  template.TemplateID,
+			Name:        template.Name,
+			Description: template.Description,
+			CreatedAt:   template.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   template.UpdatedAt.Format(time.RFC3339),
+			RunCount:    int32(runCount),
+		}
+	}
+
+	return &pb.WorkflowTemplateListResponse{
+		Templates: protoTemplates,
+		Count:     int32(len(protoTemplates)),
+	}, nil
+}
+
+func (s *Service) UpdateWorkflowTemplate(ctx context.Context, req *pb.UpdateWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
+	s.logger.Info("UpdateWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+
+	config := s.convertProtoToWorkflowRequest(req.TemplateConfig)
+
+	template := &db.WorkflowTemplate{
+		Name:        req.Name,
+		Description: req.Description,
+		Config:      config,
+	}
+
+	err := s.db.UpdateWorkflowTemplate(req.TemplateId, template)
+	if err != nil {
+		s.logger.Error("Failed to update workflow template", zap.Error(err))
+		return nil, fmt.Errorf("failed to update workflow template: %w", err)
+	}
+
+	return &pb.WorkflowTemplateResponse{
+		TemplateId: req.TemplateId,
+		Message:    "Template updated successfully",
+	}, nil
+}
+
+func (s *Service) DeleteWorkflowTemplate(ctx context.Context, req *pb.DeleteWorkflowTemplateRequest) (*pb.WorkflowTemplateResponse, error) {
+	s.logger.Info("DeleteWorkflowTemplate request received", zap.String("template_id", req.TemplateId))
+
+	err := s.db.DeleteWorkflowTemplate(req.TemplateId)
+	if err != nil {
+		s.logger.Error("Failed to delete workflow template", zap.Error(err))
+		return nil, fmt.Errorf("failed to delete workflow template: %w", err)
+	}
+
+	return &pb.WorkflowTemplateResponse{
+		TemplateId: req.TemplateId,
+		Message:    "Template deleted successfully",
+	}, nil
+}
+
+func (s *Service) ExecuteWorkflowTemplate(ctx context.Context, req *pb.ExecuteWorkflowTemplateRequest) (*pb.WorkflowResponse, error) {
+	s.logger.Info("ExecuteWorkflowTemplate request received", zap.Any("request", req))
+
+	template, err := s.db.GetWorkflowTemplate(req.TemplateId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workflow template: %w", err)
+	}
+
+	workflowReq := template.Config
+	workflowReq.SHA = req.Sha
+
+	protoReq := s.convertWorkflowRequestToProto(workflowReq)
+
+	workflowResp, err := s.CreateWorkflow(ctx, protoReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create workflow from template: %w", err)
+	}
+
+	update := db.WorkflowUpdate{
+		TemplateID: &req.TemplateId,
+		RunName:    &req.RunName,
+	}
+	err = s.db.UpdateWorkflow(workflowResp.WorkflowId, update)
+	if err != nil {
+		s.logger.Warn("Failed to update workflow with template information", zap.Error(err))
+	}
+
+	return workflowResp, nil
+}
+
+func (s *Service) GetTemplateRunHistory(ctx context.Context, req *pb.GetTemplateRunHistoryRequest) (*pb.TemplateRunHistoryResponse, error) {
+	s.logger.Info("GetTemplateRunHistory request received", zap.String("template_id", req.TemplateId))
+
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 50
+	}
+
+	workflows, err := s.db.ListTemplateWorkflows(req.TemplateId, limit, int(req.Offset))
+	if err != nil {
+		s.logger.Error("Failed to list template workflows", zap.Error(err))
+		return nil, fmt.Errorf("failed to list template workflows: %w", err)
+	}
+
+	protoRuns := make([]*pb.TemplateRun, len(workflows))
+	for i, workflow := range workflows {
+		protoRuns[i] = &pb.TemplateRun{
+			RunId:           workflow.RunName,
+			WorkflowId:      workflow.WorkflowID,
+			TemplateId:      workflow.TemplateID,
+			Sha:             workflow.Config.SHA,
+			RunName:         workflow.RunName,
+			Status:          db.WorkflowStatusToString(workflow.Status),
+			StartedAt:       workflow.CreatedAt.Format(time.RFC3339),
+			MonitoringLinks: workflow.MonitoringLinks,
+			Provider:        workflow.Provider,
+		}
+		if isWorkflowTerminal(workflow.Status) {
+			protoRuns[i].CompletedAt = workflow.UpdatedAt.Format(time.RFC3339)
+		}
+	}
+
+	return &pb.TemplateRunHistoryResponse{
+		Runs:  protoRuns,
+		Count: int32(len(protoRuns)),
+	}, nil
+}
+
+func (s *Service) convertProtoToWorkflowRequest(req *pb.CreateWorkflowRequest) messages.TestnetWorkflowRequest {
+	workflowReq := messages.TestnetWorkflowRequest{
+		Repo:               req.Repo,
+		SHA:                req.Sha,
+		IsEvmChain:         req.IsEvmChain,
+		RunnerType:         messages.RunnerType(req.RunnerType),
+		LongRunningTestnet: req.LongRunningTestnet,
+		LaunchLoadBalancer: req.LaunchLoadBalancer,
+		TestnetDuration:    req.TestnetDuration,
+		NumWallets:         int(req.NumWallets),
+	}
+
+	if req.ChainConfig != nil {
+		chainConfig := types.ChainsConfig{
+			Name:                  req.ChainConfig.Name,
+			Image:                 req.ChainConfig.Image,
+			NumOfNodes:            req.ChainConfig.NumOfNodes,
+			NumOfValidators:       req.ChainConfig.NumOfValidators,
+			SetSeedNode:           req.ChainConfig.SetSeedNode,
+			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
+			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
+			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
+		}
+
+		if req.ChainConfig.RegionConfigs != nil {
+			for _, rc := range req.ChainConfig.RegionConfigs {
+				chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, petritypes.RegionConfig{
+					Name:          rc.Name,
+					NumNodes:      int(rc.NumOfNodes),
+					NumValidators: int(rc.NumOfValidators),
+				})
+			}
+		}
+
+		if req.ChainConfig.GenesisModifications != nil {
+			for _, gm := range req.ChainConfig.GenesisModifications {
+				chainConfig.GenesisModifications = append(
+					chainConfig.GenesisModifications,
+					chain.GenesisKV{
+						Key:   gm.Key,
+						Value: gm.Value,
+					},
+				)
+			}
+		}
+
+		workflowReq.ChainConfig = chainConfig
+	}
+
+	if len(req.EncodedLoadTestSpec) != 0 {
+		loadTestSpec, err := decodeLoadTestSpec(req.EncodedLoadTestSpec)
+		if err != nil {
+			s.logger.Warn("Failed to decode load test spec in template", zap.Error(err))
+		} else {
+			switch loadTestSpec.Kind {
+			case "eth":
+				workflowReq.EthereumLoadTestSpec = &loadTestSpec
+			case "cosmos":
+				workflowReq.CosmosLoadTestSpec = &loadTestSpec
+			}
+		}
+	}
+
+	return workflowReq
+}
+
+func (s *Service) convertWorkflowRequestToProto(req messages.TestnetWorkflowRequest) *pb.CreateWorkflowRequest {
+	protoReq := &pb.CreateWorkflowRequest{
+		Repo:               req.Repo,
+		Sha:                req.SHA,
+		IsEvmChain:         req.IsEvmChain,
+		RunnerType:         string(req.RunnerType),
+		LongRunningTestnet: req.LongRunningTestnet,
+		LaunchLoadBalancer: req.LaunchLoadBalancer,
+		TestnetDuration:    req.TestnetDuration,
+		NumWallets:         int32(req.NumWallets),
+	}
+
+	chainConfig := &pb.ChainConfig{
+		Name:                  req.ChainConfig.Name,
+		Image:                 req.ChainConfig.Image,
+		NumOfNodes:            req.ChainConfig.NumOfNodes,
+		NumOfValidators:       req.ChainConfig.NumOfValidators,
+		SetSeedNode:           req.ChainConfig.SetSeedNode,
+		SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+		CustomAppConfig:       marshalJSONConfig(req.ChainConfig.CustomAppConfig),
+		CustomConsensusConfig: marshalJSONConfig(req.ChainConfig.CustomConsensusConfig),
+		CustomClientConfig:    marshalJSONConfig(req.ChainConfig.CustomClientConfig),
+	}
+
+	for _, rc := range req.ChainConfig.RegionConfigs {
+		chainConfig.RegionConfigs = append(chainConfig.RegionConfigs, &pb.RegionConfig{
+			Name:            rc.Name,
+			NumOfNodes:      uint64(rc.NumNodes),
+			NumOfValidators: uint64(rc.NumValidators),
+		})
+	}
+
+	for _, gm := range req.ChainConfig.GenesisModifications {
+		value := ""
+		if gm.Value != nil {
+			if str, ok := gm.Value.(string); ok {
+				value = str
+			} else {
+				if bytes, err := json.Marshal(gm.Value); err == nil {
+					value = string(bytes)
+				}
+			}
+		}
+		chainConfig.GenesisModifications = append(chainConfig.GenesisModifications, &pb.GenesisKV{
+			Key:   gm.Key,
+			Value: value,
+		})
+	}
+
+	protoReq.ChainConfig = chainConfig
+
+	if req.EthereumLoadTestSpec != nil {
+		encodedSpec, err := encodeLoadTestSpec(*req.EthereumLoadTestSpec)
+		if err == nil {
+			protoReq.EncodedLoadTestSpec = encodedSpec
+		}
+	} else if req.CosmosLoadTestSpec != nil {
+		encodedSpec, err := encodeLoadTestSpec(*req.CosmosLoadTestSpec)
+		if err == nil {
+			protoReq.EncodedLoadTestSpec = encodedSpec
+		}
+	}
+
+	return protoReq
+}
+
+func (s *Service) convertTemplateToProto(template *db.WorkflowTemplate) *pb.WorkflowTemplate {
+	protoTemplate := &pb.WorkflowTemplate{
+		TemplateId:     template.TemplateID,
+		Name:           template.Name,
+		Description:    template.Description,
+		TemplateConfig: s.convertWorkflowRequestToProto(template.Config),
+		CreatedAt:      template.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:      template.UpdatedAt.Format(time.RFC3339),
+		CreatedBy:      template.CreatedBy,
+	}
+	return protoTemplate
+}
+
+func (s *Service) getTemplateRunCount(templateID string) (int, error) {
+	workflows, err := s.db.ListTemplateWorkflows(templateID, 1000, 0)
+	if err != nil {
+		return 0, err
+	}
+	return len(workflows), nil
 }
