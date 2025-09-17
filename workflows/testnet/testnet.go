@@ -246,64 +246,62 @@ func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, ch
 }
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
-	mnemonics []string, selector workflow.Selector) error {
+	mnemonics []string, selector workflow.Selector) (workflow.Future, error) {
 	if req.EthereumLoadTestSpec != nil {
-		workflow.Go(ctx, func(ctx workflow.Context) {
-			var loadTestResp messages.RunLoadTestResponse
-			f := workflow.ExecuteActivity(
-				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
-				loadTestActivities.RunLoadTest,
-				messages.RunLoadTestRequest{
-					ChainState:      chainState,
-					ProviderState:   providerState,
-					LoadTestSpec:    *req.EthereumLoadTestSpec,
-					RunnerType:      req.RunnerType,
-					IsEvmChain:      req.IsEvmChain,
-					Mnemonics:       mnemonics,
-					CatalystVersion: req.CatalystVersion,
-				},
-			)
+		var loadTestResp messages.RunLoadTestResponse
+		f := workflow.ExecuteActivity(
+			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+			loadTestActivities.RunLoadTest,
+			messages.RunLoadTestRequest{
+				ChainState:      chainState,
+				ProviderState:   providerState,
+				LoadTestSpec:    *req.EthereumLoadTestSpec,
+				RunnerType:      req.RunnerType,
+				IsEvmChain:      req.IsEvmChain,
+				Mnemonics:       mnemonics,
+				CatalystVersion: req.CatalystVersion,
+			},
+		)
 
-			selector.AddFuture(f, func(f workflow.Future) {
-				activityErr := f.Get(ctx, &loadTestResp)
-				if activityErr != nil {
-					workflow.GetLogger(ctx).Error("ethereum load test failed", zap.Error(activityErr))
-				} else if loadTestResp.Result.Error != "" {
-					workflow.GetLogger(ctx).Error("ethereum load test reported an error", zap.String("error", loadTestResp.Result.Error))
-				}
-			})
-
+		selector.AddFuture(f, func(f workflow.Future) {
+			activityErr := f.Get(ctx, &loadTestResp)
+			if activityErr != nil {
+				workflow.GetLogger(ctx).Error("ethereum load test failed", zap.Error(activityErr))
+			} else if loadTestResp.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("ethereum load test reported an error", zap.String("error", loadTestResp.Result.Error))
+			}
 		})
+
+		return f, nil
 	} else if req.CosmosLoadTestSpec != nil {
-		workflow.Go(ctx, func(ctx workflow.Context) {
-			var loadTestResp messages.RunLoadTestResponse
-			f := workflow.ExecuteActivity(
-				workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
-				loadTestActivities.RunLoadTest,
-				messages.RunLoadTestRequest{
-					ChainState:      chainState,
-					ProviderState:   providerState,
-					LoadTestSpec:    *req.CosmosLoadTestSpec,
-					RunnerType:      req.RunnerType,
-					IsEvmChain:      req.IsEvmChain,
-					Mnemonics:       mnemonics,
-					CatalystVersion: req.CatalystVersion,
-				},
-			)
+		var loadTestResp messages.RunLoadTestResponse
+		f := workflow.ExecuteActivity(
+			workflow.WithStartToCloseTimeout(ctx, loadTestTimeout),
+			loadTestActivities.RunLoadTest,
+			messages.RunLoadTestRequest{
+				ChainState:      chainState,
+				ProviderState:   providerState,
+				LoadTestSpec:    *req.CosmosLoadTestSpec,
+				RunnerType:      req.RunnerType,
+				IsEvmChain:      req.IsEvmChain,
+				Mnemonics:       mnemonics,
+				CatalystVersion: req.CatalystVersion,
+			},
+		)
 
-			selector.AddFuture(f, func(f workflow.Future) {
-				activityErr := f.Get(ctx, &loadTestResp)
-				if activityErr != nil {
-					workflow.GetLogger(ctx).Error("cosmos load test failed", zap.Error(activityErr))
-				} else if loadTestResp.Result.Error != "" {
-					workflow.GetLogger(ctx).Error("cosmos load test reported an error", zap.String("error", loadTestResp.Result.Error))
-				}
-			})
-
+		selector.AddFuture(f, func(f workflow.Future) {
+			activityErr := f.Get(ctx, &loadTestResp)
+			if activityErr != nil {
+				workflow.GetLogger(ctx).Error("cosmos load test failed", zap.Error(activityErr))
+			} else if loadTestResp.Result.Error != "" {
+				workflow.GetLogger(ctx).Error("cosmos load test reported an error", zap.String("error", loadTestResp.Result.Error))
+			}
 		})
+
+		return f, nil
 	}
 
-	return nil
+	return nil, nil
 }
 
 func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
@@ -334,7 +332,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
-	err = runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
+	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
@@ -342,6 +340,14 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	waitForTestnetCompletion(ctx, req, shutdownSelector)
 
 	shutdownSelector.Select(ctx)
+
+	// If we have a loadtest running and the duration timer expired (not cancelled),
+	// wait for the loadtest to complete before allowing teardown
+	if loadTestFuture != nil && !temporal.IsCanceledError(ctx.Err()) {
+		workflow.GetLogger(ctx).Info("testnet duration expired but loadtest is still running, waiting for completion")
+		loadTestFuture.Get(ctx, nil) // Wait for loadtest to complete
+		workflow.GetLogger(ctx).Info("loadtest completed, proceeding with teardown")
+	}
 
 	if ctx.Err() != nil && temporal.IsCanceledError(ctx.Err()) {
 		workflow.GetLogger(ctx).Info("workflow was cancelled, completing gracefully")
