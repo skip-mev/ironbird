@@ -1,6 +1,6 @@
 {
   "repo": "evm",
-  "sha": "28ac1526b449c4ef8ca764b69519a5bbd01ab3ea",
+  "sha": "c43c9404809083ee9a183d90c124d5b171247521",
   "isEvmChain": true,
   "chain_config": {
     "region_configs": [
@@ -79,10 +79,10 @@
         }
       ]
   },
-  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1.2s\",\"num_batches\":25,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":2500}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
+  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1s\",\"num_batches\":25,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":2500}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
   "runner_type": "DigitalOcean",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 2500,
+  "num_wallets": 5000,
   "launch_load_balancer": false
 }
