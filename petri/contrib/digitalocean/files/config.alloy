@@ -9,6 +9,20 @@ foreach "container" {
     var = "container"
 
     template {
+        prometheus.scrape "geth_metrics" {
+            targets = [{
+                __address__ = "127.0.0.1:1317",
+                provider   = json_path(local.file.creds.content, ".provider")[0],
+                node_name  = container["__meta_docker_container_label_petri_node_name"],
+            }]
+            scrape_interval = "5s"
+            scrape_timeout  = "5s"
+            metrics_path    = "/geth/metrics"
+            forward_to = [prometheus.remote_write.overseer.receiver]
+        }
+    }
+
+    template {
         foreach "port" {
             enable_metrics = true
             collection = string.split(container["__meta_docker_container_label_petri_ports"], ",")
