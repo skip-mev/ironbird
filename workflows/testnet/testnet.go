@@ -345,7 +345,11 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	// wait for the loadtest to complete before allowing teardown
 	if loadTestFuture != nil && !temporal.IsCanceledError(ctx.Err()) {
 		workflow.GetLogger(ctx).Info("testnet duration expired but loadtest is still running, waiting for completion")
-		loadTestFuture.Get(ctx, nil) // Wait for loadtest to complete
+		err = loadTestFuture.Get(ctx, nil) // Wait for loadtest to complete
+		if err != nil {
+			workflow.GetLogger(ctx).Error("failed to wait for load test future", zap.Error(err))
+			return err
+		}
 		workflow.GetLogger(ctx).Info("loadtest completed, proceeding with teardown")
 	}
 
