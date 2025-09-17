@@ -416,7 +416,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
-	return workflows, err
+	return workflows, nil
 }
 
 func (s *SQLiteDB) DeleteWorkflow(workflowID string) error {
@@ -584,7 +584,7 @@ func (s *SQLiteDB) ListWorkflowTemplates(limit, offset int) (templates []Workflo
 		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
-	return templates, err
+	return
 }
 
 func (s *SQLiteDB) DeleteWorkflowTemplate(templateID string) error {
@@ -699,5 +699,5 @@ func (s *SQLiteDB) ListTemplateWorkflows(templateID string, limit, offset int) (
 		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
-	return workflows, err
+	return
 }
