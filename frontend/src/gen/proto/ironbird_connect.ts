@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CancelWorkflowRequest, CreateWorkflowRequest, GetWorkflowRequest, ListWorkflowsRequest, RunLoadTestRequest, SignalWorkflowRequest, UpdateWorkflowDataRequest, Workflow, WorkflowListResponse, WorkflowResponse } from "./ironbird_pb.js";
+import { CancelWorkflowRequest, CreateWorkflowRequest, CreateWorkflowTemplateRequest, DeleteWorkflowTemplateRequest, ExecuteWorkflowTemplateRequest, GetTemplateRunHistoryRequest, GetWorkflowRequest, GetWorkflowTemplateRequest, ListWorkflowsRequest, ListWorkflowTemplatesRequest, RunLoadTestRequest, SignalWorkflowRequest, TemplateRunHistoryResponse, UpdateWorkflowDataRequest, UpdateWorkflowTemplateRequest, Workflow, WorkflowListResponse, WorkflowResponse, WorkflowTemplate, WorkflowTemplateListResponse, WorkflowTemplateResponse } from "./ironbird_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -73,6 +73,69 @@ export const IronbirdService = {
       name: "UpdateWorkflowData",
       I: UpdateWorkflowDataRequest,
       O: WorkflowResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.CreateWorkflowTemplate
+     */
+    createWorkflowTemplate: {
+      name: "CreateWorkflowTemplate",
+      I: CreateWorkflowTemplateRequest,
+      O: WorkflowTemplateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.GetWorkflowTemplate
+     */
+    getWorkflowTemplate: {
+      name: "GetWorkflowTemplate",
+      I: GetWorkflowTemplateRequest,
+      O: WorkflowTemplate,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.ListWorkflowTemplates
+     */
+    listWorkflowTemplates: {
+      name: "ListWorkflowTemplates",
+      I: ListWorkflowTemplatesRequest,
+      O: WorkflowTemplateListResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.UpdateWorkflowTemplate
+     */
+    updateWorkflowTemplate: {
+      name: "UpdateWorkflowTemplate",
+      I: UpdateWorkflowTemplateRequest,
+      O: WorkflowTemplateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.DeleteWorkflowTemplate
+     */
+    deleteWorkflowTemplate: {
+      name: "DeleteWorkflowTemplate",
+      I: DeleteWorkflowTemplateRequest,
+      O: WorkflowTemplateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.ExecuteWorkflowTemplate
+     */
+    executeWorkflowTemplate: {
+      name: "ExecuteWorkflowTemplate",
+      I: ExecuteWorkflowTemplateRequest,
+      O: WorkflowResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc skip.ironbird.IronbirdService.GetTemplateRunHistory
+     */
+    getTemplateRunHistory: {
+      name: "GetTemplateRunHistory",
+      I: GetTemplateRunHistoryRequest,
+      O: TemplateRunHistoryResponse,
       kind: MethodKind.Unary,
     },
   }

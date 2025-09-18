@@ -47,25 +47,29 @@ const convertLoadTestSpecToYaml = (spec: LoadTestSpec): string => {
 };
 
 // Helper function to convert frontend TestnetWorkflowRequest to gRPC CreateWorkflowRequest
-const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): CreateWorkflowRequest => {
+export const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): CreateWorkflowRequest => {
   // Create the chain config with proper constructor
+  const chainConfigData = request.ChainConfig || (request as any).chain_config;
   const chainConfig = new ChainConfig({
-    name: request.ChainConfig.Name,
-    numOfNodes: request.ChainConfig.NumOfNodes !== undefined ? protoInt64.parse(request.ChainConfig.NumOfNodes.toString()) : protoInt64.zero,
-    numOfValidators: request.ChainConfig.NumOfValidators !== undefined ? protoInt64.parse(request.ChainConfig.NumOfValidators.toString()) : protoInt64.zero,
-    image: request.ChainConfig.Image,
-    version: request.ChainConfig.Version || "",
+    name: chainConfigData.Name || chainConfigData.name,
+    numOfNodes: chainConfigData.NumOfNodes !== undefined ? protoInt64.parse(chainConfigData.NumOfNodes.toString()) :
+               (chainConfigData.num_of_nodes !== undefined ? protoInt64.parse(chainConfigData.num_of_nodes.toString()) : protoInt64.zero),
+    numOfValidators: chainConfigData.NumOfValidators !== undefined ? protoInt64.parse(chainConfigData.NumOfValidators.toString()) :
+                    (chainConfigData.num_of_validators !== undefined ? protoInt64.parse(chainConfigData.num_of_validators.toString()) : protoInt64.zero),
+    image: chainConfigData.Image || chainConfigData.image,
+    version: chainConfigData.Version || chainConfigData.version || "",
     genesisModifications: [],
-    setSeedNode: request.ChainConfig.SetSeedNode || false,
-    setPersistentPeers: request.ChainConfig.SetPersistentPeers || false,
-    customAppConfig: request.ChainConfig.AppConfig ? JSON.stringify(request.ChainConfig.AppConfig) : "",
-    customConsensusConfig: request.ChainConfig.ConsensusConfig ? JSON.stringify(request.ChainConfig.ConsensusConfig) : "",
-    customClientConfig: request.ChainConfig.ClientConfig ? JSON.stringify(request.ChainConfig.ClientConfig) : ""
+    setSeedNode: chainConfigData.SetSeedNode || chainConfigData.set_seed_node || false,
+    setPersistentPeers: chainConfigData.SetPersistentPeers || chainConfigData.set_persistent_peers || false,
+    customAppConfig: chainConfigData.AppConfig ? JSON.stringify(chainConfigData.AppConfig) : (chainConfigData.custom_app_config || ""),
+    customConsensusConfig: chainConfigData.ConsensusConfig ? JSON.stringify(chainConfigData.ConsensusConfig) : (chainConfigData.custom_consensus_config || ""),
+    customClientConfig: chainConfigData.ClientConfig ? JSON.stringify(chainConfigData.ClientConfig) : (chainConfigData.custom_client_config || "")
   });
-  
+
   // Add genesis modifications if available
-  if (request.ChainConfig.GenesisModifications && request.ChainConfig.GenesisModifications.length > 0) {
-    chainConfig.genesisModifications = request.ChainConfig.GenesisModifications.map(gm => {
+  const genesisModifications = chainConfigData.GenesisModifications || chainConfigData.genesis_modifications;
+  if (genesisModifications && genesisModifications.length > 0) {
+    chainConfig.genesisModifications = genesisModifications.map((gm: any) => {
       // Convert value to string if it's not already a string
       let valueStr = typeof gm.value === 'string' ? gm.value : JSON.stringify(gm.value);
       return new GenesisKV({
@@ -76,39 +80,43 @@ const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowRequest): Cr
   }
 
   // Add RegionConfigs if available
-  if (request.ChainConfig.RegionConfigs && request.ChainConfig.RegionConfigs.length > 0) {
-    chainConfig.regionConfigs = request.ChainConfig.RegionConfigs.map(rc => new RegionConfig({
+  const regionConfigs = chainConfigData.RegionConfigs || chainConfigData.region_configs;
+  if (regionConfigs && regionConfigs.length > 0) {
+    chainConfig.regionConfigs = regionConfigs.map((rc: any) => new RegionConfig({
       name: rc.name,
-      numOfNodes: protoInt64.parse(rc.numOfNodes.toString()),
-      numOfValidators: protoInt64.parse(rc.numOfValidators.toString())
+      numOfNodes: protoInt64.parse((rc.numOfNodes || rc.num_of_nodes || 0).toString()),
+      numOfValidators: protoInt64.parse((rc.numOfValidators || rc.num_of_validators || 0).toString())
     }));
   }
   
   // Create the request with proper constructor
   const grpcRequest = new CreateWorkflowRequest({
-    repo: request.Repo,
-    sha: request.SHA,
-    isEvmChain: request.IsEvmChain,
+    repo: request.Repo || (request as any).repo,
+    sha: request.SHA || (request as any).sha,
+    isEvmChain: request.IsEvmChain !== undefined ? request.IsEvmChain : (request as any).isEvmChain,
     chainConfig: chainConfig,
-    runnerType: request.RunnerType,
-    longRunningTestnet: request.LongRunningTestnet,
-    launchLoadBalancer: request.LaunchLoadBalancer,
-    testnetDuration: request.TestnetDuration || '',
-    numWallets: request.NumWallets,
-    catalystVersion: request.CatalystVersion || ''
+    runnerType: request.RunnerType || (request as any).runner_type,
+    longRunningTestnet: request.LongRunningTestnet !== undefined ? request.LongRunningTestnet : (request as any).long_running_testnet,
+    launchLoadBalancer: request.LaunchLoadBalancer !== undefined ? request.LaunchLoadBalancer : (request as any).launch_load_balancer,
+    testnetDuration: request.TestnetDuration || (request as any).testnet_duration || '',
+    numWallets: request.NumWallets || (request as any).num_wallets || 2500,
+    catalystVersion: request.CatalystVersion || (request as any).catalyst_version || ''
   });
   
   // Convert number values to bigint
-  if (request.ChainConfig.NumOfNodes) {
-    grpcRequest.chainConfig!.numOfNodes = protoInt64.parse(request.ChainConfig.NumOfNodes.toString());
+  const numOfNodes = chainConfigData.NumOfNodes || chainConfigData.num_of_nodes;
+  if (numOfNodes) {
+    grpcRequest.chainConfig!.numOfNodes = protoInt64.parse(numOfNodes.toString());
+  }
+
+  const numOfValidators = chainConfigData.NumOfValidators || chainConfigData.num_of_validators;
+  if (numOfValidators) {
+    grpcRequest.chainConfig!.numOfValidators = protoInt64.parse(numOfValidators.toString());
   }
   
-  if (request.ChainConfig.NumOfValidators) {
-    grpcRequest.chainConfig!.numOfValidators = protoInt64.parse(request.ChainConfig.NumOfValidators.toString());
-  }
-  
-  if (request.EncodedLoadTestSpec) {
-    grpcRequest.encodedLoadTestSpec = request.EncodedLoadTestSpec;
+  const encodedSpec = request.EncodedLoadTestSpec || (request as any).encoded_load_test_spec;
+  if (encodedSpec) {
+    grpcRequest.encodedLoadTestSpec = encodedSpec;
   } else if (request.LoadTestSpec) {
     grpcRequest.encodedLoadTestSpec = convertLoadTestSpecToYaml(request.LoadTestSpec);
   }
@@ -246,7 +254,7 @@ export const workflowApi = {
     return convertFromGrpcWorkflowResponse(response);
   },
 
-  listWorkflows: async (): Promise<{Workflows: Array<{WorkflowID: string; Status: string; StartTime: string; Repo?: string; SHA?: string; Provider?: string}>; Count: number}> => {
+  listWorkflows: async (): Promise<{Workflows: Array<{WorkflowID: string; Status: string; StartTime: string; Repo?: string; SHA?: string; Provider?: string; TemplateID?: string; RunName?: string}>; Count: number}> => {
     const response = await grpcWorkflowApi.listWorkflows();
     return {
       Workflows: (response.workflows || []).map((workflow: any) => ({
@@ -255,7 +263,9 @@ export const workflowApi = {
         StartTime: workflow.startTime,
         Repo: workflow.repo,
         SHA: workflow.sha,
-        Provider: workflow.provider || ''
+        Provider: workflow.provider || '',
+        TemplateID: workflow.templateId || '',
+        RunName: workflow.runName || ''
       })),
       Count: response.count || 0
     };

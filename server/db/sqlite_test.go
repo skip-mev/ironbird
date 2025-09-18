@@ -11,13 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/api/enums/v1"
+	"go.uber.org/zap"
 )
 
 func TestSQLiteDB(t *testing.T) {
 	dbPath := "/tmp/test_ironbird.db"
 	defer os.Remove(dbPath)
 
-	db, err := NewSQLiteDB(dbPath)
+	logger, _ := zap.NewDevelopment()
+	db, err := NewSQLiteDB(dbPath, logger)
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -89,7 +91,8 @@ func TestSQLiteDB_Interface(t *testing.T) {
 	dbPath := "/tmp/test_interface.db"
 	defer os.Remove(dbPath)
 
-	db, err := NewSQLiteDB(dbPath)
+	logger, _ := zap.NewDevelopment()
+	db, err := NewSQLiteDB(dbPath, logger)
 	require.NoError(t, err)
 	defer db.Close()
 

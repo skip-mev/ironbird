@@ -31,7 +31,7 @@ func main() {
 		panic(err)
 	}
 
-	database, err := db.NewSQLiteDB(cfg.DatabasePath)
+	database, err := db.NewSQLiteDB(cfg.DatabasePath, logger)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}

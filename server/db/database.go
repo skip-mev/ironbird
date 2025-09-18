@@ -144,3 +144,22 @@ func (s *DatabaseService) UpdateWorkflowLoadBalancers(workflowID string, loadbal
 	s.Logger.Info("Successfully updated workflow loadbalancers", zap.String("workflow_id", workflowID))
 	return nil
 }
+
+func (s *DatabaseService) CreateWorkflowTemplate(templateID, description string, config messages.TestnetWorkflowRequest, createdBy string) error {
+	s.Logger.Info("Creating workflow template", zap.String("template_id", templateID))
+
+	template := &WorkflowTemplate{
+		ID:          templateID,
+		Description: description,
+		Config:      config,
+		CreatedBy:   createdBy,
+	}
+
+	if err := s.DB.CreateWorkflowTemplate(template); err != nil {
+		s.Logger.Error("Failed to create workflow template", zap.Error(err))
+		return fmt.Errorf("failed to create workflow template: %w", err)
+	}
+
+	s.Logger.Info("Successfully created workflow template", zap.String("template_id", templateID))
+	return nil
+}
