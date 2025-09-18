@@ -553,6 +553,87 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
 }
 
+func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowWaitsForLoadTestOnDurationExpiry() {
+	loadTestCompleted := false
+
+	cfg, err := types.ParseWorkerConfig("../../conf/worker.yaml")
+	if err != nil {
+		s.T().Fatal(err)
+	}
+	testnetActivity := &testnettypes.Activity{
+		Chains: cfg.Chains,
+	}
+	loadTestActivity := &loadtest.Activity{}
+	builderActivity := &builder.Activity{}
+	walletCreatorActivities := walletcreator.Activity{}
+
+	s.env.RegisterActivity(testnetActivity.CreateProvider)
+	s.env.RegisterActivity(testnetActivity.TeardownProvider)
+	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
+	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
+	s.env.RegisterActivity(builderActivity.BuildDockerImage)
+	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
+
+	testnetActivities = testnetActivity
+	loadTestActivities = loadTestActivity
+
+	s.env.OnActivity(loadTestActivity.RunLoadTest, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.RunLoadTestRequest) (messages.RunLoadTestResponse, error) {
+			time.Sleep(5 * time.Second)
+			loadTestCompleted = true
+			return messages.RunLoadTestResponse{
+				Result: catalysttypes.LoadTestResult{},
+			}, nil
+		})
+
+	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
+			// fail if teardown is called before loadtest completes
+			if !loadTestCompleted {
+				s.T().Errorf("TeardownProvider called before LoadTest completed instead of waiting for load test to complete")
+			}
+			return messages.TeardownProviderResponse{}, nil
+		})
+
+	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
+		func(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
+			originalTag := "ghcr.io/cosmos/simapp:v0.50"
+			newTag := "simapp-v53"
+
+			cmd := exec.Command("docker", "pull", originalTag)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				return messages.BuildDockerImageResponse{}, err
+			}
+
+			tagCmd := exec.Command("docker", "tag", originalTag, newTag)
+			tagOutput, err := tagCmd.CombinedOutput()
+			if err != nil {
+				return messages.BuildDockerImageResponse{}, err
+			}
+
+			return messages.BuildDockerImageResponse{
+				FQDNTag: newTag,
+				Logs:    append(output, tagOutput...),
+			}, nil
+		})
+
+	dockerReq := simappReq
+	dockerReq.Repo = "cosmos-sdk"
+	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
+	dockerReq.RunnerType = messages.Docker
+	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.TestnetDuration = "3s"
+	dockerReq.LongRunningTestnet = false
+
+	s.env.ExecuteWorkflow(Workflow, dockerReq)
+
+	s.True(s.env.IsWorkflowCompleted())
+	s.NoError(s.env.GetWorkflowError())
+	s.env.AssertActivityNumberOfCalls(s.T(), "RunLoadTest", 1)
+	s.env.AssertActivityNumberOfCalls(s.T(), "TeardownProvider", 1)
+}
+
 func TestTestnetWorkflowTestSuite(t *testing.T) {
 	suite.Run(t, new(TestnetWorkflowTestSuite))
 }
