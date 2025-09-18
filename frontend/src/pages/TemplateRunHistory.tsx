@@ -67,19 +67,30 @@ const TemplateRunHistory = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      if (!dateString || dateString.trim() === '') {
-        return '-';
-      }
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return '-';
-      }
-      return date.toLocaleString();
-    } catch {
-      return '-';
+  // Helper function to update monitoring dashboard URLs with proper time ranges and provider
+  const updateMonitoringUrl = (originalUrl: string, startTime?: string, endTime?: string, provider?: string) => {
+    if (!startTime) return originalUrl;
+    
+    const url = new URL(originalUrl);
+    const startTimestamp = new Date(startTime).getTime();
+    
+    // Update the from parameter
+    url.searchParams.set('from', startTimestamp.toString());
+    
+    // Update the to parameter
+    if (endTime) {
+      const endTimestamp = new Date(endTime).getTime();
+      url.searchParams.set('to', endTimestamp.toString());
+    } else {
+      url.searchParams.set('to', 'now');
     }
+    
+    // Add provider variable if provided and not already present
+    if (provider && !url.searchParams.has('var-provider')) {
+      url.searchParams.set('var-provider', provider);
+    }
+    
+    return url.toString();
   };
 
   const handleViewWorkflow = (workflowId: string) => {
@@ -241,7 +252,9 @@ const TemplateRunHistory = () => {
                           
                           if (isPerformanceLink) {
                             // Create both metrics and profiles buttons
-                            // For metrics, use the original URL (likely Grafana dashboard)
+                            // For metrics, update the original URL with proper time ranges
+                            const updatedMetricsUrl = updateMonitoringUrl(url, run.startedAt, run.completedAt, run.provider);
+                            
                             // For profiles, construct pyroscope URL matching workflow details implementation
                             const pyroscopeUrl = (() => {
                               const baseUrl = 'https://skipprotocol.grafana.net/a/grafana-pyroscope-app/explore?searchText=&panelType=time-series&layout=grid&hideNoData=off&explorationType=flame-graph&var-serviceName=ironbird&var-profileMetricId=goroutine:goroutine:count:goroutine:count&var-spanSelector=undefined&var-dataSource=grafanacloud-profiles&var-filters=provider%7C%3D%7C';
@@ -271,7 +284,7 @@ const TemplateRunHistory = () => {
                             return (
                               <>
                                 <Tooltip key={`${key}-metrics`} label="Open Metrics Dashboard">
-                                  <Link href={url} isExternal>
+                                  <Link href={updatedMetricsUrl} isExternal>
                                     <Button
                                       size="xs"
                                       variant="outline"
@@ -301,9 +314,12 @@ const TemplateRunHistory = () => {
                             const isMetrics = key.toLowerCase().includes('metrics') || key.toLowerCase().includes('grafana');
                             const isPyroscope = key.toLowerCase().includes('pyroscope') || key.toLowerCase().includes('profiling');
                             
+                            // Update metrics URLs with proper time ranges, leave pyroscope and other URLs as-is
+                            const finalUrl = isMetrics ? updateMonitoringUrl(url, run.startedAt, run.completedAt, run.provider) : url;
+                            
                             return (
                               <Tooltip key={key} label={`Open ${key}`}>
-                                <Link href={url} isExternal>
+                                <Link href={finalUrl} isExternal>
                                   <Button
                                     size="xs"
                                     variant="outline"
