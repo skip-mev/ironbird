@@ -402,7 +402,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 			"--json-rpc.ws-address", "0.0.0.0:8546",
 			"--json-rpc.enable",
 		}
-		config.AdditionalPorts = []string{"8545", "8546"}
+		config.AdditionalPorts = []string{"8545", "8546", "8100"} // geth rpc, geth ws rpc, evmd geth metrics
 		walletConfig = EvmCosmosWalletConfig
 		if config.CustomAppConfig == nil {
 			config.CustomAppConfig = make(map[string]interface{})
