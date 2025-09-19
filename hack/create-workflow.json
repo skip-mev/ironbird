@@ -2,6 +2,7 @@
   "repo": "evm",
   "sha": "b63a6810ff81a23fd11ce5c3d63730dd25fed51b",
   "isEvmChain": true,
+  "catalyst_version": "technicallyty-refactor-wallets",
   "chain_config": {
     "num_of_validators": 4,
     "region_configs": [
@@ -80,11 +81,11 @@
         }
       ]
   },
-  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1s\",\"num_batches\":20,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":15}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
+  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1s\",\"num_batches\":20,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":2000}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
   "runner_type": "Docker",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 10000,
+  "num_wallets": 5000,
   "base_mnemonic": "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
   "launch_load_balancer": false
 }
