@@ -70,7 +70,7 @@ type PetriChain interface {
 }
 
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriChain, chainID string,
-	loadTestSpec ctltypes.LoadTestSpec, mnemonics []string,
+	loadTestSpec ctltypes.LoadTestSpec, baseMnemonic string, numWallets int,
 ) ([]byte, error) {
 	chainConfig := chain.GetConfig()
 
@@ -134,7 +134,8 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 	loadTestSpec.ChainCfg = catalystChainConfig
 	loadTestSpec.ChainID = chainID
 
-	loadTestSpec.Mnemonics = mnemonics
+	loadTestSpec.BaseMnemonic = baseMnemonic
+	loadTestSpec.NumWallets = numWallets
 
 	err := loadTestSpec.Validate()
 	if err != nil {
@@ -177,7 +178,7 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, nil, err, "failed to restore chain")
 	}
 
-	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec, req.Mnemonics)
+	configBytes, err := generateLoadTestSpec(ctx, logger, chain, chain.GetConfig().ChainId, req.LoadTestSpec, req.BaseMnemonic, req.NumWallets)
 	if err != nil {
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}

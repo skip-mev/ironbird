@@ -2,6 +2,7 @@ package chain_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -511,6 +512,9 @@ func TestGenesisAlteration(t *testing.T) {
 	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
 	require.NoError(t, err)
 
+	var data map[string]any
+	require.NoError(t, json.Unmarshal(bz, &data))
+
 	accounts := []chain.Account{
 		{
 			Type:          "/foobar",
@@ -528,7 +532,7 @@ func TestGenesisAlteration(t *testing.T) {
 		},
 	}
 
-	bz, err = chain.UpdateGenesisAccounts(accounts, bz)
+	data, err = chain.UpdateGenesisAccounts(accounts, data)
 	require.NoError(t, err)
 
 	// TODO: VERIFY
@@ -536,6 +540,8 @@ func TestGenesisAlteration(t *testing.T) {
 func TestGenesisAlteration_Balance(t *testing.T) {
 	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
 	require.NoError(t, err)
+	var data map[string]any
+	require.NoError(t, json.Unmarshal(bz, &data))
 
 	accounts := []chain.Balance{
 		{
@@ -548,7 +554,7 @@ func TestGenesisAlteration_Balance(t *testing.T) {
 		},
 	}
 
-	bz, err = chain.UpdateGenesisBalances(accounts, bz)
+	data, err = chain.UpdateGenesisBalances(accounts, data)
 	require.NoError(t, err)
 
 	// TODO: VERIFY

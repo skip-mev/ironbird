@@ -215,7 +215,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 }
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
-	mnemonics []string, selector workflow.Selector) (workflow.Future, error) {
+	selector workflow.Selector) (workflow.Future, error) {
 	if req.EthereumLoadTestSpec != nil {
 		var loadTestResp messages.RunLoadTestResponse
 		f := workflow.ExecuteActivity(
@@ -227,7 +227,8 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				LoadTestSpec:    *req.EthereumLoadTestSpec,
 				RunnerType:      req.RunnerType,
 				IsEvmChain:      req.IsEvmChain,
-				Mnemonics:       mnemonics,
+				BaseMnemonic:    req.BaseMnemonic,
+				NumWallets:      req.NumWallets,
 				CatalystVersion: req.CatalystVersion,
 			},
 		)
@@ -253,7 +254,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				LoadTestSpec:    *req.CosmosLoadTestSpec,
 				RunnerType:      req.RunnerType,
 				IsEvmChain:      req.IsEvmChain,
-				Mnemonics:       mnemonics,
+				BaseMnemonic:    req.BaseMnemonic,
 				CatalystVersion: req.CatalystVersion,
 			},
 		)
@@ -297,7 +298,7 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
 	// TODO: do catalyst refactor here.
-	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
+	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, shutdownSelector)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}
