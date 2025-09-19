@@ -68,7 +68,8 @@ var (
 				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
-		NumWallets: 20,
+		BaseMnemonic: "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
+		NumWallets:   20,
 	}
 	evmReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: "20m",
@@ -76,6 +77,8 @@ var (
 		IsEvmChain:      true,
 		SHA:             "2d3df2ba510c978d785f2151132e9ed70e1605ec",
 		RunnerType:      messages.Docker,
+		BaseMnemonic:    "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
+		NumWallets:      1500,
 		ChainConfig: types.ChainsConfig{
 			Name:  "evmd",
 			Image: "evm",
@@ -186,7 +189,6 @@ var (
 				{NumMsgs: 20, Type: ethtypes.MsgCreateContract},
 			},
 		},
-		NumWallets: 5,
 	}
 )
 
@@ -415,6 +417,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -434,6 +438,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = false
+	doReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	doReq.NumWallets = 1500
 	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
 		{
 			Name:          "nyc1",
@@ -472,6 +478,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 			NumNodes:      0,
 		},
 	}
+	doReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	doReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -504,6 +512,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -523,6 +533,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
@@ -610,6 +622,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowWaitsForLoadTestOnDuratio
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.TestnetDuration = "3s"
 	dockerReq.LongRunningTestnet = false
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
