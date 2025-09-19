@@ -84,6 +84,7 @@
   "runner_type": "Docker",
   "long_running_testnet": false,
   "testnet_duration": "10m",
-  "num_wallets": 10,
+  "num_wallets": 10000,
+  "base_mnemonic": "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
   "launch_load_balancer": false
 }
