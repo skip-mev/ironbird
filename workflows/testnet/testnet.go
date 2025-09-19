@@ -255,6 +255,7 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				RunnerType:      req.RunnerType,
 				IsEvmChain:      req.IsEvmChain,
 				BaseMnemonic:    req.BaseMnemonic,
+				NumWallets:      req.NumWallets,
 				CatalystVersion: req.CatalystVersion,
 			},
 		)
