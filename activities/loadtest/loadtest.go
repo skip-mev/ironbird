@@ -69,6 +69,8 @@ type PetriChain interface {
 	GetNodes() []types.NodeI
 }
 
+// TODO: this function is kind of confusing because we give it a half-baked loadtest spec, and then fill in the rest.
+// I'm not sure if there is a better/more clearer way to go about this, but it seems confusing as is.
 func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriChain, chainID string,
 	loadTestSpec ctltypes.LoadTestSpec, baseMnemonic string, numWallets int,
 ) ([]byte, error) {

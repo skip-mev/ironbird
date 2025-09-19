@@ -297,7 +297,6 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
-	// TODO: do catalyst refactor here.
 	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, shutdownSelector)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
