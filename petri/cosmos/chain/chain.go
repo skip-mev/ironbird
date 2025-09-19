@@ -14,6 +14,7 @@ import (
 
 	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	bankv1beta1 "cosmossdk.io/api/cosmos/bank/v1beta1"
 	basev1beta1 "cosmossdk.io/api/cosmos/base/v1beta1"
@@ -878,7 +879,7 @@ func UpdateGenesisBalances(bals []Balance, data map[string]any) (map[string]any,
 	}
 
 	var bankGenesis bankv1beta1.GenesisState
-	err = json.Unmarshal(bankBytes, &bankGenesis)
+	err = protojson.Unmarshal(bankBytes, &bankGenesis)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bank genesis: %w", err)
 	}
@@ -941,7 +942,7 @@ func UpdateGenesisBalances(bals []Balance, data map[string]any) (map[string]any,
 	}
 
 	// Marshal the updated bank genesis back to JSON
-	updatedBankBytes, err := json.Marshal(bankGenesis)
+	updatedBankBytes, err := protojson.Marshal(&bankGenesis)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal updated bank genesis: %w", err)
 	}

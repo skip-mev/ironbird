@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"testing"
@@ -507,13 +508,18 @@ func TestSeedNodeConfigurationWithOneNode(t *testing.T) {
 	verifyPeerConfiguration(t, c.Validators[1], "validator", false, true)
 	verifyPeerConfiguration(t, c.Nodes[0], "node", false, false) // seed node should not have the seed flag set
 }
-
-func TestGenesisAlteration(t *testing.T) {
+func TestUpdateGenesisAccounts(t *testing.T) {
 	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
 	require.NoError(t, err)
 
 	var data map[string]any
 	require.NoError(t, json.Unmarshal(bz, &data))
+
+	// Get original account count
+	appstate := data["app_state"].(map[string]any)
+	auth := appstate["auth"].(map[string]any)
+	originalAccounts := auth["accounts"].([]any)
+	originalCount := len(originalAccounts)
 
 	accounts := []chain.Account{
 		{
@@ -535,13 +541,44 @@ func TestGenesisAlteration(t *testing.T) {
 	data, err = chain.UpdateGenesisAccounts(accounts, data)
 	require.NoError(t, err)
 
-	// TODO: VERIFY
+	// VERIFY: Check that accounts were added
+	updatedAppstate := data["app_state"].(map[string]any)
+	updatedAuth := updatedAppstate["auth"].(map[string]any)
+	updatedAccounts := updatedAuth["accounts"].([]any)
+
+	// Verify count increased by 2
+	require.Equal(t, originalCount+2, len(updatedAccounts))
+
+	// Verify the new accounts are present with correct data
+	lastTwoAccounts := updatedAccounts[len(updatedAccounts)-2:]
+
+	firstAccount := lastTwoAccounts[0].(map[string]any)
+	require.Equal(t, "/foobar", firstAccount["@type"])
+	require.Equal(t, "meow120", firstAccount["address"])
+	require.Equal(t, "124", firstAccount["account_number"])
+	require.Equal(t, "0", firstAccount["sequence"])
+	require.Nil(t, firstAccount["pub_key"])
+
+	secondAccount := lastTwoAccounts[1].(map[string]any)
+	require.Equal(t, "/foobar", secondAccount["@type"])
+	require.Equal(t, "meow120321", secondAccount["address"])
+	require.Equal(t, "1243", secondAccount["account_number"])
+	require.Equal(t, "0", secondAccount["sequence"])
+	require.Nil(t, secondAccount["pub_key"])
 }
 func TestGenesisAlteration_Balance(t *testing.T) {
 	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
 	require.NoError(t, err)
 	var data map[string]any
 	require.NoError(t, json.Unmarshal(bz, &data))
+
+	// Get original balances and supply
+	appstate := data["app_state"].(map[string]any)
+	bank := appstate["bank"].(map[string]any)
+	originalBalances := bank["balances"].([]any)
+	originalSupply := bank["supply"].([]any)
+	originalBalanceCount := len(originalBalances)
+	originalSupplyCount := len(originalSupply)
 
 	accounts := []chain.Balance{
 		{
@@ -557,5 +594,52 @@ func TestGenesisAlteration_Balance(t *testing.T) {
 	data, err = chain.UpdateGenesisBalances(accounts, data)
 	require.NoError(t, err)
 
-	// TODO: VERIFY
+	// VERIFY: Check that balances were added
+	updatedAppstate := data["app_state"].(map[string]any)
+	updatedBank := updatedAppstate["bank"].(map[string]any)
+	updatedBalances := updatedBank["balances"].([]any)
+	updatedSupply := updatedBank["supply"].([]any)
+
+	// Verify balance count increased by 2
+	require.Equal(t, originalBalanceCount+2, len(updatedBalances))
+
+	// Verify the new balances are present with correct data
+	lastTwoBalances := updatedBalances[len(updatedBalances)-2:]
+
+	firstBalance := lastTwoBalances[0].(map[string]any)
+	require.Equal(t, "cosmosfoo", firstBalance["address"])
+	firstCoins := firstBalance["coins"].([]any)
+	require.Len(t, firstCoins, 1)
+	firstCoin := firstCoins[0].(map[string]any)
+	require.Equal(t, "stake", firstCoin["denom"])
+	require.Equal(t, "100", firstCoin["amount"])
+
+	secondBalance := lastTwoBalances[1].(map[string]any)
+	require.Equal(t, "cosmosfoobar", secondBalance["address"])
+	secondCoins := secondBalance["coins"].([]any)
+	require.Len(t, secondCoins, 1)
+	secondCoin := secondCoins[0].(map[string]any)
+	require.Equal(t, "stake", secondCoin["denom"])
+	require.Equal(t, "1122100", secondCoin["amount"])
+
+	// Verify supply was updated correctly - should have added new "stake" denom
+	require.Equal(t, originalSupplyCount+1, len(updatedSupply), "supply should have one new denomination")
+
+	// Find the new stake supply entry
+	var stakeSupply *big.Int
+	found := false
+	for _, supplyItem := range updatedSupply {
+		supply := supplyItem.(map[string]any)
+		if supply["denom"].(string) == "stake" {
+			stakeSupply = new(big.Int)
+			stakeSupply.SetString(supply["amount"].(string), 10)
+			found = true
+			break
+		}
+	}
+	require.True(t, found, "stake supply should have been added to genesis")
+
+	// Verify the stake supply equals the total of added balances (100 + 1122100 = 1122200)
+	expectedTotal := big.NewInt(1122200)
+	require.Equal(t, expectedTotal.String(), stakeSupply.String())
 }
