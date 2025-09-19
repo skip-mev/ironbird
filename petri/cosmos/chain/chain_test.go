@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	evmhd "github.com/cosmos/evm/crypto/hd"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/pelletier/go-toml/v2"
@@ -503,4 +505,51 @@ func TestSeedNodeConfigurationWithOneNode(t *testing.T) {
 	verifyPeerConfiguration(t, c.Validators[0], "validator", false, true)
 	verifyPeerConfiguration(t, c.Validators[1], "validator", false, true)
 	verifyPeerConfiguration(t, c.Nodes[0], "node", false, false) // seed node should not have the seed flag set
+}
+
+func TestGenesisAlteration(t *testing.T) {
+	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
+	require.NoError(t, err)
+
+	accounts := []chain.Account{
+		{
+			Type:          "/foobar",
+			Address:       "meow120",
+			PubKey:        nil,
+			AccountNumber: "124",
+			Sequence:      "0",
+		},
+		{
+			Type:          "/foobar",
+			Address:       "meow120321",
+			PubKey:        nil,
+			AccountNumber: "1243",
+			Sequence:      "0",
+		},
+	}
+
+	bz, err = chain.UpdateGenesisAccounts(accounts, bz)
+	require.NoError(t, err)
+
+	// TODO: VERIFY
+}
+func TestGenesisAlteration_Balance(t *testing.T) {
+	bz, err := os.ReadFile("internal/testdata/testgenesis.json")
+	require.NoError(t, err)
+
+	accounts := []chain.Balance{
+		{
+			Address: "cosmosfoo",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin("stake", 100)),
+		},
+		{
+			Address: "cosmosfoobar",
+			Coins:   sdk.NewCoins(sdk.NewInt64Coin("stake", 1122100)),
+		},
+	}
+
+	bz, err = chain.UpdateGenesisBalances(accounts, bz)
+	require.NoError(t, err)
+
+	// TODO: VERIFY
 }

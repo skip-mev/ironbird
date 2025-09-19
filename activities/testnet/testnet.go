@@ -230,10 +230,12 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.ChainID = chainConfig.ChainId
 
 	initErr := chain.Init(ctx, petritypes.ChainOptions{
-		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
-		NodeCreator:   node.CreateNode,
-		WalletConfig:  walletConfig,
-		NodeOptions:   nodeOptions,
+		ModifyGenesis:      petrichain.ModifyGenesis(req.GenesisModifications),
+		NodeCreator:        node.CreateNode,
+		WalletConfig:       walletConfig,
+		NodeOptions:        nodeOptions,
+		BaseMnemonic:       req.BaseMnemonic,
+		AdditionalAccounts: req.NumWallets,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)

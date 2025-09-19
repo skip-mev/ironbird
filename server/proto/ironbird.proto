@@ -31,6 +31,7 @@ message CreateWorkflowRequest {
     int32 num_wallets = 10;
     bool launch_load_balancer = 11;
     string catalyst_version = 12;
+    string base_mnemonic = 13;
 }
 
 message GenesisKV {
