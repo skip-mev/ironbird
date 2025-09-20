@@ -14,6 +14,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
+	"go.uber.org/zap"
 )
 
 type DB interface {
@@ -23,15 +24,24 @@ type DB interface {
 	ListWorkflows(limit, offset int) ([]Workflow, error)
 	DeleteWorkflow(workflowID string) error
 
+	CreateWorkflowTemplate(template *WorkflowTemplate) error
+	GetWorkflowTemplate(templateID string) (*WorkflowTemplate, error)
+	UpdateWorkflowTemplate(templateID string, template *WorkflowTemplate) error
+	ListWorkflowTemplates(limit, offset int) ([]WorkflowTemplate, error)
+	DeleteWorkflowTemplate(templateID string) error
+
+	ListTemplateWorkflows(templateID string, limit, offset int) ([]Workflow, error)
+
 	Ping() error
 	Close() error
 }
 
 type SQLiteDB struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
-func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
+func NewSQLiteDB(dbPath string, logger *zap.Logger) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -49,7 +59,7 @@ func NewSQLiteDB(dbPath string) (*SQLiteDB, error) {
 		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
 	}
 
-	return &SQLiteDB{db: db}, nil
+	return &SQLiteDB{db: db, logger: logger}, nil
 }
 
 func (s *SQLiteDB) RunMigrations(migrationsPath string) error {
@@ -114,9 +124,9 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 	query := `
 		INSERT INTO workflows (
 			workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
-			load_test_spec, created_at, updated_at
+			load_test_spec, provider, template_id, run_name, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		RETURNING id`
 
 	err = s.db.QueryRow(
@@ -130,6 +140,9 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 		workflow.Status,
 		string(configJSON),
 		string(loadTestSpecJSON),
+		workflow.Provider,
+		workflow.TemplateID,
+		workflow.RunName,
 		now,
 		now,
 	).Scan(&workflow.ID)
@@ -147,7 +160,7 @@ func (s *SQLiteDB) CreateWorkflow(workflow *Workflow) error {
 func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
-		    load_test_spec, provider, created_at, updated_at
+		    load_test_spec, provider, template_id, run_name, created_at, updated_at
 		FROM workflows
 		WHERE workflow_id = ?`
 
@@ -166,6 +179,8 @@ func (s *SQLiteDB) GetWorkflow(workflowID string) (*Workflow, error) {
 		&configJSON,
 		&loadTestSpecJSON,
 		&workflow.Provider,
+		&workflow.TemplateID,
+		&workflow.RunName,
 		&workflow.CreatedAt,
 		&workflow.UpdatedAt,
 	)
@@ -270,6 +285,16 @@ func (s *SQLiteDB) UpdateWorkflow(workflowID string, update WorkflowUpdate) erro
 		args = append(args, *update.Provider)
 	}
 
+	if update.TemplateID != nil {
+		setParts = append(setParts, "template_id = ?")
+		args = append(args, *update.TemplateID)
+	}
+
+	if update.RunName != nil {
+		setParts = append(setParts, "run_name = ?")
+		args = append(args, *update.RunName)
+	}
+
 	if len(setParts) == 0 {
 		return fmt.Errorf("no fields to update")
 	}
@@ -311,7 +336,7 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
-		    load_test_spec, provider, created_at, updated_at
+		    load_test_spec, provider, template_id, run_name, created_at, updated_at
 		FROM workflows
 		ORDER BY created_at DESC
 		LIMIT ? OFFSET ?`
@@ -339,6 +364,8 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			&configJSON,
 			&loadTestSpecJSON,
 			&workflow.Provider,
+			&workflow.TemplateID,
+			&workflow.RunName,
 			&workflow.CreatedAt,
 			&workflow.UpdatedAt,
 		)
@@ -346,34 +373,36 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 			return nil, fmt.Errorf("failed to scan workflow: %w", err)
 		}
 		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
-			fmt.Printf("Warning: failed to unmarshal nodes for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Nodes = make([]*pb.Node, 0)
+			s.logger.Error("failed to unmarshal nodes for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal nodes for workflow %s: %w", workflow.WorkflowID, err)
 		}
 
 		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
-			fmt.Printf("Warning: failed to unmarshal validators for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.Validators = make([]*pb.Node, 0)
+			s.logger.Error("failed to unmarshal validators for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal validators for workflow %s: %w", workflow.WorkflowID, err)
 		}
 
 		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
-			fmt.Printf("Warning: failed to unmarshal loadbalancers for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.LoadBalancers = make([]*pb.Node, 0)
+			s.logger.Error("failed to unmarshal loadbalancers for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal loadbalancers for workflow %s: %w", workflow.WorkflowID, err)
 		}
 
 		if walletsJSON != "" && walletsJSON != "{}" {
 			workflow.Wallets = &pb.WalletInfo{}
 			if err := protojson.Unmarshal([]byte(walletsJSON), workflow.Wallets); err != nil {
-				fmt.Printf("Warning: failed to unmarshal wallets for workflow %s: %v\n", workflow.WorkflowID, err)
+				s.logger.Error("failed to unmarshal wallets for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+				return nil, fmt.Errorf("failed to unmarshal wallets for workflow %s: %w", workflow.WorkflowID, err)
 			}
 		}
 
 		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
-			fmt.Printf("Warning: failed to unmarshal config for workflow %s: %v\n", workflow.WorkflowID, err)
+			s.logger.Error("failed to unmarshal config for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal config for workflow %s: %w", workflow.WorkflowID, err)
 		}
 
 		if err := json.Unmarshal([]byte(monitoringLinksJSON), &workflow.MonitoringLinks); err != nil {
-			fmt.Printf("Warning: failed to unmarshal monitoring links for workflow %s: %v\n", workflow.WorkflowID, err)
-			workflow.MonitoringLinks = map[string]string{}
+			s.logger.Error("failed to unmarshal monitoring links for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal monitoring links for workflow %s: %w", workflow.WorkflowID, err)
 		}
 
 		if loadTestSpecJSON != "" && loadTestSpecJSON != "{}" {
@@ -416,4 +445,259 @@ func (s *SQLiteDB) Ping() error {
 
 func (s *SQLiteDB) Close() error {
 	return s.db.Close()
+}
+
+func (s *SQLiteDB) CreateWorkflowTemplate(template *WorkflowTemplate) error {
+	configJSON, err := template.ConfigJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	query := `
+		INSERT INTO workflow_templates (template_id, description, config, created_at, created_by)
+		VALUES (?, ?, ?, ?, ?)`
+
+	now := time.Now()
+	_, err = s.db.Exec(query,
+		template.ID,
+		template.Description,
+		string(configJSON),
+		now,
+		template.CreatedBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create workflow template: %w", err)
+	}
+
+	return nil
+}
+
+func (s *SQLiteDB) GetWorkflowTemplate(templateID string) (*WorkflowTemplate, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT template_id, description, config, created_at, created_by
+		FROM workflow_templates
+		WHERE template_id = ?`
+
+	var template WorkflowTemplate
+	var configJSON string
+
+	err := s.db.QueryRowContext(ctx, query, templateID).Scan(
+		&template.ID,
+		&template.Description,
+		&configJSON,
+		&template.CreatedAt,
+		&template.CreatedBy,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("workflow template not found: %s", templateID)
+		}
+		return nil, fmt.Errorf("failed to get workflow template: %w", err)
+	}
+
+	if err := json.Unmarshal([]byte(configJSON), &template.Config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	return &template, nil
+}
+
+func (s *SQLiteDB) UpdateWorkflowTemplate(templateID string, template *WorkflowTemplate) error {
+	configJSON, err := template.ConfigJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	query := `
+		UPDATE workflow_templates 
+		SET description = ?, config = ?
+		WHERE template_id = ?`
+
+	result, err := s.db.Exec(query,
+		template.Description,
+		string(configJSON),
+		templateID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update workflow template: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("workflow template not found: %s", templateID)
+	}
+
+	return nil
+}
+
+func (s *SQLiteDB) ListWorkflowTemplates(limit, offset int) (templates []WorkflowTemplate, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT template_id, description, config, created_at, created_by
+		FROM workflow_templates
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?`
+
+	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list workflow templates: %w", err)
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			s.logger.Error("failed to close rows", zap.Error(closeErr))
+		}
+	}()
+
+	for rows.Next() {
+		var template WorkflowTemplate
+		var configJSON string
+
+		err := rows.Scan(
+			&template.ID,
+			&template.Description,
+			&configJSON,
+			&template.CreatedAt,
+			&template.CreatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan workflow template: %w", err)
+		}
+
+		if err := json.Unmarshal([]byte(configJSON), &template.Config); err != nil {
+			s.logger.Error("failed to unmarshal config for template", zap.String("template_id", template.ID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal config for template %s: %w", template.ID, err)
+		}
+
+		templates = append(templates, template)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return
+}
+
+func (s *SQLiteDB) DeleteWorkflowTemplate(templateID string) error {
+	query := "DELETE FROM workflow_templates WHERE template_id = ?"
+
+	result, err := s.db.Exec(query, templateID)
+	if err != nil {
+		return fmt.Errorf("failed to delete workflow template: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("workflow template not found: %s", templateID)
+	}
+
+	return nil
+}
+
+// Template workflow tracking implementation
+func (s *SQLiteDB) ListTemplateWorkflows(templateID string, limit, offset int) (workflows []Workflow, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
+		    load_test_spec, provider, template_id, run_name, created_at, updated_at
+		FROM workflows
+		WHERE template_id = ?
+		ORDER BY created_at DESC
+		LIMIT ? OFFSET ?`
+
+	rows, err := s.db.QueryContext(ctx, query, templateID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list template workflows: %w", err)
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			s.logger.Error("failed to close rows", zap.Error(closeErr))
+		}
+	}()
+
+	for rows.Next() {
+		var workflow Workflow
+		var nodesJSON, validatorsJSON, loadBalancersJSON, walletsJSON, configJSON, monitoringLinksJSON, loadTestSpecJSON string
+
+		err := rows.Scan(
+			&workflow.ID,
+			&workflow.WorkflowID,
+			&nodesJSON,
+			&validatorsJSON,
+			&loadBalancersJSON,
+			&walletsJSON,
+			&monitoringLinksJSON,
+			&workflow.Status,
+			&configJSON,
+			&loadTestSpecJSON,
+			&workflow.Provider,
+			&workflow.TemplateID,
+			&workflow.RunName,
+			&workflow.CreatedAt,
+			&workflow.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan template workflow: %w", err)
+		}
+
+		if err := json.Unmarshal([]byte(nodesJSON), &workflow.Nodes); err != nil {
+			s.logger.Error("failed to unmarshal nodes for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal nodes for workflow %s: %w", workflow.WorkflowID, err)
+		}
+
+		if err := json.Unmarshal([]byte(validatorsJSON), &workflow.Validators); err != nil {
+			s.logger.Error("failed to unmarshal validators for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal validators for workflow %s: %w", workflow.WorkflowID, err)
+		}
+
+		if err := json.Unmarshal([]byte(loadBalancersJSON), &workflow.LoadBalancers); err != nil {
+			s.logger.Error("failed to unmarshal loadbalancers for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal loadbalancers for workflow %s: %w", workflow.WorkflowID, err)
+		}
+
+		if walletsJSON != "" && walletsJSON != "{}" {
+			workflow.Wallets = &pb.WalletInfo{}
+			if err := protojson.Unmarshal([]byte(walletsJSON), workflow.Wallets); err != nil {
+				s.logger.Error("failed to unmarshal wallets for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+				return nil, fmt.Errorf("failed to unmarshal wallets for workflow %s: %w", workflow.WorkflowID, err)
+			}
+		}
+
+		if err := json.Unmarshal([]byte(configJSON), &workflow.Config); err != nil {
+			s.logger.Error("failed to unmarshal config for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal config for workflow %s: %w", workflow.WorkflowID, err)
+		}
+
+		if err := json.Unmarshal([]byte(monitoringLinksJSON), &workflow.MonitoringLinks); err != nil {
+			s.logger.Error("failed to unmarshal monitoring links for workflow", zap.String("workflow_id", workflow.WorkflowID), zap.Error(err))
+			return nil, fmt.Errorf("failed to unmarshal monitoring links for workflow %s: %w", workflow.WorkflowID, err)
+		}
+
+		if loadTestSpecJSON != "" && loadTestSpecJSON != "{}" {
+			workflow.LoadTestSpec = json.RawMessage(loadTestSpecJSON)
+		}
+
+		workflows = append(workflows, workflow)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return
 }

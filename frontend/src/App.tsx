@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CreateWorkflow from './pages/CreateWorkflow';
 import WorkflowDetails from './pages/WorkflowDetails';
 import WorkflowList from './pages/WorkflowList';
+import TemplateList from './pages/TemplateList';
+import TemplateRunHistory from './pages/TemplateRunHistory';
 import Navigation from './components/Navigation';
 
 const queryClient = new QueryClient();
@@ -23,6 +25,8 @@ function App() {
                   <Route path="/" element={<CreateWorkflow />} />
                   <Route path="/workflows" element={<WorkflowList />} />
                   <Route path="/workflow/:id" element={<WorkflowDetails />} />
+                  <Route path="/templates" element={<TemplateList />} />
+                  <Route path="/templates/:templateId/runs" element={<TemplateRunHistory />} />
                 </Routes>
               </Container>
             </Box>
