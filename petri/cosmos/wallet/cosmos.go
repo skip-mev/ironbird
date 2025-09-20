@@ -20,8 +20,8 @@ type CosmosWallet struct {
 var _ petritypes.WalletI = &CosmosWallet{}
 
 // NewWallet creates a new CosmosWallet from a mnemonic and a keyname
-func NewWallet(keyname string, mnemonic string, config petritypes.WalletConfig) (*CosmosWallet, error) {
-	derivedPrivKey, err := config.DerivationFn(mnemonic, "", config.HDPath.String())
+func NewWallet(keyname string, mnemonic, passphrase string, config petritypes.WalletConfig) (*CosmosWallet, error) {
+	derivedPrivKey, err := config.DerivationFn(mnemonic, passphrase, config.HDPath.String())
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func NewGeneratedWallet(keyname string, config petritypes.WalletConfig) (*Cosmos
 		return nil, err
 	}
 
-	return NewWallet(keyname, mnemonic, config)
+	return NewWallet(keyname, mnemonic, "", config)
 }
 
 // KeyName returns the keyname of the wallet

@@ -72,6 +72,8 @@ var (
 				return def
 			},
 		},
+		AdditionalAccounts: 10_000,
+		BaseMnemonic:       "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
 	}
 
 	numTestChains = flag.Int("num-chains", 3, "number of chains to create for concurrent testing")

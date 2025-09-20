@@ -68,31 +68,50 @@ func CreateChainsConcurrently(
 	chainOptions types.ChainOptions,
 ) {
 	var wg sync.WaitGroup
-	chainErrors := make(chan error, endIndex-startIndex)
+	var mu sync.Mutex
+	var errors []error
 
 	for i := startIndex; i < endIndex; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
+
+			// Create a copy of the config to avoid race conditions
 			config := chainConfig
 			config.ChainId = fmt.Sprintf(chainIDFmtStr, index+1)
-			config.Name = fmt.Sprintf("chain-%d", index)
+			config.Name = fmt.Sprintf("chain-%d", index+1)
 
 			c, err := cosmoschain.CreateChain(ctx, logger, p, config, chainOptions)
 			if err != nil {
-				t.Logf("Chain creation error: %v", err)
-				chainErrors <- fmt.Errorf("failed to create chain %d: %w", index, err)
+				t.Logf("Chain creation error for chain %d: %v", index+1, err)
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("failed to create chain %d: %w", index+1, err))
+				mu.Unlock()
 				return
 			}
+
 			if err := c.Init(ctx, chainOptions); err != nil {
-				t.Logf("Chain creation error: %v", err)
-				chainErrors <- fmt.Errorf("failed to init chain %d: %w", index, err)
+				t.Logf("Chain initialization error for chain %d: %v", index+1, err)
+				mu.Lock()
+				errors = append(errors, fmt.Errorf("failed to init chain %d: %w", index+1, err))
+				mu.Unlock()
 				return
 			}
+
+			// Safely write to the chains slice
+			mu.Lock()
 			chains[index] = c
+			mu.Unlock()
 		}(i)
 	}
+
 	wg.Wait()
-	t.Log(chainErrors)
-	require.Empty(t, chainErrors)
+
+	// Check for any errors that occurred during chain creation
+	if len(errors) > 0 {
+		for _, err := range errors {
+			t.Errorf("Chain creation failed: %v", err)
+		}
+		require.Empty(t, errors, "Chain creation failed with %d errors", len(errors))
+	}
 }

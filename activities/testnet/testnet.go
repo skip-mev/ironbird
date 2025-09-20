@@ -230,10 +230,12 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.ChainID = chainConfig.ChainId
 
 	initErr := chain.Init(ctx, petritypes.ChainOptions{
-		ModifyGenesis: petrichain.ModifyGenesis(req.GenesisModifications),
-		NodeCreator:   node.CreateNode,
-		WalletConfig:  walletConfig,
-		NodeOptions:   nodeOptions,
+		ModifyGenesis:      petrichain.ModifyGenesis(req.GenesisModifications),
+		NodeCreator:        node.CreateNode,
+		WalletConfig:       walletConfig,
+		NodeOptions:        nodeOptions,
+		BaseMnemonic:       req.BaseMnemonic,
+		AdditionalAccounts: req.NumWallets,
 	})
 	if initErr != nil {
 		providerState, serializeErr := p.SerializeProvider(ctx)
@@ -308,54 +310,6 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	//}()
 
 	return resp, nil
-}
-
-func emitHeartbeats(ctx context.Context, chain *petrichain.Chain, logger *zap.Logger) {
-	heartbeatCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-heartbeatCtx.Done():
-			return
-		case <-ticker.C:
-			validators := chain.GetValidators()
-
-			// attempts to get a heartbeat from up to 3 validators
-			success := false
-			maxValidators := 3
-			if len(validators) < maxValidators {
-				maxValidators = len(validators)
-			}
-
-			for i := 0; i < maxValidators; i++ {
-				tmClient, err := validators[i].GetTMClient(ctx)
-				if err != nil {
-					logger.Error("Failed to get TM client", zap.Error(err), zap.Int("validator", i))
-					continue
-				}
-
-				_, err = tmClient.Status(ctx)
-				if err != nil {
-					logger.Error("Chain status check failed", zap.Error(err), zap.Int("validator", i))
-					continue
-				}
-
-				success = true
-				break
-			}
-
-			if !success {
-				logger.Error("All validator checks failed", zap.Int("validators_attempted", maxValidators))
-				continue
-			}
-
-			activity.RecordHeartbeat(ctx, "Chain status: healthy")
-		}
-	}
 }
 
 func constructChainConfig(req messages.LaunchTestnetRequest,

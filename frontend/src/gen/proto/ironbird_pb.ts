@@ -67,6 +67,11 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
    */
   catalystVersion = "";
 
+  /**
+   * @generated from field: string base_mnemonic = 13;
+   */
+  baseMnemonic = "";
+
   constructor(data?: PartialMessage<CreateWorkflowRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -86,6 +91,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 10, name: "num_wallets", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 11, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 12, name: "catalyst_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "base_mnemonic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {

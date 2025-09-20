@@ -20,7 +20,7 @@ func (c *Chain) BuildWallet(ctx context.Context, keyName, mnemonic string, walle
 		return nil, fmt.Errorf("failed to recover key with name %q on chain %s: %w", keyName, c.GetConfig().ChainId, err)
 	}
 
-	return wallet.NewWallet(keyName, mnemonic, walletConfig)
+	return wallet.NewWallet(keyName, mnemonic, "", walletConfig)
 }
 
 // RecoverKey recovers a wallet in the first available full node's keystore using a provided mnemonic

@@ -10,7 +10,6 @@ import (
 	"github.com/skip-mev/ironbird/petri/core/util"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
 	"github.com/skip-mev/ironbird/messages"
 	ironbirdutil "github.com/skip-mev/ironbird/util"
 
@@ -26,7 +25,6 @@ var testnetActivities *testnet.Activity
 var loadTestActivities *loadtest.Activity
 var builderActivities *builder.Activity
 var loadBalancerActivities *loadbalancer.Activity
-var walletCreatorActivities *walletcreator.Activity
 
 const (
 	defaultRuntime  = time.Minute * 2
@@ -164,6 +162,8 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			SetSeedNode:           req.ChainConfig.SetSeedNode,
 			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
 			ProviderState:         providerState,
+			NumWallets:            req.NumWallets,
+			BaseMnemonic:          req.BaseMnemonic,
 		}).Get(ctx, &testnetResp); err != nil {
 		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
 		if compressErr != nil {
@@ -214,39 +214,8 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 	return loadBalancerResp.ProviderState, nil
 }
 
-func createWallets(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte, workflowID string) ([]string, error) {
-	if req.NumWallets <= 0 {
-		workflow.GetLogger(ctx).Info("no wallets to create, using default value of 2500")
-		req.NumWallets = 2500
-	}
-
-	workflow.GetLogger(ctx).Info("creating wallets", zap.Int("numWallets", req.NumWallets))
-
-	var createWalletsResp messages.CreateWalletsResponse
-	err := workflow.ExecuteActivity(
-		ctx,
-		walletCreatorActivities.CreateWallets,
-		messages.CreateWalletsRequest{
-			WorkflowID:    workflowID,
-			NumWallets:    req.NumWallets,
-			IsEvmChain:    req.IsEvmChain,
-			RunnerType:    string(req.RunnerType),
-			ChainState:    chainState,
-			ProviderState: providerState,
-		},
-	).Get(ctx, &createWalletsResp)
-
-	if err != nil {
-		workflow.GetLogger(ctx).Error("wallet creation activity failed", zap.Error(err))
-		return nil, err
-	}
-
-	workflow.GetLogger(ctx).Info("wallets created successfully", zap.Int("count", len(createWalletsResp.Mnemonics)))
-	return createWalletsResp.Mnemonics, nil
-}
-
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
-	mnemonics []string, selector workflow.Selector) (workflow.Future, error) {
+	selector workflow.Selector) (workflow.Future, error) {
 	if req.EthereumLoadTestSpec != nil {
 		var loadTestResp messages.RunLoadTestResponse
 		f := workflow.ExecuteActivity(
@@ -258,7 +227,8 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				LoadTestSpec:    *req.EthereumLoadTestSpec,
 				RunnerType:      req.RunnerType,
 				IsEvmChain:      req.IsEvmChain,
-				Mnemonics:       mnemonics,
+				BaseMnemonic:    req.BaseMnemonic,
+				NumWallets:      req.NumWallets,
 				CatalystVersion: req.CatalystVersion,
 			},
 		)
@@ -284,7 +254,8 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 				LoadTestSpec:    *req.CosmosLoadTestSpec,
 				RunnerType:      req.RunnerType,
 				IsEvmChain:      req.IsEvmChain,
-				Mnemonics:       mnemonics,
+				BaseMnemonic:    req.BaseMnemonic,
+				NumWallets:      req.NumWallets,
 				CatalystVersion: req.CatalystVersion,
 			},
 		)
@@ -325,14 +296,9 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		}
 	}
 
-	mnemonics, err := createWallets(ctx, req, chainState, providerState, workflowID)
-	if err != nil {
-		workflow.GetLogger(ctx).Error("failed to create wallets", zap.Error(err))
-	}
-
 	shutdownSelector := workflow.NewSelector(ctx)
 	// 1. load test selector
-	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, mnemonics, shutdownSelector)
+	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, shutdownSelector)
 	if err != nil {
 		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
 	}

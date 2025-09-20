@@ -51,6 +51,8 @@ var (
 			DerivationFn:     hd.Secp256k1.Derive(),
 			GenerationFn:     hd.Secp256k1.Generate(),
 		},
+		BaseMnemonic:       "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
+		AdditionalAccounts: 1500,
 	}
 
 	numTestChains = flag.Int("num-chains", 3, "number of chains to create for concurrent testing")

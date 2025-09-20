@@ -60,6 +60,9 @@ type LaunchTestnetRequest struct {
 	ProviderState      []byte
 	SetPersistentPeers bool
 	SetSeedNode        bool
+
+	BaseMnemonic string
+	NumWallets   int
 }
 
 type LaunchTestnetResponse struct {
@@ -84,6 +87,7 @@ type TestnetWorkflowRequest struct {
 	LaunchLoadBalancer bool
 	TestnetDuration    string
 	NumWallets         int
+	BaseMnemonic       string
 	CatalystVersion    string
 }
 

@@ -59,6 +59,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		LaunchLoadBalancer: req.LaunchLoadBalancer,
 		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int(req.NumWallets),
+		BaseMnemonic:       req.BaseMnemonic,
 		CatalystVersion:    req.CatalystVersion,
 	}
 
@@ -301,6 +302,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		LaunchLoadBalancer: workflow.Config.LaunchLoadBalancer,
 		TestnetDuration:    workflow.Config.TestnetDuration,
 		NumWallets:         int32(workflow.Config.NumWallets),
+		BaseMnemonic:       workflow.Config.BaseMnemonic,
 		CatalystVersion:    workflow.Config.CatalystVersion,
 		ChainConfig:        chainConfig,
 	}

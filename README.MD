@@ -50,7 +50,7 @@
 
 7. Start the worker:
    ```bash
-   go run ./cmd/worker
+   export TSNET_FORCE_LOGIN=1 && go run ./cmd/worker
    ```
 
 ## Start Backend and Frontend 

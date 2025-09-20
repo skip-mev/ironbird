@@ -9,7 +9,6 @@ import (
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
 
 	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/activities/walletcreator"
 	petriutil "github.com/skip-mev/ironbird/petri/core/util"
 
 	"log"
@@ -69,7 +68,8 @@ var (
 				{Weight: 1, Type: cosmostypes.MsgSend},
 			},
 		},
-		NumWallets: 20,
+		BaseMnemonic: "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
+		NumWallets:   20,
 	}
 	evmReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: "20m",
@@ -77,6 +77,8 @@ var (
 		IsEvmChain:      true,
 		SHA:             "2d3df2ba510c978d785f2151132e9ed70e1605ec",
 		RunnerType:      messages.Docker,
+		BaseMnemonic:    "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
+		NumWallets:      1500,
 		ChainConfig: types.ChainsConfig{
 			Name:  "evmd",
 			Image: "evm",
@@ -187,7 +189,6 @@ var (
 				{NumMsgs: 20, Type: ethtypes.MsgCreateContract},
 			},
 		},
-		NumWallets: 5,
 	}
 )
 
@@ -252,9 +253,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
 	builderActivity := &builder.Activity{}
-	walletCreatorActivities := walletcreator.Activity{}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
 
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
@@ -277,11 +276,6 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	s.env.OnActivity(testnetActivity.TeardownProvider, mock.Anything, mock.Anything).Return(
 		func(ctx context.Context, req messages.TeardownProviderRequest) (messages.TeardownProviderResponse, error) {
 			return testnetActivity.TeardownProvider(ctx, req)
-		})
-
-	s.env.OnActivity(walletCreatorActivities.CreateWallets, mock.Anything, mock.Anything).Return(
-		func(ctx context.Context, req messages.CreateWalletsRequest) (messages.CreateWalletsResponse, error) {
-			return walletCreatorActivities.CreateWallets(ctx, req)
 		})
 
 	s.env.OnActivity(builderActivity.BuildDockerImage, mock.Anything, mock.Anything).Return(
@@ -356,16 +350,11 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		DOToken:           doToken,
 		TailscaleSettings: tailscaleSettings,
 	}
-	walletCreatorActivity := &walletcreator.Activity{
-		DOToken:           doToken,
-		TailscaleSettings: tailscaleSettings,
-	}
 
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadBalancerActivity.LaunchLoadBalancer)
-	s.env.RegisterActivity(walletCreatorActivity.CreateWallets)
 
 	loadTestActivity := &loadtest.Activity{
 		DOToken:           doToken,
@@ -428,6 +417,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -447,6 +438,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
 	doReq.LaunchLoadBalancer = false
+	doReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	doReq.NumWallets = 1500
 	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
 		{
 			Name:          "nyc1",
@@ -485,6 +478,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 			NumNodes:      0,
 		},
 	}
+	doReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	doReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, doReq)
 
@@ -517,6 +512,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
@@ -536,6 +533,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	done := make(chan struct{})
 	s.env.RegisterDelayedCallback(func() {
@@ -565,14 +564,12 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowWaitsForLoadTestOnDuratio
 	}
 	loadTestActivity := &loadtest.Activity{}
 	builderActivity := &builder.Activity{}
-	walletCreatorActivities := walletcreator.Activity{}
 
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
 	s.env.RegisterActivity(testnetActivity.LaunchTestnet)
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
-	s.env.RegisterActivity(walletCreatorActivities.CreateWallets)
 
 	testnetActivities = testnetActivity
 	loadTestActivities = loadTestActivity
@@ -625,6 +622,8 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowWaitsForLoadTestOnDuratio
 	dockerReq.ChainConfig.Name = "stake"
 	dockerReq.TestnetDuration = "3s"
 	dockerReq.LongRunningTestnet = false
+	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+	dockerReq.NumWallets = 1500
 
 	s.env.ExecuteWorkflow(Workflow, dockerReq)
 
