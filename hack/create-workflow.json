@@ -1,19 +1,19 @@
 {
   "repo": "evm",
-  "sha": "b63a6810ff81a23fd11ce5c3d63730dd25fed51b",
+  "sha": "f90a5c79c0052e0f5cd670a367f24967d1120650",
   "isEvmChain": true,
   "catalyst_version": "technicallyty-refactor-wallets",
   "chain_config": {
-    "num_of_validators": 4,
     "region_configs": [
       {
         "name": "sfo2",
-        "num_of_validators": 5
+        "num_of_validators": 5,
+        "num_of_nodes": 10
       }
     ],
-    "name": "foobar-0",
+    "name": "tylerspeedtest",
     "image": "evm",
-    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"800ms\"}}",
+    "custom_consensus_config": "{\"consensus\":{\"timeout_commit\":\"0ms\",\"peer_gossip_sleep_duration\":\"0s\"},\"mempool\":{\"size\":1000000},\"p2p\":{\"flush_throttle_timeout\":\"0ms\"}}",
     "custom_app_config": "{\"json-rpc\":{\"enable-profiling\":true}}",
     "custom_client_config": "{\"chain-id\":\"262144\"}",
     "set_persistent_peers": true,
@@ -76,16 +76,20 @@
           "value": "550000000"
         },
         {
+          "key": "consensus.params.block.max_bytes",
+          "value": "104857600"
+        },
+        {
           "key": "app_state.feemarket.params.no_base_fee",
           "value": "true"
         }
       ]
   },
-  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1s\",\"num_batches\":20,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":2000}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
-  "runner_type": "Docker",
+  "encoded_load_test_spec": "{\"name\":\"eth_loadtest\",\"description\":\"testing\",\"kind\":\"eth\",\"chain_id\":\"262144\",\"send_interval\":\"1s\",\"num_batches\":180,\"msgs\":[{\"type\":\"MsgNativeTransferERC20\",\"num_msgs\":1000}],\"chain_config\":{\"tx_opts\":{\"gas_fee_cap\":10000000,\"gas_tip_cap\":10000000}}}",
+  "runner_type": "DigitalOcean",
   "long_running_testnet": false,
-  "testnet_duration": "10m",
-  "num_wallets": 5000,
+  "testnet_duration": "30m",
+  "num_wallets": 10000,
   "base_mnemonic": "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom",
   "launch_load_balancer": false
 }
