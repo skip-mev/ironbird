@@ -44,6 +44,7 @@ type TestnetWorkflowTestSuite struct {
 var (
 	simappReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: "1m",
+		CatalystVersion: "technicallyty-refactor-wallets",
 		ChainConfig: types.ChainsConfig{
 			Name:  "stake-1",
 			Image: "simapp",
@@ -74,6 +75,7 @@ var (
 	evmReq = messages.TestnetWorkflowRequest{
 		TestnetDuration: "20m",
 		Repo:            "evm",
+		CatalystVersion: "technicallyty-refactor-wallets",
 		IsEvmChain:      true,
 		SHA:             "2d3df2ba510c978d785f2151132e9ed70e1605ec",
 		RunnerType:      messages.Docker,
@@ -417,6 +419,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDocker() {
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.CatalystVersion = "technicallyty-refactor-wallets"
 	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
 	dockerReq.NumWallets = 1500
 
@@ -437,6 +440,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOcean() {
 	doReq.SHA = "54602e1c1a39943c2d460c23757e33f1d24f85f0"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.CatalystVersion = "technicallyty-refactor-wallets"
 	doReq.LaunchLoadBalancer = false
 	doReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
 	doReq.NumWallets = 1500
@@ -470,6 +474,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowDigitalOceanWithLoadBalan
 	doReq.SHA = "54602e1c1a39943c2d460c23757e33f1d24f85f0"
 	doReq.RunnerType = messages.DigitalOcean
 	doReq.ChainConfig.Name = fmt.Sprintf("stake-%s", petriutil.RandomString(3))
+	doReq.CatalystVersion = "technicallyty-refactor-wallets"
 	doReq.LaunchLoadBalancer = true
 	doReq.ChainConfig.RegionConfigs = []petritypes.RegionConfig{
 		{
@@ -509,6 +514,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowCustomDurationNoLoadTest(
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.CatalystVersion = "technicallyty-refactor-wallets"
 	dockerReq.CosmosLoadTestSpec = nil
 	dockerReq.LongRunningTestnet = false
 	dockerReq.TestnetDuration = ""
@@ -531,6 +537,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowLongRunningCancelled() {
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.CatalystVersion = "technicallyty-refactor-wallets"
 	dockerReq.LongRunningTestnet = true
 	dockerReq.TestnetDuration = ""
 	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
@@ -620,6 +627,7 @@ func (s *TestnetWorkflowTestSuite) Test_TestnetWorkflowWaitsForLoadTestOnDuratio
 	dockerReq.SHA = "acb1d65cdc1e0fc36d93f3c5bb6aaf919a1321e2"
 	dockerReq.RunnerType = messages.Docker
 	dockerReq.ChainConfig.Name = "stake"
+	dockerReq.CatalystVersion = "technicallyty-refactor-wallets"
 	dockerReq.TestnetDuration = "3s"
 	dockerReq.LongRunningTestnet = false
 	dockerReq.BaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
