@@ -10,7 +10,8 @@ type RunLoadTestRequest struct {
 	LoadTestSpec    catalysttypes.LoadTestSpec
 	RunnerType      RunnerType
 	IsEvmChain      bool
-	Mnemonics       []string
+	BaseMnemonic    string
+	NumWallets      int
 	CatalystVersion string
 }
 

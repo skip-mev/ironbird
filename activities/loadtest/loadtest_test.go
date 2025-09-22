@@ -26,7 +26,6 @@ func TestGenerateSpec(t *testing.T) {
 		Kind:         "eth",
 		SendInterval: 500 * time.Millisecond,
 		NumBatches:   20,
-		Mnemonics:    nil,
 		Msgs: []types.LoadTestMsg{
 			{
 				Type:    "MsgNativeTransferERC20",
@@ -41,12 +40,8 @@ func TestGenerateSpec(t *testing.T) {
 		},
 	}
 
-	mnemonics := []string{
-		"the coin is for everyone",
-		"blockchain liberate us all",
-		"all your base are belong to us",
-		"hello world i am here to save you",
-	}
+	baseMnemonic := "this is a mnemonic"
+	numWallets := 4
 	chain := mocks.NewMocktheChain(gomock.NewController(t))
 	chain.EXPECT().GetConfig().Times(1).Return(types2.ChainConfig{})
 
@@ -58,18 +53,19 @@ func TestGenerateSpec(t *testing.T) {
 	}
 	chain.EXPECT().GetNodes().Times(1).Return(nodes)
 
-	specBZ, err := generateLoadTestSpec(ctx, logger, chain, chainID, spec, mnemonics)
+	specBZ, err := generateLoadTestSpec(ctx, logger, chain, chainID, spec, baseMnemonic, numWallets)
 	require.NoError(t, err)
 
 	var gotLoadtestSpec types.LoadTestSpec
 	err = yaml.Unmarshal(specBZ, &gotLoadtestSpec)
 	require.NoError(t, err)
 
-	// the function will set mnemonics.
-	spec.Mnemonics = mnemonics
 	spec.ChainID = chainID
 	spec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses = gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses
+	spec.BaseMnemonic = baseMnemonic
+	spec.NumWallets = numWallets
 	require.Equal(t, gotLoadtestSpec, spec)
 	require.Equal(t, len(nodes), len(gotLoadtestSpec.ChainCfg.(*ethtypes.ChainConfig).NodesAddresses))
-	require.True(t, len(gotLoadtestSpec.Mnemonics) > 0)
+	require.Equal(t, gotLoadtestSpec.BaseMnemonic, baseMnemonic)
+	require.Equal(t, gotLoadtestSpec.NumWallets, numWallets)
 }

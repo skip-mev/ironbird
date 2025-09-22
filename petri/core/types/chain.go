@@ -81,7 +81,9 @@ type ChainOptions struct {
 	NodeOptions   NodeOptions     // NodeOptions is the options for creating a node
 	NodeCreator   NodeCreator     // NodeCreator is a function that creates a node
 
-	WalletConfig WalletConfig // WalletConfig is the default configuration of a chain's wallet
+	WalletConfig       WalletConfig // WalletConfig is the default configuration of a chain's wallet
+	AdditionalAccounts int
+	BaseMnemonic       string
 }
 
 func (o ChainOptions) ValidateBasic() error {

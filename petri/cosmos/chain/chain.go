@@ -5,14 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
+	"google.golang.org/protobuf/encoding/protojson"
 
+	bankv1beta1 "cosmossdk.io/api/cosmos/bank/v1beta1"
+	basev1beta1 "cosmossdk.io/api/cosmos/base/v1beta1"
 	sdkmath "cosmossdk.io/math"
 
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
@@ -297,7 +302,7 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 
 	chain.ValidatorWallets = make([]petritypes.WalletI, len(packagedState.ValidatorWallets))
 	for i, mnemonic := range packagedState.ValidatorWallets {
-		w, err := wallet.NewWallet(petritypes.ValidatorKeyName, mnemonic, walletConfig)
+		w, err := wallet.NewWallet(petritypes.ValidatorKeyName, mnemonic, "", walletConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to restore validator wallet: %w", err)
 		}
@@ -305,7 +310,7 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 	}
 
 	if packagedState.FaucetWallet != "" {
-		w, err := wallet.NewWallet(petritypes.FaucetAccountKeyName, packagedState.FaucetWallet, walletConfig)
+		w, err := wallet.NewWallet(petritypes.FaucetAccountKeyName, packagedState.FaucetWallet, "", walletConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to restore faucet wallet: %w", err)
 		}
@@ -408,7 +413,7 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	firstValidator := c.Validators[0]
 
-	if err := c.executeGenesisOperations(ctx, firstValidator, faucetWallet, genesisAmounts); err != nil {
+	if err := c.executeGenesisOperations(ctx, opts.WalletConfig, firstValidator, faucetWallet, genesisAmounts, additionalAccountOpts{baseMnemonic: opts.BaseMnemonic, numAdditionalAccounts: opts.AdditionalAccounts}); err != nil {
 		return err
 	}
 
@@ -721,11 +726,31 @@ func (c *Chain) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, er
 	return json.Marshal(state)
 }
 
+type additionalAccountOpts struct {
+	baseMnemonic          string
+	numAdditionalAccounts int
+}
+
+const accountType = "/cosmos.auth.v1beta1.BaseAccount"
+
+type Account struct {
+	Type          string      `json:"@type"`
+	Address       string      `json:"address"`
+	PubKey        interface{} `json:"pub_key"`
+	AccountNumber string      `json:"account_number"`
+	Sequence      string      `json:"sequence"`
+}
+
+type Balance struct {
+	Address string      `json:"address"`
+	Coins   types.Coins `json:"coins"`
+}
+
 // Executes the needed genesis operations for the chain:
 // 1. Add the faucet account to the genesis file
 // 2. Add the validator accounts to the genesis file
 // 3. Collect the gentxs from the validators and create the genesis file
-func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin) error {
+func (c *Chain) executeGenesisOperations(ctx context.Context, walletCfg petritypes.WalletConfig, firstValidator petritypes.NodeI, faucetWallet petritypes.WalletI, genesisAmounts []types.Coin, accountOpts additionalAccountOpts) error {
 	c.logger.Info("executing genesis operations", zap.String("validator", firstValidator.GetDefinition().Name))
 
 	var scriptBuilder strings.Builder
@@ -788,9 +813,212 @@ func (c *Chain) executeGenesisOperations(ctx context.Context, firstValidator pet
 		return fmt.Errorf("final genesis script failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
 	}
 
+	if accountOpts.numAdditionalAccounts > 0 {
+		if accountOpts.baseMnemonic == "" {
+			return fmt.Errorf("base-mnemonic is required when additional accounts > 0")
+		}
+		accounts, err := buildAccounts(walletCfg, accountOpts.baseMnemonic, len(c.Validators)+1, accountOpts.numAdditionalAccounts)
+		if err != nil {
+			return fmt.Errorf("failed to build additional accounts: %w", err)
+		}
+		balances := buildBalances(accounts, genesisAmounts)
+		eg := new(errgroup.Group)
+		for _, v := range c.Validators {
+			eg.Go(func() error {
+				genesisBz, err := v.GenesisFileContent(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to get genesis file: %w", err)
+				}
+				data := make(map[string]any)
+				err = json.Unmarshal(genesisBz, &data)
+				if err != nil {
+					return err
+				}
+
+				data, err = UpdateGenesisAccounts(accounts, data)
+				if err != nil {
+					return fmt.Errorf("failed to update genesis accounts: %w", err)
+				}
+
+				data, err = UpdateGenesisBalances(balances, data)
+				if err != nil {
+					return fmt.Errorf("failed to update genesis balances: %w", err)
+				}
+
+				updatedGenesisBz, err := json.Marshal(data)
+				if err != nil {
+					return err
+				}
+
+				err = v.OverwriteGenesisFile(ctx, updatedGenesisBz)
+				if err != nil {
+					return fmt.Errorf("failed to overwrite genesis file for validator: %w", err)
+				}
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return fmt.Errorf("failed to add additional accounts: %w", err)
+		}
+	}
+
 	c.logger.Debug("final genesis script completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
 	return nil
+}
+
+// UpdateGenesisBalances updates the bank balance and supply state with the given balances.
+func UpdateGenesisBalances(bals []Balance, data map[string]any) (map[string]any, error) {
+	appstate := data["app_state"].(map[string]any)
+	bankData := appstate["bank"].(map[string]any)
+
+	// Marshal the bank data to JSON, then unmarshal into the proper type
+	bankBytes, err := json.Marshal(bankData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal bank data: %w", err)
+	}
+
+	var bankGenesis bankv1beta1.GenesisState
+	err = protojson.Unmarshal(bankBytes, &bankGenesis)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal bank genesis: %w", err)
+	}
+
+	// Track additional supply amounts by denomination
+	additionalSupply := make(map[string]*big.Int)
+
+	// Convert our Balance type to bank Balance type and add to genesis
+	for _, bal := range bals {
+		// Convert types.Coins to sdk.Coins
+		coins := make([]*basev1beta1.Coin, len(bal.Coins))
+		for i, coin := range bal.Coins {
+			coins[i] = &basev1beta1.Coin{
+				Denom:  coin.Denom,
+				Amount: coin.Amount.String(),
+			}
+
+			// Track additional supply
+			if additionalSupply[coin.Denom] == nil {
+				additionalSupply[coin.Denom] = big.NewInt(0)
+			}
+			additionalSupply[coin.Denom].Add(additionalSupply[coin.Denom], coin.Amount.BigInt())
+		}
+
+		// Create bank balance
+		bankBalance := &bankv1beta1.Balance{
+			Address: bal.Address,
+			Coins:   coins,
+		}
+
+		bankGenesis.Balances = append(bankGenesis.Balances, bankBalance)
+	}
+
+	// Update supply - convert existing supply to map for easier lookup
+	supplyMap := make(map[string]*big.Int)
+	for _, coin := range bankGenesis.Supply {
+		amount, ok := new(big.Int).SetString(coin.Amount, 10)
+		if !ok {
+			return nil, fmt.Errorf("failed to parse supply amount: %s", coin.Amount)
+		}
+		supplyMap[coin.Denom] = amount
+	}
+
+	// Add additional amounts to existing supply or create new entries
+	for denom, additionalAmount := range additionalSupply {
+		if existingAmount, exists := supplyMap[denom]; exists {
+			supplyMap[denom] = new(big.Int).Add(existingAmount, additionalAmount)
+		} else {
+			supplyMap[denom] = additionalAmount
+		}
+	}
+
+	// Convert supply map back to coin slice
+	bankGenesis.Supply = make([]*basev1beta1.Coin, 0, len(supplyMap))
+	for denom, amount := range supplyMap {
+		bankGenesis.Supply = append(bankGenesis.Supply, &basev1beta1.Coin{
+			Denom:  denom,
+			Amount: amount.String(),
+		})
+	}
+
+	// Marshal the updated bank genesis back to JSON
+	updatedBankBytes, err := protojson.Marshal(&bankGenesis)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal updated bank genesis: %w", err)
+	}
+
+	// Convert back to map[string]any for insertion into genesis
+	var updatedBankData map[string]any
+	err = json.Unmarshal(updatedBankBytes, &updatedBankData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal updated bank data: %w", err)
+	}
+
+	// Update the genesis data
+	appstate["bank"] = updatedBankData
+	data["app_state"] = appstate
+
+	return data, nil
+}
+
+// UpdateGenesisAccounts updates the auth account genesis state with the given accounts.
+func UpdateGenesisAccounts(accounts []Account, genesisData map[string]any) (map[string]any, error) {
+	appstate := genesisData["app_state"].(map[string]any)
+	auth := appstate["auth"].(map[string]any)
+	genesisAccounts := auth["accounts"].([]any)
+
+	for _, acc := range accounts {
+		genesisAccounts = append(genesisAccounts, map[string]any{
+			"@type":          acc.Type,
+			"address":        acc.Address,
+			"pub_key":        nil,
+			"account_number": acc.AccountNumber,
+			"sequence":       acc.Sequence,
+		})
+	}
+
+	// Update the auth module with the modified accounts slice
+	auth["accounts"] = genesisAccounts
+	// Update the app_state with the modified auth module
+	appstate["auth"] = auth
+	// Update the main genesisData with the modified app_state
+	genesisData["app_state"] = appstate
+
+	return genesisData, nil
+}
+
+// builds wallets from the baseMnemonic, with a bipPassphrase of [0,numAdditionalAccounts)
+func buildAccounts(walletCfg petritypes.WalletConfig, baseMnemonic string, startingAccNum, numAdditionalAccs int) ([]Account, error) {
+	accounts := make([]Account, 0, numAdditionalAccs)
+	for i := range numAdditionalAccs {
+		keyName := fmt.Sprintf("additionalaccount%d", i)
+		w, err := wallet.NewWallet(keyName, baseMnemonic, fmt.Sprintf("%d", i), walletCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create wallet %d: %w", i+1, err)
+		}
+		account := Account{
+			Type:          accountType,
+			Address:       w.FormattedAddress(),
+			PubKey:        nil,
+			AccountNumber: strconv.Itoa(startingAccNum + i),
+			Sequence:      "0",
+		}
+		accounts = append(accounts, account)
+	}
+	return accounts, nil
+}
+
+// builds a balance slice for the accounts and funds.
+func buildBalances(accounts []Account, funds types.Coins) []Balance {
+	balances := make([]Balance, 0, len(accounts))
+	for _, acc := range accounts {
+		bal := Balance{
+			Address: acc.Address,
+			Coins:   funds,
+		}
+		balances = append(balances, bal)
+	}
+	return balances
 }
 
 func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petritypes.ChainConfig, genbz []byte,
