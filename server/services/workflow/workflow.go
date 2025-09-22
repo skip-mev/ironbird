@@ -40,6 +40,8 @@ func NewService(database db.DB, logger *zap.Logger, temporalClient temporalclien
 	}
 }
 
+const DefaultBaseMnemonic = "copper push brief egg scan entry inform record adjust fossil boss egg comic alien upon aspect dry avoid interest fury window hint race symptom"
+
 func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequest) (*pb.WorkflowResponse, error) {
 	s.logger.Info("CreateWorkflow request received", zap.Any("request", req))
 
@@ -48,6 +50,9 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		if err != nil {
 			return nil, fmt.Errorf("invalid testnet duration format '%s': %w", req.TestnetDuration, err)
 		}
+	}
+	if req.GetBaseMnemonic() == "" {
+		req.BaseMnemonic = DefaultBaseMnemonic
 	}
 
 	workflowReq := messages.TestnetWorkflowRequest{
