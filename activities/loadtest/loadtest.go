@@ -185,11 +185,10 @@ func (a *Activity) RunLoadTest(ctx context.Context, req messages.RunLoadTestRequ
 		return handleLoadTestError(ctx, logger, p, chain, err, "failed to generate load test config")
 	}
 
-	catalystTag := "latest"
+	catalystImage := "ghcr.io/skip-mev/catalyst"
 	if req.CatalystVersion != "" {
-		catalystTag = req.CatalystVersion
+		catalystImage = fmt.Sprintf("ghcr.io/skip-mev/catalyst:%s", req.CatalystVersion)
 	}
-	catalystImage := fmt.Sprintf("ghcr.io/skip-mev/catalyst:%s", catalystTag)
 	logger.Info("using catalyst image", zap.String("image", catalystImage))
 
 	task, err := p.CreateTask(ctx, provider.TaskDefinition{
