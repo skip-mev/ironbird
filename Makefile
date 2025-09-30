@@ -1,5 +1,6 @@
 WORKER_BIN=./build/worker
 SERVER_BIN=./build/server
+CLEANUP_BIN=./build/cleanup
 GO_FILES=$(shell find . -name '*.go' -type f -not -path "./vendor/*")
 GO_DEPS=go.mod go.sum
 
@@ -57,9 +58,13 @@ ${SERVER_BIN}: ${GO_FILES} ${GO_DEPS} ## Build the server binary
 	@mkdir -p ./build
 	cd server && go build -o ../build/server ./cmd
 
-build: ${WORKER_BIN} ${SERVER_BIN} ## Build the worker and server binaries
+${CLEANUP_BIN}: ${GO_FILES} ${GO_DEPS}
+	@echo "Building cleanup binary..."
+	@mkdir -p ./build
+	go build -o ./build/cleanup ./cmd/cleanup
 
-.PHONY: tidy deps build
+.PHONY: build
+build: ${WORKER_BIN} ${SERVER_BIN} ${CLEANUP_BIN}
 
 ###############################################################################
 ###                                  Proto                                  ###
@@ -156,6 +161,10 @@ start-frontend: ## Start the frontend
 
 start-backend: ## Start the backend
 	go run ./server/cmd/main.go
+
+.PHONY: start-cleanup
+start-cleanup:
+	go run ./cmd/cleanup/main.go --dry-run
 
 local-docker: ## Start IronBird for local Docker workflows (no cloud dependencies)
 	@echo "🚀 Starting IronBird in Local Docker Mode"

@@ -61,8 +61,9 @@ type LaunchTestnetRequest struct {
 	SetPersistentPeers bool
 	SetSeedNode        bool
 
-	BaseMnemonic string
-	NumWallets   int
+	BaseMnemonic   string
+	NumWallets     int
+	LongRunning    bool
 }
 
 type LaunchTestnetResponse struct {
