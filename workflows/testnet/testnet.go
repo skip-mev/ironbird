@@ -164,6 +164,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 			ProviderState:         providerState,
 			NumWallets:            req.NumWallets,
 			BaseMnemonic:          req.BaseMnemonic,
+			LongRunning:           req.LongRunningTestnet,
 		}).Get(ctx, &testnetResp); err != nil {
 		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
 		if compressErr != nil {

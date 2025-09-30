@@ -13,6 +13,7 @@ type DoClient interface {
 	// Droplet operations
 	CreateDroplet(ctx context.Context, req *godo.DropletCreateRequest) (*godo.Droplet, error)
 	GetDroplet(ctx context.Context, dropletID int) (*godo.Droplet, error)
+	ListDroplets(ctx context.Context, opts *godo.ListOptions) ([]godo.Droplet, error)
 	DeleteDropletByTag(ctx context.Context, tag string) error
 	DeleteDropletByID(ctx context.Context, id int) error
 
@@ -85,6 +86,14 @@ func (c *godoClient) GetDroplet(ctx context.Context, dropletID int) (*godo.Dropl
 		return nil, err
 	}
 	return droplet, nil
+}
+
+func (c *godoClient) ListDroplets(ctx context.Context, opts *godo.ListOptions) ([]godo.Droplet, error) {
+	droplets, res, err := c.Droplets.List(ctx, opts)
+	if err := checkResponse(res, err); err != nil {
+		return nil, err
+	}
+	return droplets, nil
 }
 
 func (c *godoClient) DeleteDropletByTag(ctx context.Context, tag string) error {

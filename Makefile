@@ -1,5 +1,6 @@
 WORKER_BIN=./build/worker
 SERVER_BIN=./build/server
+CLEANUP_BIN=./build/cleanup
 GO_FILES=$(shell find . -name '*.go' -type f -not -path "./vendor/*")
 GO_DEPS=go.mod go.sum
 
@@ -58,8 +59,13 @@ ${SERVER_BIN}: ${GO_FILES} ${GO_DEPS}
 	@mkdir -p ./build
 	cd server && go build -o ../build/server ./cmd
 
+${CLEANUP_BIN}: ${GO_FILES} ${GO_DEPS}
+	@echo "Building cleanup binary..."
+	@mkdir -p ./build
+	go build -o ./build/cleanup ./cmd/cleanup
+
 .PHONY: build
-build: ${WORKER_BIN} ${SERVER_BIN}
+build: ${WORKER_BIN} ${SERVER_BIN} ${CLEANUP_BIN}
 
 ###############################################################################
 ###                                  Proto                                  ###
@@ -163,6 +169,10 @@ start-frontend:
 .PHONY: start-backend
 start-backend:
 	go run ./server/cmd/main.go
+
+.PHONY: start-cleanup
+start-cleanup:
+	go run ./cmd/cleanup/main.go --dry-run
 
 .PHONY: dev
 dev:
