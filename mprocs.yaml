@@ -1,0 +1,19 @@
+# brew install mprocs
+procs:
+  temporal:
+    shell: "make start-temporal"
+  docker-buildkit:
+    shell: |
+      docker run --rm --name buildkitd --privileged -p 1234:1234 \
+       -v /var/run/docker.sock:/var/run/docker.sock \
+       -v buildkitd:/var/lib/buildkit \
+       -v ~/.docker/config.json:/root/.docker/config.json \
+         moby/buildkit:latest --addr tcp://0.0.0.0:1234
+  frontend:
+    shell: "make start-frontend"
+  backend:
+    shell: "make start-backend"
+  worker:
+    shell: "make start-worker"
+    env:
+      TSNET_FORCE_LOGIN: "1"
