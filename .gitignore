@@ -2,6 +2,7 @@
 *.env
 **/.env
 .idea/**
+.vscode
 build/
 *.db*
 **/.DS_Store
