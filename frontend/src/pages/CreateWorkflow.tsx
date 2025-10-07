@@ -1238,7 +1238,7 @@ const CreateWorkflow = () => {
                 borderColor="divider"
                 placeholder="Select runner type"
               >
-              <option value="Docker">Docker</option>
+              <option value="Docker">Docker (only available locally)</option>
               <option value="DigitalOcean">DigitalOcean</option>
             </Select>
           </FormControl>

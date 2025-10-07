@@ -205,6 +205,7 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 			RunnerType:    req.RunnerType,
 			Domains:       domains,
 			WorkflowID:    workflowID,
+			IsEvmChain:    req.IsEvmChain,
 		},
 	).Get(ctx, &loadBalancerResp); err != nil {
 		logger.Error("Failed to launch loadbalancer", zap.Error(err))

@@ -283,7 +283,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	testnetNodes := make([]*pb.Node, 0, len(chain.GetNodes()))
 
 	for _, validator := range chain.GetValidators() {
-		validatorInfo, err := getNodeExternalAddresses(ctx, validator)
+		validatorInfo, err := getNodeExternalAddresses(ctx, validator, req.IsEvmChain)
 		if err != nil {
 			return resp, err
 		}
@@ -291,7 +291,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	}
 
 	for _, node := range chain.GetNodes() {
-		nodeInfo, err := getNodeExternalAddresses(ctx, node)
+		nodeInfo, err := getNodeExternalAddresses(ctx, node, req.IsEvmChain)
 		if err != nil {
 			return resp, err
 		}
@@ -378,7 +378,7 @@ func constructChainConfig(req messages.LaunchTestnetRequest,
 	return config, walletConfig
 }
 
-func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI) (*pb.Node, error) {
+func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI, isEvmChain bool) (*pb.Node, error) {
 	lcdIp, err := nodeProvider.GetExternalAddress(ctx, "1317")
 	if err != nil {
 		return &pb.Node{}, err
@@ -399,11 +399,27 @@ func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI
 		return &pb.Node{}, err
 	}
 
-	return &pb.Node{
+	node := &pb.Node{
 		Name:    nodeProvider.GetDefinition().Name,
 		Rpc:     fmt.Sprintf("http://%s", cometIp),
 		Lcd:     fmt.Sprintf("http://%s", lcdIp),
 		Grpc:    grpcIp,
 		Address: ip,
-	}, nil
+	}
+
+	if isEvmChain {
+		evmRpcIp, err := nodeProvider.GetExternalAddress(ctx, "8545")
+		if err != nil {
+			return &pb.Node{}, err
+		}
+		node.Evmrpc = fmt.Sprintf("http://%s", evmRpcIp)
+
+		evmWsIp, err := nodeProvider.GetExternalAddress(ctx, "8546")
+		if err != nil {
+			return &pb.Node{}, err
+		}
+		node.Evmws = fmt.Sprintf("ws://%s", evmWsIp)
+	}
+
+	return node, nil
 }

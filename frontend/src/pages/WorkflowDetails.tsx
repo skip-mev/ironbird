@@ -303,6 +303,46 @@ const WorkflowDetails = () => {
     return url.toString();
   };
 
+  // Helper to get EVM RPC URL (construct from RPC if missing for backwards compatibility)
+  const getEvmRpcUrl = (node: any): string | null => {
+    if (!workflow?.config?.IsEvmChain) return null;
+    
+    // If already populated, use it
+    if (node.EVMRPC) return node.EVMRPC;
+    
+    // Otherwise construct from RPC field for backwards compatibility
+    if (node.RPC) {
+      // Handle domain-based URLs (load balancers): https://name-rpc.domain -> https://name-evmrpc.domain
+      if (node.RPC.includes('-rpc.')) {
+        return node.RPC.replace('-rpc.', '-evmrpc.');
+      }
+      // Handle IP:port URLs (nodes/validators): http://IP:26657 -> http://IP:8545
+      return node.RPC.replace(':26657', ':8545');
+    }
+    
+    return null;
+  };
+
+  // Helper to get EVM WS URL (construct from RPC if missing for backwards compatibility)
+  const getEvmWsUrl = (node: any): string | null => {
+    if (!workflow?.config?.IsEvmChain) return null;
+    
+    // If already populated, use it
+    if (node.EVMWS) return node.EVMWS;
+    
+    // Otherwise construct from RPC field for backwards compatibility
+    if (node.RPC) {
+      // Handle domain-based URLs (load balancers): https://name-rpc.domain -> wss://name-evmws.domain
+      if (node.RPC.includes('-rpc.')) {
+        return node.RPC.replace('https://', 'wss://').replace('-rpc.', '-evmws.');
+      }
+      // Handle IP:port URLs (nodes/validators): http://IP:26657 -> ws://IP:8546
+      return node.RPC.replace('http://', 'ws://').replace(':26657', ':8546');
+    }
+    
+    return null;
+  };
+
   // Export wallets to CSV function
   const exportWalletsToCSV = (wallets: WalletInfo) => {
     const csvContent = [
@@ -542,7 +582,7 @@ const WorkflowDetails = () => {
                                       </Text>
                                       <Stack spacing={2}>
                                         <HStack>
-                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                             RPC:
                                           </Text>
                                           <Link 
@@ -561,7 +601,7 @@ const WorkflowDetails = () => {
                                           </Link>
                                         </HStack>
                                         <HStack>
-                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                             LCD:
                                           </Text>
                                           <Text 
@@ -576,7 +616,7 @@ const WorkflowDetails = () => {
                                         </HStack>
                                         {node.GRPC && (
                                           <HStack>
-                                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                               gRPC:
                                             </Text>
                                             <Text 
@@ -587,6 +627,43 @@ const WorkflowDetails = () => {
                                               cursor="default"
                                             >
                                               {node.GRPC}
+                                            </Text>
+                                          </HStack>
+                                        )}
+                                        {getEvmRpcUrl(node) && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                              EVM RPC:
+                                            </Text>
+                                            <Link 
+                                              href={getEvmRpcUrl(node)!} 
+                                              target="_blank" 
+                                              color="purple.500"
+                                              fontSize="sm"
+                                              fontFamily="mono"
+                                              textDecoration="underline"
+                                              display="flex"
+                                              alignItems="center"
+                                              gap={1}
+                                            >
+                                              {getEvmRpcUrl(node)}
+                                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                                            </Link>
+                                          </HStack>
+                                        )}
+                                        {getEvmWsUrl(node) && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                              EVM WS:
+                                            </Text>
+                                            <Text 
+                                              color="purple.500"
+                                              fontSize="sm"
+                                              fontFamily="mono"
+                                              textDecoration="underline"
+                                              cursor="default"
+                                            >
+                                              {getEvmWsUrl(node)}
                                             </Text>
                                           </HStack>
                                         )}
@@ -616,7 +693,7 @@ const WorkflowDetails = () => {
                             </Text>
                             <Stack spacing={2}>
                               <HStack>
-                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                   RPC:
                                 </Text>
                                 <Link 
@@ -635,7 +712,7 @@ const WorkflowDetails = () => {
                                 </Link>
                               </HStack>
                               <HStack>
-                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                   LCD:
                                 </Text>
                                 <Text 
@@ -650,7 +727,7 @@ const WorkflowDetails = () => {
                               </HStack>
                               {node.GRPC && (
                                 <HStack>
-                                  <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                     gRPC:
                                   </Text>
                                   <Text 
@@ -661,6 +738,43 @@ const WorkflowDetails = () => {
                                     cursor="default"
                                   >
                                     {node.GRPC}
+                                  </Text>
+                                </HStack>
+                              )}
+                              {getEvmRpcUrl(node) && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                    EVM RPC:
+                                  </Text>
+                                  <Link 
+                                    href={getEvmRpcUrl(node)!} 
+                                    target="_blank" 
+                                    color="purple.500"
+                                    fontSize="sm"
+                                    fontFamily="mono"
+                                    textDecoration="underline"
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={1}
+                                  >
+                                    {getEvmRpcUrl(node)}
+                                    <Icon as={ExternalLinkIcon} boxSize={3} />
+                                  </Link>
+                                </HStack>
+                              )}
+                              {getEvmWsUrl(node) && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                    EVM WS:
+                                  </Text>
+                                  <Text 
+                                    color="purple.500"
+                                    fontSize="sm"
+                                    fontFamily="mono"
+                                    textDecoration="underline"
+                                    cursor="default"
+                                  >
+                                    {getEvmWsUrl(node)}
                                   </Text>
                                 </HStack>
                               )}
@@ -731,7 +845,7 @@ const WorkflowDetails = () => {
                                       </Text>
                                       <Stack spacing={2}>
                                         <HStack>
-                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                             RPC:
                                           </Text>
                                           <Link 
@@ -750,7 +864,7 @@ const WorkflowDetails = () => {
                                           </Link>
                                         </HStack>
                                         <HStack>
-                                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                             LCD:
                                           </Text>
                                           <Text 
@@ -765,7 +879,7 @@ const WorkflowDetails = () => {
                                         </HStack>
                                         {validator.GRPC && (
                                           <HStack>
-                                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                               gRPC:
                                             </Text>
                                             <Text 
@@ -776,6 +890,43 @@ const WorkflowDetails = () => {
                                               cursor="default"
                                             >
                                               {validator.GRPC}
+                                            </Text>
+                                          </HStack>
+                                        )}
+                                        {getEvmRpcUrl(validator) && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                              EVM RPC:
+                                            </Text>
+                                            <Link 
+                                              href={getEvmRpcUrl(validator)!} 
+                                              target="_blank" 
+                                              color="purple.500"
+                                              fontSize="sm"
+                                              fontFamily="mono"
+                                              textDecoration="underline"
+                                              display="flex"
+                                              alignItems="center"
+                                              gap={1}
+                                            >
+                                              {getEvmRpcUrl(validator)}
+                                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                                            </Link>
+                                          </HStack>
+                                        )}
+                                        {getEvmWsUrl(validator) && (
+                                          <HStack>
+                                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                              EVM WS:
+                                            </Text>
+                                            <Text 
+                                              color="purple.500"
+                                              fontSize="sm"
+                                              fontFamily="mono"
+                                              textDecoration="underline"
+                                              cursor="default"
+                                            >
+                                              {getEvmWsUrl(validator)}
                                             </Text>
                                           </HStack>
                                         )}
@@ -805,7 +956,7 @@ const WorkflowDetails = () => {
                             </Text>
                             <Stack spacing={2}>
                               <HStack>
-                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                   RPC:
                                 </Text>
                                 <Link 
@@ -824,7 +975,7 @@ const WorkflowDetails = () => {
                                 </Link>
                               </HStack>
                               <HStack>
-                                <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                   LCD:
                                 </Text>
                                 <Text 
@@ -839,7 +990,7 @@ const WorkflowDetails = () => {
                               </HStack>
                               {validator.GRPC && (
                                 <HStack>
-                                  <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
                                     gRPC:
                                   </Text>
                                   <Text 
@@ -850,6 +1001,43 @@ const WorkflowDetails = () => {
                                     cursor="default"
                                   >
                                     {validator.GRPC}
+                                  </Text>
+                                </HStack>
+                              )}
+                              {getEvmRpcUrl(validator) && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                    EVM RPC:
+                                  </Text>
+                                  <Link 
+                                    href={getEvmRpcUrl(validator)!} 
+                                    target="_blank" 
+                                    color="purple.500"
+                                    fontSize="sm"
+                                    fontFamily="mono"
+                                    textDecoration="underline"
+                                    display="flex"
+                                    alignItems="center"
+                                    gap={1}
+                                  >
+                                    {getEvmRpcUrl(validator)}
+                                    <Icon as={ExternalLinkIcon} boxSize={3} />
+                                  </Link>
+                                </HStack>
+                              )}
+                              {getEvmWsUrl(validator) && (
+                                <HStack>
+                                  <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                                    EVM WS:
+                                  </Text>
+                                  <Text 
+                                    color="purple.500"
+                                    fontSize="sm"
+                                    fontFamily="mono"
+                                    textDecoration="underline"
+                                    cursor="default"
+                                  >
+                                    {getEvmWsUrl(validator)}
                                   </Text>
                                 </HStack>
                               )}
@@ -895,7 +1083,7 @@ const WorkflowDetails = () => {
                       </Text>
                       <Stack spacing={2}>
                         <HStack>
-                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                             RPC:
                           </Text>
                           <Link 
@@ -914,7 +1102,7 @@ const WorkflowDetails = () => {
                           </Link>
                         </HStack>
                         <HStack>
-                          <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                          <Text fontWeight="semibold" minW="80px" fontSize="sm">
                             LCD:
                           </Text>
                           <Text 
@@ -929,7 +1117,7 @@ const WorkflowDetails = () => {
                         </HStack>
                         {node.GRPC && (
                           <HStack>
-                            <Text fontWeight="semibold" minW="60px" fontSize="sm">
+                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
                               gRPC:
                             </Text>
                             <Text 
@@ -940,6 +1128,43 @@ const WorkflowDetails = () => {
                               cursor="default"
                             >
                               {node.GRPC}
+                            </Text>
+                          </HStack>
+                        )}
+                        {getEvmRpcUrl(node) && (
+                          <HStack>
+                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                              EVM RPC:
+                            </Text>
+                            <Link 
+                              href={getEvmRpcUrl(node)!} 
+                              target="_blank" 
+                              color="purple.500"
+                              fontSize="sm"
+                              fontFamily="mono"
+                              textDecoration="underline"
+                              display="flex"
+                              alignItems="center"
+                              gap={1}
+                            >
+                              {getEvmRpcUrl(node)}
+                              <Icon as={ExternalLinkIcon} boxSize={3} />
+                            </Link>
+                          </HStack>
+                        )}
+                        {getEvmWsUrl(node) && (
+                          <HStack>
+                            <Text fontWeight="semibold" minW="80px" fontSize="sm">
+                              EVM WS:
+                            </Text>
+                            <Text 
+                              color="purple.500"
+                              fontSize="sm"
+                              fontFamily="mono"
+                              textDecoration="underline"
+                              cursor="default"
+                            >
+                              {getEvmWsUrl(node)}
                             </Text>
                           </HStack>
                         )}

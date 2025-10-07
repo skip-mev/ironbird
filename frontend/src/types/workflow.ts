@@ -94,6 +94,8 @@ export interface Node {
   LCD: string;
   Metrics: string;
   GRPC: string;
+  EVMRPC?: string;
+  EVMWS?: string;
 }
 
 export interface WalletInfo {
