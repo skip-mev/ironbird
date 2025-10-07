@@ -39,7 +39,9 @@ telemetry:
     url: http://loki:3100
 builder:
   build_kit_address: tcp://buildkit:1234
-  registry:
+  local:
+    image_name: test-local-image
+  ecr:
     url: test.registry.com
     image_name: test/image
   auth_env_configs:
@@ -91,8 +93,9 @@ server_address: localhost:9006
 		assert.Equal(t, "http://loki:3100", config.Telemetry.Loki.URL)
 
 		assert.Equal(t, "tcp://buildkit:1234", config.Builder.BuildKitAddress)
-		assert.Equal(t, "test.registry.com", config.Builder.Registry.URL)
-		assert.Equal(t, "test/image", config.Builder.Registry.ImageName)
+		assert.Equal(t, "test-local-image", config.Builder.Local.ImageName)
+		assert.Equal(t, "test.registry.com", config.Builder.ECR.URL)
+		assert.Equal(t, "test/image", config.Builder.ECR.ImageName)
 		assert.Equal(t, "test_value", config.Builder.AuthEnvConfigs["TEST_ENV"])
 
 		assert.Contains(t, config.Chains, "test-chain")

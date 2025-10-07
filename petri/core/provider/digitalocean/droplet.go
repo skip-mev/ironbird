@@ -52,6 +52,9 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 	}
 
 	state := p.GetState()
+
+	tags := []string{state.PetriTag}
+
 	req := &godo.DropletCreateRequest{
 		Name:    fmt.Sprintf("%s-%s", state.PetriTag, definition.Name),
 		Region:  doConfig["region"],
@@ -60,7 +63,7 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 		Image: godo.DropletCreateImage{
 			ID: int(imageId),
 		},
-		Tags:     []string{state.PetriTag},
+		Tags:     tags,
 		UserData: formatUserData(userDataCommands),
 	}
 
