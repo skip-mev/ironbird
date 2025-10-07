@@ -829,3 +829,60 @@ func (_c *MockDoClient_GetKeyByFingerprint_Call) RunAndReturn(run func(ctx conte
 	_c.Call.Return(run)
 	return _c
 }
+
+// ListDroplets provides a mock function for the type MockDoClient
+func (_mock *MockDoClient) ListDroplets(ctx context.Context, opts *godo.ListOptions) ([]godo.Droplet, error) {
+	ret := _mock.Called(ctx, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListDroplets")
+	}
+
+	var r0 []godo.Droplet
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *godo.ListOptions) ([]godo.Droplet, error)); ok {
+		return returnFunc(ctx, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *godo.ListOptions) []godo.Droplet); ok {
+		r0 = returnFunc(ctx, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]godo.Droplet)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *godo.ListOptions) error); ok {
+		r1 = returnFunc(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDoClient_ListDroplets_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListDroplets'
+type MockDoClient_ListDroplets_Call struct {
+	*mock.Call
+}
+
+// ListDroplets is a helper method to define mock.On call
+//   - ctx
+//   - opts
+func (_e *MockDoClient_Expecter) ListDroplets(ctx interface{}, opts interface{}) *MockDoClient_ListDroplets_Call {
+	return &MockDoClient_ListDroplets_Call{Call: _e.mock.On("ListDroplets", ctx, opts)}
+}
+
+func (_c *MockDoClient_ListDroplets_Call) Run(run func(ctx context.Context, opts *godo.ListOptions)) *MockDoClient_ListDroplets_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*godo.ListOptions))
+	})
+	return _c
+}
+
+func (_c *MockDoClient_ListDroplets_Call) Return(droplets []godo.Droplet, err error) *MockDoClient_ListDroplets_Call {
+	_c.Call.Return(droplets, err)
+	return _c
+}
+
+func (_c *MockDoClient_ListDroplets_Call) RunAndReturn(run func(ctx context.Context, opts *godo.ListOptions) ([]godo.Droplet, error)) *MockDoClient_ListDroplets_Call {
+	_c.Call.Return(run)
+	return _c
+}
