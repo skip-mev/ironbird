@@ -42,6 +42,10 @@ message CreateWorkflowRequest {
     bool launch_load_balancer = 11;
     string catalyst_version = 12;
     string base_mnemonic = 13;
+    // Optional: cosmos-sdk version/SHA for EVM builds with replacements
+    string cosmos_sdk_sha = 14;
+    // Optional: cometbft version/SHA for EVM builds with replacements
+    string cometbft_sha = 15;
 }
 
 message GenesisKV {

@@ -125,6 +125,31 @@ func generateReplace(dependencies map[string]string, owner, repo, tag string) st
 	return fmt.Sprintf("go mod edit -replace %s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
+// generateMultipleReplaces generates multiple replace commands separated by newlines
+func generateMultipleReplaces(req messages.BuildDockerImageRequest) string {
+	var replaceCommands []string
+
+	// For cometbft builds, replace cometbft dependency
+	if req.Repo == "cometbft" {
+		replaceCommands = append(replaceCommands,
+			generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA))
+	}
+
+	// For EVM builds with optional SDK replacement
+	if req.CosmosSdkSha != "" {
+		replaceCommands = append(replaceCommands,
+			generateReplace(dependencies, repoOwners["cosmos-sdk"], "cosmos-sdk", req.CosmosSdkSha))
+	}
+
+	// For EVM builds with optional CometBFT replacement
+	if req.CometBFTSha != "" {
+		replaceCommands = append(replaceCommands,
+			generateReplace(dependencies, repoOwners["cometbft"], "cometbft", req.CometBFTSha))
+	}
+
+	return strings.Join(replaceCommands, " && ")
+}
+
 func generateTag(imageName, version, repo, sha string) string {
 	if repo == "cometbft" {
 		return fmt.Sprintf("%s-%s-%s-%s", imageName, version, repo, sha)
@@ -242,15 +267,22 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	buildArguments := make(map[string]string)
 	buildArguments["GIT_SHA"] = tag
 
+	// Generate replace commands for go.mod modifications
+	replaceCmd := generateMultipleReplaces(req)
+
 	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace
 	// CometBFT with the specified commit SHA
 	if req.Repo == "cometbft" {
 		buildArguments["CHAIN_SRC"] = "https://github.com/cosmos/cosmos-sdk"
 		buildArguments["CHAIN_TAG"] = req.ImageConfig.Version
-		buildArguments["REPLACE_CMD"] = generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA)
+		buildArguments["REPLACE_CMD"] = replaceCmd
 	} else {
 		buildArguments["CHAIN_TAG"] = req.SHA
 		buildArguments["CHAIN_SRC"] = fmt.Sprintf("https://github.com/%s/%s", repoOwners[req.Repo], req.Repo)
+		// For EVM builds with optional replacements
+		if replaceCmd != "" {
+			buildArguments["REPLACE_CMD"] = replaceCmd
+		}
 	}
 
 	for k, v := range buildArguments {

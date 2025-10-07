@@ -72,6 +72,20 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
    */
   baseMnemonic = "";
 
+  /**
+   * Optional: cosmos-sdk version/SHA for EVM builds with replacements
+   *
+   * @generated from field: string cosmos_sdk_sha = 14;
+   */
+  cosmosSdkSha = "";
+
+  /**
+   * Optional: cometbft version/SHA for EVM builds with replacements
+   *
+   * @generated from field: string cometbft_sha = 15;
+   */
+  cometbftSha = "";
+
   constructor(data?: PartialMessage<CreateWorkflowRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -92,6 +106,8 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 11, name: "launch_load_balancer", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 12, name: "catalyst_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "base_mnemonic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 14, name: "cosmos_sdk_sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 15, name: "cometbft_sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {

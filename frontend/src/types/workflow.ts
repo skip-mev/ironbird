@@ -77,6 +77,8 @@ export interface TestnetWorkflowRequest {
   IsEvmChain: boolean;
   ChainConfig: ChainConfig;
   RunnerType: string;
+  CosmosSdkSha?: string; // Optional: cosmos-sdk version/SHA for EVM builds
+  CometBFTSha?: string; // Optional: cometbft version/SHA for EVM builds
   LoadTestSpec?: LoadTestSpec;
   EthereumLoadTestSpec?: LoadTestSpec;
   CosmosLoadTestSpec?: LoadTestSpec;

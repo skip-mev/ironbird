@@ -95,8 +95,10 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 
 	var buildResult messages.BuildDockerImageResponse
 	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
-		Repo: req.Repo,
-		SHA:  req.SHA,
+		Repo:         req.Repo,
+		SHA:          req.SHA,
+		CosmosSdkSha: req.CosmosSdkSha,
+		CometBFTSha:  req.CometBFTSha,
 		ImageConfig: messages.ImageConfig{
 			Name:    req.ChainConfig.Name,
 			Image:   req.ChainConfig.Image,
