@@ -35,12 +35,11 @@ const (
 )
 
 type ProviderState struct {
-	TaskStates  map[string]*TaskState `json:"task_states"` // map of task ids to the corresponding task state
-	Name        string                `json:"name"`
-	PetriTag    string                `json:"petri_tag"`
-	FirewallID  string                `json:"firewall_id"`
-	DomainIDs   []int                 `json:"domain_ids"`
-	LongRunning bool                  `json:"long_running"`
+	TaskStates map[string]*TaskState `json:"task_states"` // map of task ids to the corresponding task state
+	Name       string                `json:"name"`
+	PetriTag   string                `json:"petri_tag"`
+	FirewallID string                `json:"firewall_id"`
+	DomainIDs  []int                 `json:"domain_ids"`
 }
 
 type Provider struct {

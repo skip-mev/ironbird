@@ -35,7 +35,6 @@ func main() {
 
 	ctx := context.Background()
 
-	// Create DigitalOcean client
 	doClient := digitalocean.NewGodoClient(*token)
 
 	logger.Info("Starting droplet cleanup",
@@ -51,10 +50,9 @@ func main() {
 }
 
 func cleanupDroplets(ctx context.Context, client digitalocean.DoClient, logger *zap.Logger) error {
-	// List all droplets
 	opts := &godo.ListOptions{
 		Page:    1,
-		PerPage: 200, // Maximum allowed by DigitalOcean API
+		PerPage: 200,
 	}
 
 	var allDroplets []godo.Droplet
@@ -76,13 +74,12 @@ func cleanupDroplets(ctx context.Context, client digitalocean.DoClient, logger *
 	logger.Info("Retrieved droplets", zap.Int("total_count", len(allDroplets)))
 
 	var dropletsToDelete []godo.Droplet
+	now := time.Now()
 	for _, droplet := range allDroplets {
-		// Check if droplet name starts with the specified prefix
 		if !strings.HasPrefix(droplet.Name, *namePrefix) {
 			continue
 		}
 
-		// Check if droplet has the long-running tag
 		hasLongRunningTag := false
 		for _, tag := range droplet.Tags {
 			if tag == *longRunning {
@@ -91,11 +88,30 @@ func cleanupDroplets(ctx context.Context, client digitalocean.DoClient, logger *
 			}
 		}
 
-		// Skip droplets with the long-running tag
 		if hasLongRunningTag {
 			logger.Info("Skipping droplet with long-running tag",
 				zap.String("name", droplet.Name),
 				zap.Int("id", droplet.ID))
+			continue
+		}
+
+		// Parse the creation time and skip if created in the last 30 minutes
+		createdAt, err := time.Parse(time.RFC3339, droplet.Created)
+		if err != nil {
+			logger.Warn("Failed to parse droplet creation time, skipping",
+				zap.String("name", droplet.Name),
+				zap.Int("id", droplet.ID),
+				zap.String("created_at", droplet.Created),
+				zap.Error(err))
+			continue
+		}
+
+		if now.Sub(createdAt) < 30*time.Minute {
+			logger.Info("Skipping recently created droplet",
+				zap.String("name", droplet.Name),
+				zap.Int("id", droplet.ID),
+				zap.String("created_at", droplet.Created),
+				zap.Duration("age", now.Sub(createdAt)))
 			continue
 		}
 
@@ -116,7 +132,6 @@ func cleanupDroplets(ctx context.Context, client digitalocean.DoClient, logger *
 		return nil
 	}
 
-	// Delete droplets
 	var deletedCount int
 	for _, droplet := range dropletsToDelete {
 		logger.Info("Deleting droplet",
@@ -136,7 +151,6 @@ func cleanupDroplets(ctx context.Context, client digitalocean.DoClient, logger *
 			zap.String("name", droplet.Name),
 			zap.Int("id", droplet.ID))
 
-		// Add a small delay to avoid hitting rate limits
 		time.Sleep(100 * time.Millisecond)
 	}
 

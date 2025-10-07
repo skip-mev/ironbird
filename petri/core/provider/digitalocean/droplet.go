@@ -52,12 +52,9 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 	}
 
 	state := p.GetState()
-	
+
 	tags := []string{state.PetriTag}
-	if state.LongRunning {
-		tags = append(tags, "LONG_RUNNING")
-	}
-	
+
 	req := &godo.DropletCreateRequest{
 		Name:    fmt.Sprintf("%s-%s", state.PetriTag, definition.Name),
 		Region:  doConfig["region"],

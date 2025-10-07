@@ -28,9 +28,3 @@ func WithDomain(domain string) func(*Provider) {
 		p.domain = domain
 	}
 }
-
-func WithLongRunning(longRunning bool) func(*Provider) {
-	return func(p *Provider) {
-		p.state.LongRunning = longRunning
-	}
-}

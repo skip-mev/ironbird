@@ -53,7 +53,6 @@ type ProviderOptions struct {
 	DOToken           string
 	TailscaleSettings digitalocean.TailscaleSettings
 	TelemetrySettings digitalocean.TelemetrySettings
-	LongRunning       bool
 }
 
 func RestoreProvider(ctx context.Context, logger *zap.Logger, runnerType messages.RunnerType, providerState []byte, opts ProviderOptions) (provider.ProviderI, error) {
@@ -62,7 +61,7 @@ func RestoreProvider(ctx context.Context, logger *zap.Logger, runnerType message
 	}
 
 	return digitalocean.RestoreProvider(ctx, providerState, opts.DOToken, opts.TailscaleSettings,
-		digitalocean.WithLogger(logger), digitalocean.WithTelemetry(opts.TelemetrySettings), digitalocean.WithLongRunning(opts.LongRunning))
+		digitalocean.WithLogger(logger), digitalocean.WithTelemetry(opts.TelemetrySettings))
 }
 
 func CompressData(data []byte) ([]byte, error) {
