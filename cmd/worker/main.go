@@ -3,32 +3,28 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"os"
 
-	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/skip-mev/ironbird/activities/loadbalancer"
-	"github.com/skip-mev/ironbird/messages"
-	"github.com/skip-mev/ironbird/util"
-	sdktally "go.temporal.io/sdk/contrib/tally"
-	"go.uber.org/zap"
-
-	"log"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
-	"github.com/uber-go/tally/v4/prometheus"
-
 	"github.com/skip-mev/ironbird/activities/builder"
+	"github.com/skip-mev/ironbird/activities/loadbalancer"
 	"github.com/skip-mev/ironbird/activities/loadtest"
 	testnetactivity "github.com/skip-mev/ironbird/activities/testnet"
-	"github.com/skip-mev/ironbird/types"
-	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
-	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
-	"google.golang.org/grpc"
-
+	"github.com/skip-mev/ironbird/messages"
+	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	pb "github.com/skip-mev/ironbird/server/proto"
+	"github.com/skip-mev/ironbird/types"
+	"github.com/skip-mev/ironbird/util"
+	testnetworkflow "github.com/skip-mev/ironbird/workflows/testnet"
+	"github.com/uber-go/tally/v4/prometheus"
+	"go.temporal.io/sdk/client"
+	sdktally "go.temporal.io/sdk/contrib/tally"
+	"go.temporal.io/sdk/worker"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -62,14 +58,29 @@ func main() {
 
 	defer c.Close()
 
-	awsConfig, err := config.LoadDefaultConfig(ctx)
+	activeRegistry := cfg.Builder.GetActiveRegistry()
+	logger.Info("Using registry configuration",
+		zap.String("mode", activeRegistry.Type),
+		zap.String("image_name", activeRegistry.ImageName))
 
-	if err != nil {
-		log.Fatalln(err)
+	var awsConfig *aws.Config
+	if activeRegistry.Type == "ecr" {
+		awsCfg, err := config.LoadDefaultConfig(ctx)
+		if err != nil {
+			log.Fatalln("Failed to load AWS config (required for ECR registry):", err)
+		}
+		awsConfig = &awsCfg
+		logger.Info("AWS config loaded for ECR registry")
+	} else {
+		logger.Info("Skipping AWS config (using local registry)")
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: cfg.Builder,
-		AwsConfig: &awsConfig, Chains: cfg.Chains}
+	builderActivity := builder.Activity{
+		BuilderConfig: cfg.Builder,
+		AwsConfig:     awsConfig,
+		Chains:        cfg.Chains,
+		Registry:      activeRegistry,
+	}
 
 	var grpcClient pb.IronbirdServiceClient
 	if cfg.ServerAddress != "" {
@@ -93,10 +104,17 @@ func main() {
 		logger.Warn("no grpc client configured - workflow data updates will be skipped")
 	}
 
-	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
-		cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
-	if err != nil {
-		panic(err)
+	var tailscaleSettings digitalocean.TailscaleSettings
+	if cfg.Tailscale.ServerOauthSecret != "" && cfg.Tailscale.NodeAuthKey != "" {
+		var err error
+		tailscaleSettings, err = digitalocean.SetupTailscale(ctx, cfg.Tailscale.ServerOauthSecret,
+			cfg.Tailscale.NodeAuthKey, "ironbird", cfg.Tailscale.ServerTags, cfg.Tailscale.NodeTags)
+		if err != nil {
+			panic(err)
+		}
+		logger.Info("Tailscale configured successfully")
+	} else {
+		logger.Info("Skipping Tailscale setup (credentials not provided - required for DigitalOcean workflows)")
 	}
 
 	telemetrySettings := digitalocean.TelemetrySettings{
@@ -122,7 +140,8 @@ func main() {
 		Chains:            cfg.Chains,
 		GrafanaConfig:     cfg.Grafana,
 		GRPCClient:        grpcClient,
-		AwsConfig:         &awsConfig,
+		AwsConfig:         awsConfig,
+		RegistryType:      activeRegistry.Type,
 	}
 
 	loadTestActivity := loadtest.Activity{
@@ -131,18 +150,23 @@ func main() {
 		TelemetrySettings: telemetrySettings,
 	}
 
-	sslKey, err := os.ReadFile(cfg.LoadBalancer.SSLKeyPath)
+	var sslKey, sslCert []byte
+	if cfg.LoadBalancer.SSLKeyPath != "" && cfg.LoadBalancer.SSLCertPath != "" {
+		var err error
+		sslKey, err = os.ReadFile(cfg.LoadBalancer.SSLKeyPath)
+		if err != nil {
+			log.Printf("Failed to read SSL key from path %s: %v", cfg.LoadBalancer.SSLKeyPath, err)
+			os.Exit(1)
+		}
 
-	if err != nil {
-		log.Printf("Failed to read SSL key from path %s: %v", cfg.LoadBalancer.SSLKeyPath, err)
-		os.Exit(1)
-	}
-
-	sslCert, err := os.ReadFile(cfg.LoadBalancer.SSLCertPath)
-
-	if err != nil {
-		log.Printf("Failed to read SSL certificate from path %s: %v", cfg.LoadBalancer.SSLCertPath, err)
-		os.Exit(1)
+		sslCert, err = os.ReadFile(cfg.LoadBalancer.SSLCertPath)
+		if err != nil {
+			log.Printf("Failed to read SSL certificate from path %s: %v", cfg.LoadBalancer.SSLCertPath, err)
+			os.Exit(1)
+		}
+		logger.Info("SSL certificates loaded for load balancer")
+	} else {
+		logger.Info("Skipping SSL certificate loading (not configured - required for DigitalOcean load balancer)")
 	}
 
 	loadBalancerActivity := loadbalancer.Activity{

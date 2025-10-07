@@ -40,6 +40,7 @@ type Activity struct {
 	GrafanaConfig     types.GrafanaConfig
 	GRPCClient        pb.IronbirdServiceClient
 	AwsConfig         *aws.Config
+	RegistryType      string
 }
 
 // convertECRTokenToDockerAuth converts an ECR authorization token to Docker API RegistryAuth format
@@ -179,7 +180,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	nodeOptions := petritypes.NodeOptions{}
 
 	var dockerAuth string
-	if a.AwsConfig != nil {
+	if a.RegistryType == "ecr" && a.AwsConfig != nil {
 		token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
 		if err != nil {
 			logger.Error("Failed to fetch docker repo token", zap.Error(err))

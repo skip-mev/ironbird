@@ -157,25 +157,72 @@ start-frontend: ## Start the frontend
 start-backend: ## Start the backend
 	go run ./server/cmd/main.go
 
-local: ## Start local IronBird instance
+local-docker: ## Start IronBird for local Docker workflows (no cloud dependencies)
+	@echo "🚀 Starting IronBird in Local Docker Mode"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	
+	@# Create .env if it doesn't exist
 	@if [ ! -f .env ]; then \
-		echo ".env file not found. Exiting"; \
+		echo "# Environment file for IronBird" > .env; \
+		echo "✓ Created empty .env file"; \
+	fi
+	
+	@echo "✓ REGISTRY_MODE=local (using local Docker daemon)"
+	@echo "✓ No cloud dependencies required"
+	@echo "✓ Images will be built and loaded into local Docker daemon"
+	@echo ""
+	@echo "Starting services..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	
+	@set -a && source .env && export REGISTRY_MODE=local && mprocs -c mprocs.yaml
+
+local-full: ## Start IronBird for DigitalOcean workflows (requires AWS, Tailscale, DigitalOcean)
+	@echo "🚀 Starting IronBird in Full Mode (DigitalOcean)"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	
+	@# Check .env exists
+	@if [ ! -f .env ]; then \
+		echo "❌ ERROR: .env file not found"; \
+		echo ""; \
+		echo "For DigitalOcean workflows, you need to create .env with:"; \
+		echo "  - DIGITALOCEAN_TOKEN"; \
+		echo "  - TS_NODE_AUTH_KEY"; \
+		echo "  - TS_SERVER_OAUTH_SECRET"; \
+		echo ""; \
+		echo "Run: cp env.example .env"; \
+		echo "Then fill in the required values"; \
 		exit 1; \
 	fi
-
+	
+	@# Check AWS credentials
 	@if [ -z "$${AWS_SESSION_TOKEN-}" ]; then \
-		echo "AWS auth missing. Use:"; \
+		echo "❌ ERROR: AWS credentials not found"; \
+		echo ""; \
+		echo "Authenticate with AWS using:"; \
 		echo "   aws sso login --profile skip-dev-admin"; \
 		echo "   aws-vault exec skip-dev-admin"; \
+		echo ""; \
+		echo "Or run this command inside aws-vault:"; \
+		echo "   aws-vault exec skip-dev-admin -- make local-full"; \
 		exit 1; \
 	fi
+	
+	@echo "✓ REGISTRY_MODE=ecr (using AWS ECR)"
+	@echo "✓ AWS credentials configured"
+	@echo "✓ Environment variables loaded from .env"
+	@echo ""
+	@echo "Starting services..."
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	
+	@set -a && source .env && export REGISTRY_MODE=ecr && mprocs -c mprocs.yaml
 
-	@echo "Using variables from .env ✔︎";
-	@echo "Using AWS auth ✔︎";
+local: local-docker ## Alias for local-docker (default: local Docker mode)
 
-	@set -a && source .env && mprocs -c mprocs.yaml
-
-.PHONY: start-buildkit start-temporal start-worker start-frontend start-backend local
+.PHONY: start-buildkit start-temporal start-worker start-frontend start-backend local local-docker local-full
 
 ###############################################################################
 ###                           First time setup                             ###

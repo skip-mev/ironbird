@@ -74,17 +74,26 @@ type DigitalOceanConfig struct {
 }
 
 type BuilderConfig struct {
-	BuildKitAddress string            `yaml:"build_kit_address"`
-	Registry        RegistryConfig    `yaml:"registry"`
-	AuthEnvConfigs  map[string]string `yaml:"auth_env_configs"`
+	BuildKitAddress string              `yaml:"build_kit_address"`
+	Local           LocalRegistryConfig `yaml:"local"`
+	ECR             ECRRegistryConfig   `yaml:"ecr"`
+	AuthEnvConfigs  map[string]string   `yaml:"auth_env_configs"`
 }
 
-type RegistryConfig struct {
-	// e.g. <account_id>.dkr.ecr.<region>.amazonaws.com
-	URL string `yaml:"url"`
-
-	// e.g. skip-mev/ironbird
+type LocalRegistryConfig struct {
 	ImageName string `yaml:"image_name"`
+}
+
+type ECRRegistryConfig struct {
+	URL       string `yaml:"url"`
+	ImageName string `yaml:"image_name"`
+}
+
+// RegistryConfig represents the active registry configuration
+type RegistryConfig struct {
+	Type      string
+	URL       string
+	ImageName string
 }
 type ChainsConfig struct {
 	Name                  string                    `yaml:"name"`
@@ -174,6 +183,30 @@ func ParseWorkerConfig(path string) (WorkerConfig, error) {
 	config.Tailscale.ServerOauthSecret = os.Getenv("TS_SERVER_OAUTH_SECRET")
 
 	return config, nil
+}
+
+// GetActiveRegistry returns the active registry configuration based on REGISTRY_MODE env var
+func (c *BuilderConfig) GetActiveRegistry() RegistryConfig {
+	mode := os.Getenv("REGISTRY_MODE")
+
+	// Default to local if not specified
+	if mode == "" {
+		mode = "local"
+	}
+
+	if mode == "ecr" {
+		return RegistryConfig{
+			Type:      "ecr",
+			URL:       c.ECR.URL,
+			ImageName: c.ECR.ImageName,
+		}
+	}
+
+	return RegistryConfig{
+		Type:      "local",
+		URL:       "",
+		ImageName: c.Local.ImageName,
+	}
 }
 
 func ParseServerConfig(path string) (ServerConfig, error) {

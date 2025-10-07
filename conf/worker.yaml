@@ -4,7 +4,11 @@ temporal:
 
 builder:
   build_kit_address: "tcp://localhost:1234"
-  registry:
+  # Local Docker registry configuration (used when REGISTRY_MODE=local or unset)
+  local:
+    image_name: "ironbird"
+  # AWS ECR registry configuration (used when REGISTRY_MODE=ecr)
+  ecr:
     url: "533266954560.dkr.ecr.us-east-2.amazonaws.com"
     image_name: "ironbird/images"
 
@@ -23,9 +27,11 @@ telemetry:
     url: "https://profiles-prod-003.grafana.net"
 
 load_balancer:
+  # Root domain for load balancer (only needed for DigitalOcean workflows with load balancer)
   root_domain: ib-local.dev.skip.build
-  ssl_key_path: conf/ib-local-key.pem
-  ssl_cert_path: conf/ib-local-cert.pem
+  # SSL certificate paths (leave empty if not using load balancer)
+  ssl_key_path: ""
+  ssl_cert_path: ""
 
 chains:
   gaia:

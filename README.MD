@@ -1,69 +1,71 @@
 # Ironbird Setup Guide
 
-## Initial Setup
+## Overview
 
-1. If running for the first time, run:
-   ```bash
-   make first-time-setup
-   ```
+Ironbird supports two deployment modes:
+- **Local Docker Mode**: Run testnets locally using Docker (no cloud dependencies required)
+- **Full Mode (DigitalOcean)**: Deploy testnets to DigitalOcean droplets (requires AWS, Tailscale, and DigitalOcean)
 
-## Start Temporal Server
+## Quick Start (Local Docker Mode)
 
-2. Start the Temporal server:
-   ```bash
-   temporal server start-dev
-   ```
+For running local Docker workflows with **zero cloud dependencies**:
 
-## Run BuildKitD
+### 1. First-Time Setup
 
-3. Pull and run BuildKitD container:
-   ```bash
-   docker pull moby/buildkit:latest
+```bash
+make first-time-setup
+```
 
-   docker run -d --name buildkitd --privileged -p 1234:1234 \
-     -v /var/run/docker.sock:/var/run/docker.sock \
-     -v buildkitd:/var/lib/buildkit \
-     -v ~/.docker/config.json:/root/.docker/config.json \
-     moby/buildkit:latest --addr tcp://0.0.0.0:1234
-   ```
+This installs required dependencies (Docker, Temporal, mprocs, etc.) and generates SSL certificates.
 
-## Start Worker
+### 2. Start IronBird
 
-4. Authenticate with AWS:
-   ```bash
-   aws sso login --profile skip-dev-admin
-   aws-vault exec skip-dev-admin
-   ```
-   > **Note**: If you haven't set up AWS profiles, follow the guide at https://platform.skip.build/guides/aws/login_to_aws
+```bash
+make local-docker
+```
 
-5. Copy environment configuration:
-   ```bash
-   cp env.example .env
-   ```
+The frontend will be available at `http://localhost:5173`
 
-6. Set the required environment variables (ICL secrets can be found in Bitwarden under note "Ironbird"):
+---
+
+## Full Setup (DigitalOcean Mode)
+
+For deploying testnets to DigitalOcean droplets:
+
+### 1. First-Time Setup
+
+```bash
+make first-time-setup
+```
+
+### 2. Set Environment Variables
+
+```bash
+cp env.example .env
+```
+
+Set the required environment variables (ICL secrets can be found in Bitwarden under note "Ironbird"):
+
    ```bash
    set -o allexport
    source .env
    set +o allexport
    ```
 
-7. Start the worker:
-   ```bash
-   export TSNET_FORCE_LOGIN=1 && go run ./cmd/worker
-   ```
+### 3. Authenticate with AWS
 
-## Start Backend and Frontend 
+```bash
+aws-vault exec skip-dev-admin
+```
 
-8. Start the backend:
-   ```bash
-   make start-backend
-   ```
+> **Note**: If you haven't set up AWS profiles, follow the guide at https://platform.skip.build/guides/aws/login_to_aws
 
-9. Start the frontend:
-   ```bash
-   make start-frontend
-   ```
+### 4. Start IronBird
+
+```bash
+make local-full
+```
+
 
 ## Testing
 

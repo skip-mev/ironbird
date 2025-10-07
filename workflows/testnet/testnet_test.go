@@ -245,7 +245,8 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 		s.T().Fatal(err)
 	}
 	testnetActivity := &testnettypes.Activity{
-		Chains: cfg.Chains,
+		Chains:       cfg.Chains,
+		RegistryType: "local",
 	}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
@@ -254,7 +255,19 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	loadTestActivity := &loadtest.Activity{}
 	s.env.RegisterActivity(loadTestActivity.RunLoadTest)
 
-	builderActivity := &builder.Activity{}
+	builderConfig := types.BuilderConfig{
+		BuildKitAddress: "tcp://localhost:1234",
+		Local: types.LocalRegistryConfig{
+			ImageName: "ironbird",
+		},
+	}
+	builderActivity := &builder.Activity{
+		BuilderConfig: builderConfig,
+		Registry: types.RegistryConfig{
+			Type:      "local",
+			ImageName: "ironbird",
+		},
+	}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
 	testnetActivities = testnetActivity
@@ -346,6 +359,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		TailscaleSettings: tailscaleSettings,
 		Chains:            cfg.Chains,
 		AwsConfig:         &awsConfig,
+		RegistryType:      "ecr",
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
 		RootDomain:        "ib-local.dev.skip.build",
@@ -366,13 +380,21 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 
 	builderConfig := types.BuilderConfig{
 		BuildKitAddress: "tcp://localhost:1234",
-		Registry: types.RegistryConfig{
+		ECR: types.ECRRegistryConfig{
 			URL:       "public.ecr.aws",
 			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
 	}
 
-	builderActivity := builder.Activity{BuilderConfig: builderConfig, AwsConfig: &awsConfig}
+	builderActivity := builder.Activity{
+		BuilderConfig: builderConfig,
+		AwsConfig:     &awsConfig,
+		Registry: types.RegistryConfig{
+			Type:      "ecr",
+			URL:       "public.ecr.aws",
+			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
+		},
+	}
 	s.env.RegisterActivity(builderActivity.BuildDockerImage)
 
 	testnetActivities = testnetActivity

@@ -6,7 +6,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -34,6 +36,7 @@ type Activity struct {
 	BuilderConfig types.BuilderConfig
 	AwsConfig     *aws.Config
 	Chains        types.Chains
+	Registry      types.RegistryConfig
 }
 
 type BuildResult struct {
@@ -91,7 +94,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 
 	repositories, err := ecrClient.DescribeRepositories(ctx, &ecr.DescribeRepositoriesInput{
 		RepositoryNames: []string{
-			a.BuilderConfig.Registry.ImageName,
+			a.Registry.ImageName,
 		},
 		RegistryId: stsIdentity.Account,
 	})
@@ -107,7 +110,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	}
 
 	_, err = ecrClient.CreateRepository(ctx, &ecr.CreateRepositoryInput{
-		RepositoryName: aws.String(a.BuilderConfig.Registry.ImageName),
+		RepositoryName: aws.String(a.Registry.ImageName),
 	})
 
 	if err != nil {
@@ -129,15 +132,65 @@ func generateTag(imageName, version, repo, sha string) string {
 	return fmt.Sprintf("%s-%s", repo, sha)
 }
 
-func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
-	logger, _ := zap.NewDevelopment()
-	if err := a.createRepositoryIfNotExists(ctx); err != nil {
-		return messages.BuildDockerImageResponse{}, err
+func (a *Activity) imageExistsInECR(ctx context.Context, tag string) (bool, error) {
+	stsClient := sts.NewFromConfig(*a.AwsConfig)
+	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return false, fmt.Errorf("failed to fetch STS identity: %w", err)
 	}
 
-	username, password, err := a.getAuthenticationToken(ctx)
+	ecrClient := ecr.NewFromConfig(*a.AwsConfig, func(options *ecr.Options) {
+		options.Region = "us-east-2"
+	})
+
+	result, err := ecrClient.DescribeImages(ctx, &ecr.DescribeImagesInput{
+		RepositoryName: aws.String(a.Registry.ImageName),
+		RegistryId:     stsIdentity.Account,
+		ImageIds: []ecrtypes.ImageIdentifier{
+			{ImageTag: aws.String(tag)},
+		},
+	})
+
 	if err != nil {
-		return messages.BuildDockerImageResponse{}, err
+		var notFoundErr *ecrtypes.ImageNotFoundException
+		if errors.As(err, &notFoundErr) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return len(result.ImageDetails) > 0, nil
+}
+
+func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
+	logger, _ := zap.NewDevelopment()
+
+	tag := generateTag(req.ImageConfig.Image, req.ImageConfig.Version, req.Repo, req.SHA)
+
+	var username, password string
+	var err error
+	if a.Registry.Type == "ecr" {
+		if err := a.createRepositoryIfNotExists(ctx); err != nil {
+			return messages.BuildDockerImageResponse{}, err
+		}
+
+		exists, err := a.imageExistsInECR(ctx, tag)
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to check if image exists: %w", err)
+		}
+		if exists {
+			fqdnTag := fmt.Sprintf("%s/%s:%s", a.Registry.URL, a.Registry.ImageName, tag)
+			logger.Info("Image already exists in ECR, skipping build", zap.String("tag", fqdnTag))
+			return messages.BuildDockerImageResponse{
+				FQDNTag: fqdnTag,
+				Logs:    []byte("Image already exists in ECR, skipped build\n"),
+			}, nil
+		}
+
+		username, password, err = a.getAuthenticationToken(ctx)
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, err
+		}
 	}
 
 	bkClient, err := client.New(ctx, a.BuilderConfig.BuildKitAddress)
@@ -169,13 +222,15 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 		fs.Add(baseName, &fstypes.Stat{Mode: 0644}, fileContent)
 	}
 
+	authConfigs := make(map[string]configtypes.AuthConfig)
+	if a.Registry.Type == "ecr" && username != "" && password != "" {
+		authConfigs[a.Registry.URL] = configtypes.AuthConfig{
+			Username: username,
+			Password: password,
+		}
+	}
 	authProvider := authprovider.NewDockerAuthProvider(&configfile.ConfigFile{
-		AuthConfigs: map[string]configtypes.AuthConfig{
-			a.BuilderConfig.Registry.URL: {
-				Username: username,
-				Password: password,
-			},
-		},
+		AuthConfigs: authConfigs,
 	}, map[string]*authprovider.AuthTLSConfig{})
 
 	frontendAttrs := map[string]string{
@@ -185,8 +240,6 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	buildArguments := make(map[string]string)
-
-	tag := generateTag(req.ImageConfig.Image, req.ImageConfig.Version, req.Repo, req.SHA)
 	buildArguments["GIT_SHA"] = tag
 
 	// When load testing CometBFT, we build a simapp image using a specified SDK version, and then edit go.mod to replace
@@ -207,7 +260,93 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	logger.Info("building docker image", zap.Any("build_arguments", buildArguments),
 		zap.Any("frontend_attrs", frontendAttrs), zap.String("dockerfile_path", image.Dockerfile))
 
-	fqdnTag := fmt.Sprintf("%s/%s:%s", a.BuilderConfig.Registry.URL, a.BuilderConfig.Registry.ImageName, tag)
+	var fqdnTag string
+	var exports []client.ExportEntry
+
+	fqdnTag = fmt.Sprintf("%s:%s", a.Registry.ImageName, tag)
+
+	if a.Registry.Type == "ecr" {
+		// ECR mode: push directly to registry
+		fqdnTag = fmt.Sprintf("%s/%s:%s", a.Registry.URL, a.Registry.ImageName, tag)
+		exports = []client.ExportEntry{
+			{
+				Type: client.ExporterImage,
+				Attrs: map[string]string{
+					"name": fqdnTag,
+					"push": "true",
+				},
+			},
+		}
+		logger.Info("Using ECR registry", zap.String("tag", fqdnTag))
+	} else {
+		// Local mode: export to Docker tarball format, then load into Docker
+		tmpFile, err := os.CreateTemp("", "image-*.tar")
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to create temp file: %w", err)
+		}
+		tmpPath := tmpFile.Name()
+		tmpFile.Close()
+		defer os.Remove(tmpPath)
+
+		exports = []client.ExportEntry{
+			{
+				Type: client.ExporterDocker,
+				Output: func(_ map[string]string) (io.WriteCloser, error) {
+					return os.OpenFile(tmpPath, os.O_WRONLY, 0644)
+				},
+				Attrs: map[string]string{
+					"name": fqdnTag,
+				},
+			},
+		}
+		logger.Info("Using local Docker registry with Docker tarball export", zap.String("tag", fqdnTag), zap.String("tmpfile", tmpPath))
+
+		solveOpt := client.SolveOpt{
+			Frontend:      "dockerfile.v0",
+			FrontendAttrs: frontendAttrs,
+			LocalMounts: map[string]fsutil.FS{
+				"context":    fs,
+				"dockerfile": fs,
+			},
+			Session: []session.Attachable{
+				authProvider,
+			},
+			Exports: exports,
+		}
+
+		statusChan := make(chan *client.SolveStatus)
+		var logs bytes.Buffer
+
+		go func() {
+			for status := range statusChan {
+				for _, v := range status.Logs {
+					logLine := fmt.Sprintf("[%s]: %s\n", v.Timestamp.String(), string(v.Data))
+					logs.WriteString(logLine)
+					fmt.Print(logLine)
+				}
+			}
+		}()
+
+		_, err = bkClient.Solve(ctx, nil, solveOpt, statusChan)
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, err
+		}
+
+		// Load the Docker tarball into Docker
+		logger.Info("Loading image into Docker", zap.String("tag", fqdnTag))
+		cmd := exec.CommandContext(ctx, "docker", "load", "-i", tmpPath)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to load image into docker: %w, output: %s", err, output)
+		}
+		logger.Info("Image loaded into Docker", zap.String("output", string(output)))
+
+		return messages.BuildDockerImageResponse{
+			FQDNTag: fqdnTag,
+			Logs:    logs.Bytes(),
+		}, nil
+	}
+
 	solveOpt := client.SolveOpt{
 		Frontend:      "dockerfile.v0",
 		FrontendAttrs: frontendAttrs,
@@ -218,15 +357,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 		Session: []session.Attachable{
 			authProvider,
 		},
-		Exports: []client.ExportEntry{
-			{
-				Type: client.ExporterImage,
-				Attrs: map[string]string{
-					"name": fqdnTag,
-					"push": "true",
-				},
-			},
-		},
+		Exports: exports,
 	}
 
 	statusChan := make(chan *client.SolveStatus)
