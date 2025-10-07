@@ -450,7 +450,19 @@ const CreateWorkflow = () => {
         hasChanges = true;
         console.log("Setting SHA:", newFormData.SHA);
       }
-      
+
+      if (params.get('CosmosSdkSha') || params.get('cosmos_sdk_sha')) {
+        newFormData.CosmosSdkSha = params.get('CosmosSdkSha') || params.get('cosmos_sdk_sha') || '';
+        hasChanges = true;
+        console.log("Setting CosmosSdkSha:", newFormData.CosmosSdkSha);
+      }
+
+      if (params.get('CometBFTSha') || params.get('cometbft_sha')) {
+        newFormData.CometBFTSha = params.get('CometBFTSha') || params.get('cometbft_sha') || '';
+        hasChanges = true;
+        console.log("Setting CometBFTSha:", newFormData.CometBFTSha);
+      }
+
       if (params.get('runnerType')) {
         newFormData.RunnerType = params.get('runnerType')!;
         hasChanges = true;
@@ -865,6 +877,8 @@ const CreateWorkflow = () => {
     const submissionData: TestnetWorkflowRequest = {
       Repo: formData.Repo,
       SHA: formData.SHA,
+      CosmosSdkSha: formData.CosmosSdkSha,
+      CometBFTSha: formData.CometBFTSha,
       ChainConfig: {
         Name: formData.ChainConfig.Name,
         Image: formData.ChainConfig.Image,
@@ -962,6 +976,8 @@ const CreateWorkflow = () => {
     return {
       Repo: repo,
       SHA: raw.sha || raw.SHA || '',
+      CosmosSdkSha: raw.cosmos_sdk_sha || raw.CosmosSdkSha || '',
+      CometBFTSha: raw.cometbft_sha || raw.CometBFTSha || '',
       IsEvmChain: isEvmChain,
       RunnerType: raw.runner_type || raw.RunnerType || '',
       ChainConfig: {
@@ -1181,6 +1197,40 @@ const CreateWorkflow = () => {
                 placeholder="Enter commit SHA"
               />
           </FormControl>
+
+          {formData.IsEvmChain && (
+            <>
+              <FormControl>
+                <FormLabel color="text">Cosmos SDK Version/SHA (Optional)</FormLabel>
+                <Input
+                  value={formData.CosmosSdkSha || ''}
+                  onChange={(e) => setFormData({ ...formData, CosmosSdkSha: e.target.value })}
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                  placeholder="e.g., v0.50.10 or commit SHA"
+                />
+                <FormHelperText>
+                  Optional: Specify a cosmos-sdk version/SHA to replace the default dependency in the EVM build
+                </FormHelperText>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel color="text">CometBFT Version/SHA (Optional)</FormLabel>
+                <Input
+                  value={formData.CometBFTSha || ''}
+                  onChange={(e) => setFormData({ ...formData, CometBFTSha: e.target.value })}
+                  bg="surface"
+                  color="text"
+                  borderColor="divider"
+                  placeholder="e.g., v0.38.12 or commit SHA"
+                />
+                <FormHelperText>
+                  Optional: Specify a cometbft version/SHA to replace the default dependency in the EVM build
+                </FormHelperText>
+              </FormControl>
+            </>
+          )}
 
           <FormControl isRequired>
             <FormLabel color="text">Chain Name</FormLabel>

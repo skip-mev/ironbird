@@ -58,6 +58,8 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	workflowReq := messages.TestnetWorkflowRequest{
 		Repo:               req.Repo,
 		SHA:                req.Sha,
+		CosmosSdkSha:       req.CosmosSdkSha,
+		CometBFTSha:        req.CometbftSha,
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
@@ -301,6 +303,8 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 	response.Config = &pb.CreateWorkflowRequest{
 		Repo:               workflow.Config.Repo,
 		Sha:                workflow.Config.SHA,
+		CosmosSdkSha:       workflow.Config.CosmosSdkSha,
+		CometbftSha:        workflow.Config.CometBFTSha,
 		IsEvmChain:         workflow.Config.IsEvmChain,
 		RunnerType:         string(workflow.Config.RunnerType),
 		LongRunningTestnet: workflow.Config.LongRunningTestnet,
@@ -753,6 +757,8 @@ func (s *Service) convertProtoToWorkflowRequest(req *pb.CreateWorkflowRequest) m
 	workflowReq := messages.TestnetWorkflowRequest{
 		Repo:               req.Repo,
 		SHA:                req.Sha,
+		CosmosSdkSha:       req.CosmosSdkSha,
+		CometBFTSha:        req.CometbftSha,
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         messages.RunnerType(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,
@@ -820,6 +826,8 @@ func (s *Service) convertWorkflowRequestToProto(req messages.TestnetWorkflowRequ
 	protoReq := &pb.CreateWorkflowRequest{
 		Repo:               req.Repo,
 		Sha:                req.SHA,
+		CosmosSdkSha:       req.CosmosSdkSha,
+		CometbftSha:        req.CometBFTSha,
 		IsEvmChain:         req.IsEvmChain,
 		RunnerType:         string(req.RunnerType),
 		LongRunningTestnet: req.LongRunningTestnet,

@@ -80,6 +80,11 @@ type TestnetWorkflowRequest struct {
 	ChainConfig types.ChainsConfig
 	RunnerType  RunnerType
 
+	// Optional: SHA/version to replace cosmos-sdk dependency (for EVM chains)
+	CosmosSdkSha string
+	// Optional: SHA/version to replace cometbft dependency (for EVM chains)
+	CometBFTSha string
+
 	EthereumLoadTestSpec *ctlttypes.LoadTestSpec
 	CosmosLoadTestSpec   *ctlttypes.LoadTestSpec
 

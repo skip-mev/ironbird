@@ -36,8 +36,12 @@ type CreateWorkflowRequest struct {
 	LaunchLoadBalancer  bool   `protobuf:"varint,11,opt,name=launch_load_balancer,json=launchLoadBalancer,proto3" json:"launch_load_balancer,omitempty"`
 	CatalystVersion     string `protobuf:"bytes,12,opt,name=catalyst_version,json=catalystVersion,proto3" json:"catalyst_version,omitempty"`
 	BaseMnemonic        string `protobuf:"bytes,13,opt,name=base_mnemonic,json=baseMnemonic,proto3" json:"base_mnemonic,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Optional: cosmos-sdk version/SHA for EVM builds with replacements
+	CosmosSdkSha string `protobuf:"bytes,14,opt,name=cosmos_sdk_sha,json=cosmosSdkSha,proto3" json:"cosmos_sdk_sha,omitempty"`
+	// Optional: cometbft version/SHA for EVM builds with replacements
+	CometbftSha   string `protobuf:"bytes,15,opt,name=cometbft_sha,json=cometbftSha,proto3" json:"cometbft_sha,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateWorkflowRequest) Reset() {
@@ -150,6 +154,20 @@ func (x *CreateWorkflowRequest) GetCatalystVersion() string {
 func (x *CreateWorkflowRequest) GetBaseMnemonic() string {
 	if x != nil {
 		return x.BaseMnemonic
+	}
+	return ""
+}
+
+func (x *CreateWorkflowRequest) GetCosmosSdkSha() string {
+	if x != nil {
+		return x.CosmosSdkSha
+	}
+	return ""
+}
+
+func (x *CreateWorkflowRequest) GetCometbftSha() string {
+	if x != nil {
+		return x.CometbftSha
 	}
 	return ""
 }
@@ -2014,7 +2032,7 @@ var File_server_proto_ironbird_proto protoreflect.FileDescriptor
 
 const file_server_proto_ironbird_proto_rawDesc = "" +
 	"\n" +
-	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xf2\x03\n" +
+	"\x1bserver/proto/ironbird.proto\x12\rskip.ironbird\"\xbb\x04\n" +
 	"\x15CreateWorkflowRequest\x12\x12\n" +
 	"\x04repo\x18\x01 \x01(\tR\x04repo\x12\x10\n" +
 	"\x03sha\x18\x02 \x01(\tR\x03sha\x12\x1e\n" +
@@ -2032,7 +2050,9 @@ const file_server_proto_ironbird_proto_rawDesc = "" +
 	"numWallets\x120\n" +
 	"\x14launch_load_balancer\x18\v \x01(\bR\x12launchLoadBalancer\x12)\n" +
 	"\x10catalyst_version\x18\f \x01(\tR\x0fcatalystVersion\x12#\n" +
-	"\rbase_mnemonic\x18\r \x01(\tR\fbaseMnemonic\"3\n" +
+	"\rbase_mnemonic\x18\r \x01(\tR\fbaseMnemonic\x12$\n" +
+	"\x0ecosmos_sdk_sha\x18\x0e \x01(\tR\fcosmosSdkSha\x12!\n" +
+	"\fcometbft_sha\x18\x0f \x01(\tR\vcometbftSha\"3\n" +
 	"\tGenesisKV\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value\"p\n" +

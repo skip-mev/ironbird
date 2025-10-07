@@ -19,10 +19,20 @@ RUN git clone $CHAIN_SRC /src/app && \
     git checkout $CHAIN_TAG
 
 WORKDIR /src/app/simapp
-RUN echo "$REPLACE_CMD" > replace_cmd.sh
-RUN chmod +x replace_cmd.sh && sh replace_cmd.sh
-RUN cat go.mod
-RUN go mod tidy
+RUN if [ -n "$REPLACE_CMD" ]; then \
+        go mod tidy && \
+        echo "After go mod tidy, applying replace commands:" && \
+        echo "$REPLACE_CMD" > replace_cmd.sh && \
+        chmod +x replace_cmd.sh && \
+        sh replace_cmd.sh && \
+        echo "Final go.mod:" && \
+        cat go.mod && \
+        echo "Updating go.sum with replaced modules:" && \
+        go get ./... && \
+        echo "Done updating go.sum"; \
+    else \
+        go mod tidy; \
+    fi
 WORKDIR /src/app
 
 RUN make build
