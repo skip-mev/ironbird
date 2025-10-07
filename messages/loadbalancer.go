@@ -9,6 +9,7 @@ type LaunchLoadBalancerRequest struct {
 	RunnerType    RunnerType
 	Domains       []apps.LoadBalancerDomain
 	WorkflowID    string
+	IsEvmChain    bool
 }
 
 type LaunchLoadBalancerResponse struct {

@@ -86,13 +86,20 @@ func (a *Activity) LaunchLoadBalancer(ctx context.Context, req messages.LaunchLo
 
 		var loadBalancers []*pb.Node
 		for nodeName := range nodeNames {
-			loadBalancers = append(loadBalancers, &pb.Node{
+			node := &pb.Node{
 				Name:    nodeName,
 				Address: a.RootDomain,
 				Rpc:     fmt.Sprintf("https://%s-rpc.%s", nodeName, a.RootDomain),
 				Lcd:     fmt.Sprintf("https://%s-lcd.%s", nodeName, a.RootDomain),
 				Grpc:    fmt.Sprintf("%s-grpc.%s", nodeName, a.RootDomain),
-			})
+			}
+
+			if req.IsEvmChain {
+				node.Evmrpc = fmt.Sprintf("https://%s-evmrpc.%s", nodeName, a.RootDomain)
+				node.Evmws = fmt.Sprintf("wss://%s-evmws.%s", nodeName, a.RootDomain)
+			}
+
+			loadBalancers = append(loadBalancers, node)
 		}
 
 		if len(loadBalancers) > 0 {

@@ -141,7 +141,7 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
     config = {
       Repo: workflow.config.repo,
       SHA: workflow.config.sha,
-      IsEvmChain: workflow.config.IsEvmChain,
+      IsEvmChain: workflow.config.isEvmChain,
       RunnerType: workflow.config.runnerType,
       LongRunningTestnet: workflow.config.longRunningTestnet,
       LaunchLoadBalancer: workflow.config.launchLoadBalancer,
@@ -219,6 +219,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       RPC: node.rpc,
       LCD: node.lcd,
       GRPC: node.grpc,
+      EVMRPC: node.evmrpc,
+      EVMWS: node.evmws,
       Metrics: ""
     })),
     Validators: (workflow.validators || []).map((validator: any) => ({
@@ -226,6 +228,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       RPC: validator.rpc,
       LCD: validator.lcd,
       GRPC: validator.grpc,
+      EVMRPC: validator.evmrpc,
+      EVMWS: validator.evmws,
       Metrics: ""
     })),
     LoadBalancers: (workflow.loadBalancers || []).map((lb: any) => ({
@@ -233,6 +237,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
       RPC: lb.rpc,
       LCD: lb.lcd,
       GRPC: lb.grpc,
+      EVMRPC: lb.evmrpc,
+      EVMWS: lb.evmws,
       Metrics: ""
     })),
     Monitoring: workflow.monitoring || {},
