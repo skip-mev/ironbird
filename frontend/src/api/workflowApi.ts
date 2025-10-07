@@ -93,6 +93,8 @@ export const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowReque
   const grpcRequest = new CreateWorkflowRequest({
     repo: request.Repo || (request as any).repo,
     sha: request.SHA || (request as any).sha,
+    cosmosSdkSha: request.CosmosSdkSha || (request as any).cosmos_sdk_sha || '',
+    cometbftSha: request.CometBFTSha || (request as any).cometbft_sha || '',
     isEvmChain: request.IsEvmChain !== undefined ? request.IsEvmChain : (request as any).isEvmChain,
     chainConfig: chainConfig,
     runnerType: request.RunnerType || (request as any).runner_type,
@@ -141,6 +143,8 @@ const convertFromGrpcWorkflow = (workflow: any): WorkflowStatus => {
     config = {
       Repo: workflow.config.repo,
       SHA: workflow.config.sha,
+      CosmosSdkSha: workflow.config.cosmosSdkSha || undefined,
+      CometBFTSha: workflow.config.cometbftSha || undefined,
       IsEvmChain: workflow.config.isEvmChain,
       RunnerType: workflow.config.runnerType,
       LongRunningTestnet: workflow.config.longRunningTestnet,

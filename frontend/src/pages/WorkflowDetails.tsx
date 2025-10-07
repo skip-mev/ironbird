@@ -151,6 +151,8 @@ const WorkflowDetails = () => {
       // Basic workflow parameters
       if (workflow.config.Repo) params.append('repo', workflow.config.Repo);
       if (workflow.config.SHA) params.append('sha', workflow.config.SHA);
+      if (workflow.config.CosmosSdkSha) params.append('CosmosSdkSha', workflow.config.CosmosSdkSha);
+      if (workflow.config.CometBFTSha) params.append('CometBFTSha', workflow.config.CometBFTSha);
       if (workflow.config.RunnerType) params.append('runnerType', workflow.config.RunnerType);
       
       // IsEvmChain flag - always include it regardless of value

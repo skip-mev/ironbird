@@ -120,28 +120,29 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	return nil
 }
 
+// generateReplace generates a replace directive for a specific module version
+// This forces a specific version of a dependency
 func generateReplace(dependencies map[string]string, owner, repo, tag string) string {
 	orig := dependencies[fmt.Sprintf("%s/%s", owner, repo)]
 	return fmt.Sprintf("go mod edit -replace %s=github.com/%s/%s@%s", orig, owner, repo, tag)
 }
 
-// generateMultipleReplaces generates multiple replace commands separated by newlines
 func generateMultipleReplaces(req messages.BuildDockerImageRequest) string {
 	var replaceCommands []string
 
-	// For cometbft builds, replace cometbft dependency
+	// For cometbft builds, replace cometbft dependency in cosmos-sdk simapp
 	if req.Repo == "cometbft" {
 		replaceCommands = append(replaceCommands,
 			generateReplace(dependencies, repoOwners[req.Repo], req.Repo, req.SHA))
 	}
 
-	// For EVM builds with optional SDK replacement
+	// For EVM builds with optional SDK version override
 	if req.CosmosSdkSha != "" {
 		replaceCommands = append(replaceCommands,
 			generateReplace(dependencies, repoOwners["cosmos-sdk"], "cosmos-sdk", req.CosmosSdkSha))
 	}
 
-	// For EVM builds with optional CometBFT replacement
+	// For EVM builds with optional CometBFT version override
 	if req.CometBFTSha != "" {
 		replaceCommands = append(replaceCommands,
 			generateReplace(dependencies, repoOwners["cometbft"], "cometbft", req.CometBFTSha))
@@ -150,11 +151,33 @@ func generateMultipleReplaces(req messages.BuildDockerImageRequest) string {
 	return strings.Join(replaceCommands, " && ")
 }
 
-func generateTag(imageName, version, repo, sha string) string {
+func generateTag(req messages.BuildDockerImageRequest) string {
+	imageName := req.ImageConfig.Image
+	version := req.ImageConfig.Version
+	repo := req.Repo
+	sha := req.SHA
+
 	if repo == "cometbft" {
 		return fmt.Sprintf("%s-%s-%s-%s", imageName, version, repo, sha)
 	}
-	return fmt.Sprintf("%s-%s", repo, sha)
+
+	// For EVM builds, include SDK and CometBFT versions in tag if specified
+	// This ensures different dependency versions get different image tags
+	tag := fmt.Sprintf("%s-%s", repo, sha)
+	if req.CosmosSdkSha != "" {
+		// Sanitize the version string to be tag-friendly (remove @ and special chars)
+		sdkVersion := strings.ReplaceAll(req.CosmosSdkSha, "@", "-")
+		sdkVersion = strings.ReplaceAll(sdkVersion, "/", "-")
+		tag = fmt.Sprintf("%s-sdk-%s", tag, sdkVersion)
+	}
+	if req.CometBFTSha != "" {
+		// Sanitize the version string to be tag-friendly
+		cometVersion := strings.ReplaceAll(req.CometBFTSha, "@", "-")
+		cometVersion = strings.ReplaceAll(cometVersion, "/", "-")
+		tag = fmt.Sprintf("%s-comet-%s", tag, cometVersion)
+	}
+
+	return tag
 }
 
 func (a *Activity) imageExistsInECR(ctx context.Context, tag string) (bool, error) {
@@ -190,7 +213,7 @@ func (a *Activity) imageExistsInECR(ctx context.Context, tag string) (bool, erro
 func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDockerImageRequest) (messages.BuildDockerImageResponse, error) {
 	logger, _ := zap.NewDevelopment()
 
-	tag := generateTag(req.ImageConfig.Image, req.ImageConfig.Version, req.Repo, req.SHA)
+	tag := generateTag(req)
 
 	var username, password string
 	var err error
