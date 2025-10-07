@@ -20,6 +20,7 @@ jobs:
           [
             { image: 'worker', file: 'worker.Dockerfile' },
             { image: 'server', file: 'server.Dockerfile' },
+            { image: 'cleanup', file: 'cleanup.Dockerfile' },
           ]
     runs-on: ubuntu-latest
     permissions:
