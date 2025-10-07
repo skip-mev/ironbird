@@ -363,37 +363,46 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	genesisAmounts := []types.Coin{genesisCoin}
 
-	eg := new(errgroup.Group)
+	eg := errgroup.Group{}
 
-	for idx, v := range c.Validators {
-		v := v
-		idx := idx
+	for i := range c.Validators {
+		var (
+			val = c.Validators[i]
+			def = val.GetDefinition()
+			log = c.logger.With(zap.String("validator", def.Name))
+		)
+
 		eg.Go(func() error {
-			c.logger.Info("setting up validator", zap.String("validator", v.GetDefinition().Name))
+			log.Info("setting up validator")
 
-			validatorWallet, validatorAddress, err := v.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
+			validatorWallet, validatorAddress, err := val.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
 			if err != nil {
-				return fmt.Errorf("error in validator setup: %v", err)
+				return fmt.Errorf("error in validator (%s) setup: %w", def.Name, err)
 			}
 
-			c.ValidatorWallets[idx] = validatorWallet
+			c.ValidatorWallets[i] = validatorWallet
 
-			c.logger.Info("validator setup finished", zap.String("validator", v.GetDefinition().Name), zap.String("address", validatorAddress))
+			log.Info("validator setup finished", zap.String("address", validatorAddress))
 
 			return nil
 		})
 	}
 
-	for _, n := range c.Nodes {
-		n := n
+	for i := range c.Nodes {
+		var (
+			n   = c.Nodes[i]
+			def = n.GetDefinition()
+			log = c.logger.With(zap.String("node", def.Name))
+		)
 
 		eg.Go(func() error {
-			c.logger.Info("setting up node", zap.String("node", n.GetDefinition().Name))
+			log.Info("setting up node")
 
 			if err := n.SetupNode(ctx); err != nil {
-				return err
+				return fmt.Errorf("error in node (%s) setup: %w", def.Name, err)
 			}
-			c.logger.Info("node setup finished", zap.String("node", n.GetDefinition().Name))
+
+			log.Info("node setup finished")
 
 			return nil
 		})
@@ -1021,8 +1030,16 @@ func buildBalances(accounts []Account, funds types.Coins) []Balance {
 	return balances
 }
 
-func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petritypes.ChainConfig, genbz []byte,
-	persistentPeers, seeds string, useExternalAddress bool, logger *zap.Logger) error {
+func configureNode(
+	ctx context.Context,
+	node petritypes.NodeI,
+	chainConfig petritypes.ChainConfig,
+	genbz []byte,
+	persistentPeers string,
+	seeds string,
+	useExternalAddress bool,
+	logger *zap.Logger,
+) error {
 	if err := node.OverwriteGenesisFile(ctx, genbz); err != nil {
 		return err
 	}

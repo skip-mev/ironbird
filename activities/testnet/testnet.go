@@ -170,9 +170,13 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
 	startTime := time.Now()
 
-	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
-		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
+	providerOpts := util.ProviderOptions{
+		DOToken:           a.DOToken,
+		TailscaleSettings: a.TailscaleSettings,
+		TelemetrySettings: a.TelemetrySettings,
+	}
 
+	infraProvider, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, providerOpts)
 	if err != nil {
 		return
 	}
@@ -205,7 +209,10 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	chainConfig, walletConfig := constructChainConfig(req, a.Chains)
 	logger.Info("creating chain", zap.Any("chain_config", chainConfig))
 	chain, chainErr := petrichain.CreateChain(
-		ctx, logger, p, chainConfig,
+		ctx,
+		logger,
+		infraProvider,
+		chainConfig,
 		petritypes.ChainOptions{
 			NodeCreator:  node.CreateNode,
 			NodeOptions:  nodeOptions,
@@ -214,18 +221,18 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	)
 
 	if chainErr != nil {
-		providerState, serializeErr := p.SerializeProvider(ctx)
+		providerState, serializeErr := infraProvider.SerializeProvider(ctx)
 		if serializeErr != nil {
-			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, errTestnet(serializeErr, "failed to serialize provider", true)
 		}
 
 		compressedProviderState, compressErr := util.CompressData(providerState)
 		if compressErr != nil {
-			return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", compressErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, errTestnet(compressErr, "failed to compress provider state", true)
 		}
 		resp.ProviderState = compressedProviderState
 
-		return resp, temporal.NewApplicationErrorWithOptions("failed to create chain", chainErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(chainErr, "failed to create chain", true)
 	}
 
 	resp.ChainID = chainConfig.ChainId
@@ -239,44 +246,44 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		AdditionalAccounts: req.NumWallets,
 	})
 	if initErr != nil {
-		providerState, serializeErr := p.SerializeProvider(ctx)
+		providerState, serializeErr := infraProvider.SerializeProvider(ctx)
 		if serializeErr != nil {
-			return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", serializeErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, errTestnet(serializeErr, "failed to serialize provider", true)
 		}
 
 		compressedProviderState, compressErr := util.CompressData(providerState)
 		if compressErr != nil {
-			return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", compressErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+			return resp, errTestnet(compressErr, "failed to compress provider state", true)
 		}
 		resp.ProviderState = compressedProviderState
 
-		return resp, temporal.NewApplicationErrorWithOptions("failed to init chain", initErr.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(initErr, "failed to init chain", true)
 	}
 
 	err = chain.WaitForStartup(ctx)
 	if err != nil {
-		return resp, temporal.NewApplicationErrorWithOptions("failed to wait for chain startup", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(err, "failed to wait for chain startup", true)
 	}
 
-	providerState, err := p.SerializeProvider(ctx)
+	providerState, err := infraProvider.SerializeProvider(ctx)
 	if err != nil {
-		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize provider", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(err, "failed to serialize provider", true)
 	}
 
 	compressedProviderState, err := util.CompressData(providerState)
 	if err != nil {
-		return resp, temporal.NewApplicationErrorWithOptions("failed to compress provider state", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(err, "failed to compress provider state", true)
 	}
 	resp.ProviderState = compressedProviderState
 
-	chainState, err := chain.Serialize(ctx, p)
+	chainState, err := chain.Serialize(ctx, infraProvider)
 	if err != nil {
-		return resp, temporal.NewApplicationErrorWithOptions("failed to serialize chain", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(err, "failed to serialize chain", true)
 	}
 
 	compressedChainState, err := util.CompressData(chainState)
 	if err != nil {
-		return resp, temporal.NewApplicationErrorWithOptions("failed to compress chain state", err.Error(), temporal.ApplicationErrorOptions{NonRetryable: true})
+		return resp, errTestnet(err, "failed to compress chain state", true)
 	}
 	resp.ChainState = compressedChainState
 
@@ -303,7 +310,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	resp.Validators = testnetValidators
 
 	if a.GRPCClient != nil {
-		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, p.GetName(), logger)
+		a.updateWorkflowData(ctx, workflowID, testnetNodes, testnetValidators, chainConfig.ChainId, startTime, infraProvider.GetName(), logger)
 	}
 
 	//go func() {
@@ -313,8 +320,10 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	return resp, nil
 }
 
-func constructChainConfig(req messages.LaunchTestnetRequest,
-	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
+func constructChainConfig(
+	req messages.LaunchTestnetRequest,
+	chains types.Chains,
+) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
 
 	config := petritypes.ChainConfig{
@@ -423,4 +432,13 @@ func getNodeExternalAddresses(ctx context.Context, nodeProvider petritypes.NodeI
 	}
 
 	return node, nil
+}
+
+func errTestnet(err error, msg string, permanent bool) error {
+	opts := temporal.ApplicationErrorOptions{
+		NonRetryable: permanent,
+		Cause:        err,
+	}
+
+	return temporal.NewApplicationErrorWithOptions(msg, "testnet_error", opts)
 }

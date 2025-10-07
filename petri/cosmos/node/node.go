@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto"
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/p2p"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
@@ -42,7 +43,13 @@ var _ petritypes.NodeCreator = CreateNode
 var _ petritypes.NodeRestorer = RestoreNode
 
 // CreateNode creates a new logical node and creates the underlying workload for it
-func CreateNode(ctx context.Context, logger *zap.Logger, infraProvider provider.ProviderI, nodeConfig petritypes.NodeConfig, opts petritypes.NodeOptions) (petritypes.NodeI, error) {
+func CreateNode(
+	ctx context.Context,
+	logger *zap.Logger,
+	infraProvider provider.ProviderI,
+	nodeConfig petritypes.NodeConfig,
+	opts petritypes.NodeOptions,
+) (petritypes.NodeI, error) {
 	if err := nodeConfig.ValidateBasic(infraProvider.GetType()); err != nil {
 		return nil, fmt.Errorf("failed to validate node config: %w", err)
 	}
@@ -179,19 +186,37 @@ func (n *Node) Height(ctx context.Context) (uint64, error) {
 	return uint64(block.Block.Height), nil
 }
 
+func (n *Node) PubKey(ctx context.Context) (crypto.PubKey, error) {
+	nk, err := n.nodeKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return nk.PubKey(), nil
+}
+
 // NodeId returns the node's p2p ID
 func (n *Node) NodeId(ctx context.Context) (string, error) {
+	nk, err := n.nodeKey(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return string(nk.ID()), nil
+}
+
+func (n *Node) nodeKey(ctx context.Context) (p2p.NodeKey, error) {
 	j, err := n.ReadFile(ctx, "config/node_key.json")
 	if err != nil {
-		return "", fmt.Errorf("getting node_key.json content: %w", err)
+		return p2p.NodeKey{}, fmt.Errorf("getting node_key.json content: %w", err)
 	}
 
 	var nk p2p.NodeKey
 	if err := tmjson.Unmarshal(j, &nk); err != nil {
-		return "", fmt.Errorf("unmarshaling node_key.json: %w", err)
+		return p2p.NodeKey{}, fmt.Errorf("unmarshaling node_key.json: %w", err)
 	}
 
-	return string(nk.ID()), nil
+	return nk, nil
 }
 
 // BinCommand returns a command that can be used to run a binary on the node
@@ -232,16 +257,27 @@ func (n *Node) Serialize(ctx context.Context, p provider.ProviderI) ([]byte, err
 // 3. Generate a gentx for the validator
 // 4. Update the client config with chain id (this is needed at this step for the chain ID
 // to be available in the client config during validator genesis setup)
-func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.WalletConfig,
-	genesisAmounts []types.Coin, genesisSelfDelegation types.Coin) (petritypes.WalletI, string, error) {
-	n.logger.Info("initializing validator setup script", zap.String("name", n.GetDefinition().Name))
+func (n *Node) SetupValidator(
+	ctx context.Context,
+	walletConfig petritypes.WalletConfig,
+	genesisAmounts []types.Coin,
+	genesisSelfDelegation types.Coin,
+) (petritypes.WalletI, string, error) {
+	var (
+		taskDef     = n.GetDefinition()
+		chainConfig = n.GetChainConfig()
+		chainID     = chainConfig.ChainId
+		logger      = n.logger.With(zap.String("name", taskDef.Name))
+	)
+
+	logger.Info("initializing validator setup script")
 
 	validatorWallet, err := n.CreateWallet(ctx, petritypes.ValidatorKeyName, walletConfig)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate wallet: %w", err)
 	}
 
-	initCmd := n.BinCommand([]string{"init", n.GetDefinition().Name, "--chain-id", n.GetChainConfig().ChainId}...)
+	initCmd := n.BinCommand([]string{"init", taskDef.Name, "--chain-id", chainID}...)
 	initScript := strings.Join(initCmd, " ")
 
 	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", initScript})
@@ -255,7 +291,7 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 
 	n.logger.Debug("validator init completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
-	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
+	clientConfig := GenerateDefaultClientConfig(chainID)
 	if err := n.ModifyTomlConfigFile(
 		ctx,
 		"config/client.toml",
@@ -276,7 +312,7 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 	}
 
 	var addGenesisAccountCmd []string
-	if n.GetChainConfig().UseGenesisSubCommand {
+	if chainConfig.UseGenesisSubCommand {
 		addGenesisAccountCmd = append(addGenesisAccountCmd, "genesis")
 	}
 
@@ -285,12 +321,12 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 	genesisScriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(addGenesisCmd, " ")))
 
 	var gentxCmd []string
-	if n.GetChainConfig().UseGenesisSubCommand {
+	if chainConfig.UseGenesisSubCommand {
 		gentxCmd = append(gentxCmd, "genesis")
 	}
 	gentxCmd = append(gentxCmd, "gentx", petritypes.ValidatorKeyName, fmt.Sprintf("%s%s", genesisSelfDelegation.Amount.String(), genesisSelfDelegation.Denom),
 		"--keyring-backend", "test",
-		"--chain-id", n.GetChainConfig().ChainId)
+		"--chain-id", chainID)
 	gentxCommand := n.BinCommand(gentxCmd...)
 	genesisScriptBuilder.WriteString(fmt.Sprintf("%s\n", strings.Join(gentxCommand, " ")))
 
@@ -305,16 +341,23 @@ func (n *Node) SetupValidator(ctx context.Context, walletConfig petritypes.Walle
 		return nil, "", fmt.Errorf("validator genesis setup failed (exit code %d): %s, stdout: %s", exitCode, stderr, stdout)
 	}
 
-	n.logger.Debug("validator genesis setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
+	logger.Debug("validator genesis setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
 	return validatorWallet, validatorWallet.FormattedAddress(), nil
 }
 
 // SetupNode initializes the node's home directory
 func (n *Node) SetupNode(ctx context.Context) error {
-	n.logger.Info("initializing node setup script", zap.String("name", n.GetDefinition().Name))
+	var (
+		taskDef     = n.GetDefinition()
+		chainConfig = n.GetChainConfig()
+		chainID     = chainConfig.ChainId
+		logger      = n.logger.With(zap.String("name", taskDef.Name))
+	)
 
-	initCmd := n.BinCommand([]string{"init", n.GetDefinition().Name, "--chain-id", n.GetChainConfig().ChainId}...)
+	logger.Info("initializing node setup script")
+
+	initCmd := n.BinCommand([]string{"init", taskDef.Name, "--chain-id", chainID}...)
 	script := strings.Join(initCmd, " ")
 
 	stdout, stderr, exitCode, err := n.RunCommand(ctx, []string{"/bin/sh", "-c", script})
@@ -328,7 +371,7 @@ func (n *Node) SetupNode(ctx context.Context) error {
 
 	n.logger.Debug("node setup completed", zap.String("stdout", stdout), zap.String("stderr", stderr))
 
-	clientConfig := GenerateDefaultClientConfig(n.GetChainConfig().ChainId)
+	clientConfig := GenerateDefaultClientConfig(chainID)
 	if err := n.ModifyTomlConfigFile(
 		ctx,
 		"config/client.toml",

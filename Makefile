@@ -170,7 +170,7 @@ local-docker: ## Start IronBird for local Docker workflows (no cloud dependencie
 	@echo "🚀 Starting IronBird in Local Docker Mode"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	
+		
 	@# Create .env if it doesn't exist
 	@if [ ! -f .env ]; then \
 		echo "# Environment file for IronBird" > .env; \

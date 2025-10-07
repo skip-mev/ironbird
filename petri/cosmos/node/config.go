@@ -17,29 +17,33 @@ import (
 
 // recursiveModifyToml will apply toml modifications at the current depth,
 // then recurse for new depths
-func recursiveModifyToml(c map[string]interface{}, modifications map[string]interface{}) error {
+func recursiveModifyToml(config map[string]any, modifications map[string]any) error {
 	for key, value := range modifications {
-		if reflect.ValueOf(value).Kind() == reflect.Map {
-			cV, ok := c[key]
-			if !ok {
-				// Did not find section in existing config, populating fresh.
-				cV = make(map[string]interface{})
-			}
-			// Retrieve existing config to apply overrides to.
-			cVM, ok := cV.(map[string]interface{})
-
-			if !ok {
-				cVM = make(map[string]interface{})
-			}
-			if err := recursiveModifyToml(cVM, value.(map[string]interface{})); err != nil {
-				return err
-			}
-			c[key] = cVM
-		} else {
-			// Not a map, so we can set override value directly.
-			c[key] = value
+		// Not a map, so we can set override value directly.
+		if reflect.ValueOf(value).Kind() != reflect.Map {
+			config[key] = value
+			continue
 		}
+
+		current, exists := config[key]
+		if !exists {
+			// Did not find section in existing config, populating fresh.
+			current = make(map[string]any)
+		}
+
+		// Retrieve existing config to apply overrides to.
+		currentAsMap, ok := current.(map[string]any)
+		if !ok {
+			currentAsMap = make(map[string]any)
+		}
+
+		if err := recursiveModifyToml(currentAsMap, value.(map[string]any)); err != nil {
+			return fmt.Errorf("key %s: %w", key, err)
+		}
+
+		config[key] = currentAsMap
 	}
+
 	return nil
 }
 
