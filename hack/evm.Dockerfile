@@ -20,6 +20,8 @@ RUN git clone $CHAIN_SRC /src/app && \
 
 WORKDIR /src/app/evmd
 RUN if [ -n "$REPLACE_CMD" ]; then \
+        echo "Applying replace commands:" && \
+        echo "$REPLACE_CMD" && \
         go mod tidy && \
         echo "After go mod tidy, applying replace commands:" && \
         echo "$REPLACE_CMD" > replace_cmd.sh && \
