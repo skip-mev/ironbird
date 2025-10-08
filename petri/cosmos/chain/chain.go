@@ -28,6 +28,8 @@ import (
 
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 type PackagedState struct {
@@ -1027,5 +1029,51 @@ func configureNode(
 		return err
 	}
 
+	useLibP2P, addressBookFile := chainConfig.UseLibP2P()
+	if useLibP2P {
+		logger.Info("Using lib-p2p!", zap.String("address_book_file", addressBookFile))
+		err = writeLibP2PAddressBook(ctx, node, addressBookFile, useExternalAddress, seeds, persistentPeers)
+		if err != nil {
+			return fmt.Errorf("writeLibP2PAddressBook: %w", err)
+		}
+	}
+
 	return nil
+}
+
+// writes libp2p address book to the node's address book file
+func writeLibP2PAddressBook(
+	ctx context.Context,
+	node petritypes.NodeI,
+	addressBookFile string,
+	useExternalAddress bool,
+	peerSets ...PeerSet,
+) error {
+	peers := []any{}
+
+	// combine all the peer sets into list of peers
+	for _, peerSet := range peerSets {
+		if peerSet.Empty() {
+			continue
+		}
+
+		elements, err := peerSet.AsLibP2PAddressBook(ctx, useExternalAddress)
+		if err != nil {
+			return fmt.Errorf("failed to get libp2p address book for peer set: %w", err)
+		}
+
+		peers = append(peers, elements...)
+	}
+
+	// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L12
+	addressBook := map[string]any{
+		"peers": peers,
+	}
+
+	raw, err := toml.Marshal(addressBook)
+	if err != nil {
+		return fmt.Errorf("failed to marshal address book {%+v}: %w", addressBook, err)
+	}
+
+	return node.WriteFile(ctx, addressBookFile, raw)
 }

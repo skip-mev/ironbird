@@ -61,7 +61,7 @@ func (ps *PeerSet) AsCometPeerString(ctx context.Context, useExternal bool) (str
 
 // AsLibP2PAddressBook returns a map of node IDs to addresses of chain nodes.
 // Format it [{host: "1.2.3.4:26656", id: "<lib-p2p-peer-id>"}, {...}, ...]
-// @see https://github.com/cometbft/cometbft/blob/feat/poc-libp2p/lp2p/addressbook.go#L16
+// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L16
 func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, useExternal bool) ([]any, error) {
 	peers := make([]any, 0, len(ps.peers))
 
