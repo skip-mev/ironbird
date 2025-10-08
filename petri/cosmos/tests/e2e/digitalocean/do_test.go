@@ -92,6 +92,10 @@ func TestDOE2E(t *testing.T) {
 
 	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
 
+	if doToken == "" {
+		t.Skip("Skipping DigitalOcean E2E tests because DIGITALOCEAN_TOKEN is not set")
+	}
+
 	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
 	tsServerOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
 	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, tsServerOauthSecret,

@@ -439,9 +439,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		}
 	}
 
-	chainConfig := c.GetConfig()
-	persistentPeers, seeds := "", ""
-	var seedNode petritypes.NodeI
+	var (
+		chainConfig     = c.GetConfig()
+		persistentPeers PeerSet
+		seeds           PeerSet
+		seedNode        petritypes.NodeI
+	)
 
 	if chainConfig.SetSeedNode {
 		if len(c.Nodes) > 0 {
@@ -451,18 +454,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		}
 
 		if seedNode != nil {
-			seeds, err = PeerStrings(ctx, []petritypes.NodeI{seedNode}, c.useExternalAddresses)
-			if err != nil {
-				return err
-			}
+			seeds = NewPeerSet([]petritypes.NodeI{seedNode})
 		}
 	}
 
 	if chainConfig.SetPersistentPeers {
-		persistentPeers, err = PeerStrings(ctx, append(c.Nodes, c.Validators...), c.useExternalAddresses)
-		if err != nil {
-			return err
-		}
+		persistentPeers = NewPeerSet(append(c.Nodes, c.Validators...))
 	}
 
 	for i := range c.Validators {
@@ -538,60 +535,6 @@ func (c *Chain) Teardown(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// PeerStrings returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port. If useExternal is true, it uses external addresses
-// (for DigitalOcean), otherwise it uses internal addresses (for Docker).
-func PeerStrings(ctx context.Context, peers []petritypes.NodeI, useExternal bool) (string, error) {
-	if useExternal {
-		return PeerStringsExternal(ctx, peers)
-	}
-	return PeerStringsInternal(ctx, peers)
-}
-
-// PeerStringsInternal returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port using the internal private address of the node (used for Docker networks)
-func PeerStringsInternal(ctx context.Context, peers []petritypes.NodeI) (string, error) {
-	peerStrings := []string{}
-
-	for _, n := range peers {
-		ip, err := n.GetIP(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		nodeId, err := n.NodeId(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		peerStrings = append(peerStrings, fmt.Sprintf("%s@%s:26656", nodeId, ip))
-	}
-
-	return strings.Join(peerStrings, ","), nil
-}
-
-// PeerStringsExternal returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port using the external public address of the node (used for public DigitalOcean networks)
-func PeerStringsExternal(ctx context.Context, peers []petritypes.NodeI) (string, error) {
-	peerStrings := []string{}
-
-	for _, n := range peers {
-		externalAddr, err := n.GetExternalAddress(ctx, "26656")
-		if err != nil {
-			return "", err
-		}
-
-		nodeId, err := n.NodeId(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		peerStrings = append(peerStrings, fmt.Sprintf("%s@%s", nodeId, externalAddr))
-	}
-
-	return strings.Join(peerStrings, ","), nil
 }
 
 // GetGRPCClient returns a gRPC client of the first available node
@@ -1035,8 +978,8 @@ func configureNode(
 	node petritypes.NodeI,
 	chainConfig petritypes.ChainConfig,
 	genbz []byte,
-	persistentPeers string,
-	seeds string,
+	persistentPeers PeerSet,
+	seeds PeerSet,
 	useExternalAddress bool,
 	logger *zap.Logger,
 ) error {
@@ -1063,13 +1006,24 @@ func configureNode(
 		return err
 	}
 
-	logger.Debug("setting persistent peers", zap.String("persistent_peers", persistentPeers))
-	if err := node.SetPersistentPeers(ctx, persistentPeers); err != nil {
+	// todo if libp2p=true, then store addressbook.toml in a proper format!
+	persistentPeersString, err := persistentPeers.AsCometPeerString(ctx, useExternalAddress)
+	if err != nil {
+		return fmt.Errorf("failed to get comet peer string for persistent peers: %w", err)
+	}
+
+	logger.Debug("setting persistent peers", zap.String("persistent_peers", persistentPeersString))
+	if err := node.SetPersistentPeers(ctx, persistentPeersString); err != nil {
 		return err
 	}
 
-	logger.Debug("setting seeds", zap.String("seeds", seeds))
-	if err := node.SetSeedNode(ctx, seeds); err != nil {
+	seedPeersString, err := seeds.AsCometPeerString(ctx, useExternalAddress)
+	if err != nil {
+		return fmt.Errorf("failed to get comet peer string for seeds: %w", err)
+	}
+
+	logger.Debug("setting seeds", zap.String("seeds", seedPeersString))
+	if err := node.SetSeedNode(ctx, seedPeersString); err != nil {
 		return err
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/cometbft/cometbft/crypto"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"google.golang.org/grpc"
@@ -91,6 +92,9 @@ type NodeI interface {
 	SetSeedNode(ctx context.Context, seedNode string) error
 	// SetSeedMode will configure this node to operate in seed mode
 	SetSeedMode(ctx context.Context) error
+
+	// PubKey returns the public key of the node
+	PubKey(context.Context) (crypto.PubKey, error)
 
 	// NodeId returns the p2p peer ID of the node
 	NodeId(context.Context) (string, error)
