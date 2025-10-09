@@ -23,9 +23,7 @@ const Navigation = () => {
       <VStack spacing={6} align="flex-start" w="100%">
         <Flex w="100%" justify="space-between" align="center">
           <Heading size="md" color="brand.500">
-            <RouterLink to="/">
-              Ironbird
-            </RouterLink>
+            <RouterLink to="/">IronBird</RouterLink>
           </Heading>
           <Tooltip label={colorMode === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
             <IconButton
