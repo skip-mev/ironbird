@@ -103,7 +103,11 @@ type NodeI interface {
 	GetDefinition() provider.TaskDefinition
 
 	// GetIP returns the IP address of the node
+	// todo refactor to GetIP(ctx, type=[private, tailscale, public, ...])
 	GetIP(context.Context) (string, error)
+
+	// GetPrivateIP returns node's private IP address
+	GetPrivateIP(context.Context) (string, error)
 
 	// Serialize serializes the node
 	Serialize(context.Context, provider.ProviderI) ([]byte, error)

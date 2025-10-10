@@ -1008,7 +1008,6 @@ func configureNode(
 		return err
 	}
 
-	// todo if libp2p=true, then store addressbook.toml in a proper format!
 	persistentPeersString, err := persistentPeers.AsCometPeerString(ctx, useExternalAddress)
 	if err != nil {
 		return fmt.Errorf("failed to get comet peer string for persistent peers: %w", err)
@@ -1032,7 +1031,15 @@ func configureNode(
 	useLibP2P, addressBookFile := chainConfig.UseLibP2P()
 	if useLibP2P {
 		logger.Info("Using lib-p2p!", zap.String("address_book_file", addressBookFile))
-		err = writeLibP2PAddressBook(ctx, node, addressBookFile, useExternalAddress, seeds, persistentPeers)
+		err = writeLibP2PAddressBook(
+			ctx,
+			node,
+			addressBookFile,
+			useExternalAddress,
+			seeds,
+			persistentPeers,
+		)
+
 		if err != nil {
 			return fmt.Errorf("writeLibP2PAddressBook: %w", err)
 		}
@@ -1051,13 +1058,15 @@ func writeLibP2PAddressBook(
 ) error {
 	peers := []any{}
 
+	isDocker := !useExternalAddress
+
 	// combine all the peer sets into list of peers
 	for _, peerSet := range peerSets {
 		if peerSet.Empty() {
 			continue
 		}
 
-		elements, err := peerSet.AsLibP2PAddressBook(ctx, useExternalAddress)
+		elements, err := peerSet.AsLibP2PAddressBook(ctx, isDocker)
 		if err != nil {
 			return fmt.Errorf("failed to get libp2p address book for peer set: %w", err)
 		}

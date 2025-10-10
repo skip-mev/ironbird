@@ -36,6 +36,7 @@ type TaskI interface {
 	DownloadDir(context.Context, string, string) error
 
 	GetIP(context.Context) (string, error)
+	GetPrivateIP(context.Context) (string, error)
 	GetExternalAddress(context.Context, string) (string, error)
 	DialContext() func(context.Context, string, string) (net.Conn, error)
 

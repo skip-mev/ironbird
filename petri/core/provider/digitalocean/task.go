@@ -252,6 +252,8 @@ func (t *Task) DownloadDir(ctx context.Context, s string, s2 string) error {
 	panic("implement me")
 }
 
+// GetIP returns *Tailscale* IP.
+// todo refactor to GetIP(ctx, type=[private, tailscale, public, ...])
 func (t *Task) GetIP(ctx context.Context) (string, error) {
 	return t.getTailscaleIp(ctx)
 }
@@ -263,6 +265,16 @@ func (t *Task) GetExternalAddress(ctx context.Context, port string) (string, err
 	}
 
 	return net.JoinHostPort(ip, port), nil
+}
+
+// GetPrivateIP returns node's private IP address
+func (t *Task) GetPrivateIP(ctx context.Context) (string, error) {
+	droplet, err := t.GetDroplet(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to get droplet: %w", err)
+	}
+
+	return droplet.PrivateIPv4()
 }
 
 func (t *Task) RunCommand(ctx context.Context, cmd []string) (string, string, int, error) {

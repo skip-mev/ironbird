@@ -62,12 +62,19 @@ func (ps *PeerSet) AsCometPeerString(ctx context.Context, useExternal bool) (str
 // AsLibP2PAddressBook returns a map of node IDs to addresses of chain nodes.
 // Format it [{host: "1.2.3.4:26656", id: "<lib-p2p-peer-id>"}, {...}, ...]
 // @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L16
-func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, useExternal bool) ([]any, error) {
+func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, isDocker bool) ([]any, error) {
 	peers := make([]any, 0, len(ps.peers))
 
 	resolveHost := peerHostInternal
-	if useExternal {
-		resolveHost = peerHostExternal
+	if !isDocker {
+		// This breaks geo-distributed testnet for go-libp2p.
+		//
+		// Currently DigitalOcean Droplet are configured via Tailscale, which
+		// causes issues go-libp2p connection (tailscale's IP are fetched via peerHostExternal)
+		// Thus, we use VMs private IPs.
+		//
+		// TODO: come up with a better solution that doesn't use Tailscale, but supports multiple regions.
+		resolveHost = peerHostPrivate
 	}
 
 	for _, n := range ps.peers {
@@ -98,6 +105,15 @@ func peerHostExternal(ctx context.Context, n petri.NodeI) (string, error) {
 // used for docker
 func peerHostInternal(ctx context.Context, n petri.NodeI) (string, error) {
 	ip, err := n.GetIP(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s:%s", ip, cometPort), nil
+}
+
+func peerHostPrivate(ctx context.Context, n petri.NodeI) (string, error) {
+	ip, err := n.GetPrivateIP(ctx)
 	if err != nil {
 		return "", err
 	}

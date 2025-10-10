@@ -68,6 +68,10 @@ func (m MockNode) GetIP(ctx context.Context) (string, error) {
 	return m.IP, nil
 }
 
+func (m MockNode) GetPrivateIP(ctx context.Context) (string, error) {
+	return m.GetIP(ctx)
+}
+
 func (m MockNode) GetExternalAddress(ctx context.Context, s string) (string, error) {
 	//TODO implement me
 	panic("implement me")
