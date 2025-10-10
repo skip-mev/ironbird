@@ -343,18 +343,20 @@ func startWorkflow(
 	logger := workflow.GetLogger(ctx)
 
 	testnet, err := launchTestnet(ctx, req, runName, buildResult)
-	if err != nil {
-		return err
-	}
 
-	if testnet.ProviderState != nil {
+	// we might cleanup even if err != nil
+	if testnet != nil && len(testnet.ProviderState) > 0 {
 		cleanupCtx, cancelCleanupCtx := workflow.NewDisconnectedContext(ctx)
 		defer func() {
-			if len(testnet.ProviderState) != 0 {
+			if len(testnet.ProviderState) > 0 {
 				teardownProvider(cleanupCtx, req.RunnerType, testnet.ProviderState)
 			}
 			cancelCleanupCtx()
 		}()
+	}
+
+	if err != nil {
+		return err
 	}
 
 	if req.LaunchLoadBalancer {
