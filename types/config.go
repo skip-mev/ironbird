@@ -95,6 +95,7 @@ type RegistryConfig struct {
 	URL       string
 	ImageName string
 }
+
 type ChainsConfig struct {
 	Name                  string                    `yaml:"name"`
 	Image                 string                    `yaml:"image"`
@@ -120,6 +121,11 @@ type Dashboard struct {
 	Name      string `yaml:"name"`
 	HumanName string `yaml:"human_name"`
 }
+
+const (
+	DockerRegistryECR   = "ecr"
+	DockerRegistryLocal = "local"
+)
 
 func GenerateMonitoringLinks(chainID string, startTime time.Time, endTime *time.Time, provider string, grafana GrafanaConfig) map[string]string {
 	urls := make(map[string]string)
@@ -191,19 +197,19 @@ func (c *BuilderConfig) GetActiveRegistry() RegistryConfig {
 
 	// Default to local if not specified
 	if mode == "" {
-		mode = "local"
+		mode = DockerRegistryLocal
 	}
 
-	if mode == "ecr" {
+	if mode == DockerRegistryECR {
 		return RegistryConfig{
-			Type:      "ecr",
+			Type:      DockerRegistryECR,
 			URL:       c.ECR.URL,
 			ImageName: c.ECR.ImageName,
 		}
 	}
 
 	return RegistryConfig{
-		Type:      "local",
+		Type:      DockerRegistryLocal,
 		URL:       "",
 		ImageName: c.Local.ImageName,
 	}

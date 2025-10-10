@@ -184,15 +184,19 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	nodeOptions := petritypes.NodeOptions{}
 
 	var dockerAuth string
-	if a.RegistryType == "ecr" && a.AwsConfig != nil {
-		token, err := util.FetchDockerRepoToken(ctx, *a.AwsConfig)
+	if a.RegistryType == types.DockerRegistryECR {
+		if a.AwsConfig == nil {
+			return resp, errTestnet(fmt.Errorf("aws config is nil"), "aws config is nil", true)
+		}
+
+		token, err := util.FetchDockerRepoToken(ctx, a.AwsConfig.Copy())
 		if err != nil {
-			logger.Error("Failed to fetch docker repo token", zap.Error(err))
-		} else {
-			dockerAuth, err = convertECRTokenToDockerAuth(token)
-			if err != nil {
-				logger.Error("Failed to convert ECR token to Docker auth format", zap.Error(err))
-			}
+			return resp, errTestnet(err, "failed to fetch docker repo token", true)
+		}
+
+		dockerAuth, err = convertECRTokenToDockerAuth(token)
+		if err != nil {
+			return resp, errTestnet(err, "failed to convert ECR token to Docker auth format", true)
 		}
 	}
 

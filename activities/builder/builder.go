@@ -82,8 +82,8 @@ func (a *Activity) getAuthenticationToken(ctx context.Context) (string, string, 
 
 func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	stsClient := sts.NewFromConfig(*a.AwsConfig)
-	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 
+	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return fmt.Errorf("failed to fetch STS identity: %w", err)
 	}
@@ -217,7 +217,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 
 	var username, password string
 	var err error
-	if a.Registry.Type == "ecr" {
+	if a.Registry.Type == types.DockerRegistryECR {
 		if err := a.createRepositoryIfNotExists(ctx); err != nil {
 			return messages.BuildDockerImageResponse{}, err
 		}
@@ -226,6 +226,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 		if err != nil {
 			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to check if image exists: %w", err)
 		}
+
 		if exists {
 			fqdnTag := fmt.Sprintf("%s/%s:%s", a.Registry.URL, a.Registry.ImageName, tag)
 			logger.Info("Image already exists in ECR, skipping build", zap.String("tag", fqdnTag))
@@ -271,7 +272,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	}
 
 	authConfigs := make(map[string]configtypes.AuthConfig)
-	if a.Registry.Type == "ecr" && username != "" && password != "" {
+	if a.Registry.Type == types.DockerRegistryECR && username != "" && password != "" {
 		authConfigs[a.Registry.URL] = configtypes.AuthConfig{
 			Username: username,
 			Password: password,
@@ -320,7 +321,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 
 	fqdnTag = fmt.Sprintf("%s:%s", a.Registry.ImageName, tag)
 
-	if a.Registry.Type == "ecr" {
+	if a.Registry.Type == types.DockerRegistryECR {
 		// ECR mode: push directly to registry
 		fqdnTag = fmt.Sprintf("%s/%s:%s", a.Registry.URL, a.Registry.ImageName, tag)
 		exports = []client.ExportEntry{

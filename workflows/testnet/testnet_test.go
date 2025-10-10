@@ -246,7 +246,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	}
 	testnetActivity := &testnettypes.Activity{
 		Chains:       cfg.Chains,
-		RegistryType: "local",
+		RegistryType: types.DockerRegistryLocal,
 	}
 	s.env.RegisterActivity(testnetActivity.CreateProvider)
 	s.env.RegisterActivity(testnetActivity.TeardownProvider)
@@ -264,7 +264,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDocker() {
 	builderActivity := &builder.Activity{
 		BuilderConfig: builderConfig,
 		Registry: types.RegistryConfig{
-			Type:      "local",
+			Type:      types.DockerRegistryLocal,
 			ImageName: "ironbird",
 		},
 	}
@@ -359,7 +359,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		TailscaleSettings: tailscaleSettings,
 		Chains:            cfg.Chains,
 		AwsConfig:         &awsConfig,
-		RegistryType:      "ecr",
+		RegistryType:      types.DockerRegistryECR,
 	}
 	loadBalancerActivity := &loadbalancer.Activity{
 		RootDomain:        "ib-local.dev.skip.build",
@@ -390,7 +390,7 @@ func (s *TestnetWorkflowTestSuite) setupMockActivitiesDigitalOcean() {
 		BuilderConfig: builderConfig,
 		AwsConfig:     &awsConfig,
 		Registry: types.RegistryConfig{
-			Type:      "ecr",
+			Type:      types.DockerRegistryECR,
 			URL:       "public.ecr.aws",
 			ImageName: "skip-mev/n7v2p5f8/n7v2p5f8/skip-mev/ironbird-local",
 		},
