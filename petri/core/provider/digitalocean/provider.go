@@ -195,6 +195,9 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 	var registryAuth string
 	if provider.IsECRImage(definition.Image.Image) {
 		registryAuth = doConfig["docker_auth"]
+		if registryAuth == "" {
+			return nil, fmt.Errorf("digitalocean: docker_auth is required for ECR images")
+		}
 	}
 	if err != nil {
 		p.logger.Info("image not found, pulling", zap.String("image", definition.Image.Image))
