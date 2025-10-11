@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -59,17 +60,21 @@ func main() {
 	defer c.Close()
 
 	activeRegistry := cfg.Builder.GetActiveRegistry()
-	logger.Info("Using registry configuration",
+	logger.Info(
+		"Using registry configuration",
 		zap.String("mode", activeRegistry.Type),
-		zap.String("image_name", activeRegistry.ImageName))
+		zap.String("image_name", activeRegistry.ImageName),
+	)
 
-	var awsConfig *aws.Config
-	if activeRegistry.Type == "ecr" {
-		awsCfg, err := config.LoadDefaultConfig(ctx)
+	var awsConfig aws.Config
+	if activeRegistry.Type == types.DockerRegistryECR {
+		awsConfig, err = config.LoadDefaultConfig(ctx)
 		if err != nil {
 			log.Fatalln("Failed to load AWS config (required for ECR registry):", err)
 		}
-		awsConfig = &awsCfg
+		if err := ensureAWSCredentials(ctx, awsConfig); err != nil {
+			log.Fatalln("Failed to ensure AWS credentials:", err)
+		}
 		logger.Info("AWS config loaded for ECR registry")
 	} else {
 		logger.Info("Skipping AWS config (using local registry)")
@@ -77,7 +82,7 @@ func main() {
 
 	builderActivity := builder.Activity{
 		BuilderConfig: cfg.Builder,
-		AwsConfig:     awsConfig,
+		AwsConfig:     &awsConfig,
 		Chains:        cfg.Chains,
 		Registry:      activeRegistry,
 	}
@@ -140,7 +145,7 @@ func main() {
 		Chains:            cfg.Chains,
 		GrafanaConfig:     cfg.Grafana,
 		GRPCClient:        grpcClient,
-		AwsConfig:         awsConfig,
+		AwsConfig:         &awsConfig,
 		RegistryType:      activeRegistry.Type,
 	}
 
@@ -195,4 +200,19 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func ensureAWSCredentials(ctx context.Context, cfg aws.Config) error {
+	creds, err := cfg.Credentials.Retrieve(ctx)
+
+	switch {
+	case err != nil:
+		return fmt.Errorf("unable to retrieve AWS credentials: %w", err)
+	case !creds.HasKeys():
+		return fmt.Errorf("AWS credentials do not have keys")
+	case creds.Expired():
+		return fmt.Errorf("AWS credentials are expired")
+	}
+
+	return nil
 }

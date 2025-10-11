@@ -28,6 +28,8 @@ import (
 
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 type PackagedState struct {
@@ -363,37 +365,46 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 
 	genesisAmounts := []types.Coin{genesisCoin}
 
-	eg := new(errgroup.Group)
+	eg := errgroup.Group{}
 
-	for idx, v := range c.Validators {
-		v := v
-		idx := idx
+	for i := range c.Validators {
+		var (
+			val = c.Validators[i]
+			def = val.GetDefinition()
+			log = c.logger.With(zap.String("validator", def.Name))
+		)
+
 		eg.Go(func() error {
-			c.logger.Info("setting up validator", zap.String("validator", v.GetDefinition().Name))
+			log.Info("setting up validator")
 
-			validatorWallet, validatorAddress, err := v.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
+			validatorWallet, validatorAddress, err := val.SetupValidator(ctx, opts.WalletConfig, genesisAmounts, genesisSelfDelegation)
 			if err != nil {
-				return fmt.Errorf("error in validator setup: %v", err)
+				return fmt.Errorf("error in validator (%s) setup: %w", def.Name, err)
 			}
 
-			c.ValidatorWallets[idx] = validatorWallet
+			c.ValidatorWallets[i] = validatorWallet
 
-			c.logger.Info("validator setup finished", zap.String("validator", v.GetDefinition().Name), zap.String("address", validatorAddress))
+			log.Info("validator setup finished", zap.String("address", validatorAddress))
 
 			return nil
 		})
 	}
 
-	for _, n := range c.Nodes {
-		n := n
+	for i := range c.Nodes {
+		var (
+			n   = c.Nodes[i]
+			def = n.GetDefinition()
+			log = c.logger.With(zap.String("node", def.Name))
+		)
 
 		eg.Go(func() error {
-			c.logger.Info("setting up node", zap.String("node", n.GetDefinition().Name))
+			log.Info("setting up node")
 
 			if err := n.SetupNode(ctx); err != nil {
-				return err
+				return fmt.Errorf("error in node (%s) setup: %w", def.Name, err)
 			}
-			c.logger.Info("node setup finished", zap.String("node", n.GetDefinition().Name))
+
+			log.Info("node setup finished")
 
 			return nil
 		})
@@ -430,9 +441,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		}
 	}
 
-	chainConfig := c.GetConfig()
-	persistentPeers, seeds := "", ""
-	var seedNode petritypes.NodeI
+	var (
+		chainConfig     = c.GetConfig()
+		persistentPeers PeerSet
+		seeds           PeerSet
+		seedNode        petritypes.NodeI
+	)
 
 	if chainConfig.SetSeedNode {
 		if len(c.Nodes) > 0 {
@@ -442,18 +456,12 @@ func (c *Chain) Init(ctx context.Context, opts petritypes.ChainOptions) error {
 		}
 
 		if seedNode != nil {
-			seeds, err = PeerStrings(ctx, []petritypes.NodeI{seedNode}, c.useExternalAddresses)
-			if err != nil {
-				return err
-			}
+			seeds = NewPeerSet([]petritypes.NodeI{seedNode})
 		}
 	}
 
 	if chainConfig.SetPersistentPeers {
-		persistentPeers, err = PeerStrings(ctx, append(c.Nodes, c.Validators...), c.useExternalAddresses)
-		if err != nil {
-			return err
-		}
+		persistentPeers = NewPeerSet(append(c.Nodes, c.Validators...))
 	}
 
 	for i := range c.Validators {
@@ -529,60 +537,6 @@ func (c *Chain) Teardown(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// PeerStrings returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port. If useExternal is true, it uses external addresses
-// (for DigitalOcean), otherwise it uses internal addresses (for Docker).
-func PeerStrings(ctx context.Context, peers []petritypes.NodeI, useExternal bool) (string, error) {
-	if useExternal {
-		return PeerStringsExternal(ctx, peers)
-	}
-	return PeerStringsInternal(ctx, peers)
-}
-
-// PeerStringsInternal returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port using the internal private address of the node (used for Docker networks)
-func PeerStringsInternal(ctx context.Context, peers []petritypes.NodeI) (string, error) {
-	peerStrings := []string{}
-
-	for _, n := range peers {
-		ip, err := n.GetIP(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		nodeId, err := n.NodeId(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		peerStrings = append(peerStrings, fmt.Sprintf("%s@%s:26656", nodeId, ip))
-	}
-
-	return strings.Join(peerStrings, ","), nil
-}
-
-// PeerStringsExternal returns a comma-delimited string with the addresses of chain nodes in
-// the format of nodeid@host:port using the external public address of the node (used for public DigitalOcean networks)
-func PeerStringsExternal(ctx context.Context, peers []petritypes.NodeI) (string, error) {
-	peerStrings := []string{}
-
-	for _, n := range peers {
-		externalAddr, err := n.GetExternalAddress(ctx, "26656")
-		if err != nil {
-			return "", err
-		}
-
-		nodeId, err := n.NodeId(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		peerStrings = append(peerStrings, fmt.Sprintf("%s@%s", nodeId, externalAddr))
-	}
-
-	return strings.Join(peerStrings, ","), nil
 }
 
 // GetGRPCClient returns a gRPC client of the first available node
@@ -1023,8 +977,16 @@ func buildBalances(accounts []Account, funds types.Coins) []Balance {
 	return balances
 }
 
-func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petritypes.ChainConfig, genbz []byte,
-	persistentPeers, seeds string, useExternalAddress bool, logger *zap.Logger) error {
+func configureNode(
+	ctx context.Context,
+	node petritypes.NodeI,
+	chainConfig petritypes.ChainConfig,
+	genbz []byte,
+	persistentPeers PeerSet,
+	seeds PeerSet,
+	useExternalAddress bool,
+	logger *zap.Logger,
+) error {
 	if err := node.OverwriteGenesisFile(ctx, genbz); err != nil {
 		return err
 	}
@@ -1048,15 +1010,81 @@ func configureNode(ctx context.Context, node petritypes.NodeI, chainConfig petri
 		return err
 	}
 
-	logger.Debug("setting persistent peers", zap.String("persistent_peers", persistentPeers))
-	if err := node.SetPersistentPeers(ctx, persistentPeers); err != nil {
+	persistentPeersString, err := persistentPeers.AsCometPeerString(ctx, useExternalAddress)
+	if err != nil {
+		return fmt.Errorf("failed to get comet peer string for persistent peers: %w", err)
+	}
+
+	logger.Debug("setting persistent peers", zap.String("persistent_peers", persistentPeersString))
+	if err := node.SetPersistentPeers(ctx, persistentPeersString); err != nil {
 		return err
 	}
 
-	logger.Debug("setting seeds", zap.String("seeds", seeds))
-	if err := node.SetSeedNode(ctx, seeds); err != nil {
+	seedPeersString, err := seeds.AsCometPeerString(ctx, useExternalAddress)
+	if err != nil {
+		return fmt.Errorf("failed to get comet peer string for seeds: %w", err)
+	}
+
+	logger.Debug("setting seeds", zap.String("seeds", seedPeersString))
+	if err := node.SetSeedNode(ctx, seedPeersString); err != nil {
 		return err
+	}
+
+	useLibP2P, addressBookFile := chainConfig.UseLibP2P()
+	if useLibP2P {
+		logger.Info("Using lib-p2p!", zap.String("address_book_file", addressBookFile))
+		err = writeLibP2PAddressBook(
+			ctx,
+			node,
+			addressBookFile,
+			useExternalAddress,
+			seeds,
+			persistentPeers,
+		)
+
+		if err != nil {
+			return fmt.Errorf("writeLibP2PAddressBook: %w", err)
+		}
 	}
 
 	return nil
+}
+
+// writes libp2p address book to the node's address book file
+func writeLibP2PAddressBook(
+	ctx context.Context,
+	node petritypes.NodeI,
+	addressBookFile string,
+	useExternalAddress bool,
+	peerSets ...PeerSet,
+) error {
+	peers := []any{}
+
+	isDocker := !useExternalAddress
+
+	// combine all the peer sets into list of peers
+	for _, peerSet := range peerSets {
+		if peerSet.Empty() {
+			continue
+		}
+
+		elements, err := peerSet.AsLibP2PAddressBook(ctx, isDocker)
+		if err != nil {
+			return fmt.Errorf("failed to get libp2p address book for peer set: %w", err)
+		}
+
+		peers = append(peers, elements...)
+	}
+
+	// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L12
+	addressBook := map[string]any{
+		"peers": peers,
+	}
+
+	raw, err := toml.Marshal(addressBook)
+	if err != nil {
+		return fmt.Errorf("failed to marshal address book {%+v}: %w", addressBook, err)
+	}
+
+	return node.WriteFile(ctx, addressBookFile, raw)
 }

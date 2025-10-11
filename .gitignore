@@ -7,3 +7,4 @@ build/
 *.db*
 **/.DS_Store
 **/*.pkr.hcl
+vendor/

@@ -2,6 +2,7 @@ package digitalocean
 
 import (
 	"context"
+
 	"github.com/digitalocean/godo"
 )
 
@@ -27,6 +28,13 @@ func (p *Provider) createFirewall(ctx context.Context) (*godo.Firewall, error) {
 			},
 			{
 				Protocol:  "tcp",
+				PortRange: "26656",
+				Sources: &godo.Sources{
+					Addresses: []string{"0.0.0.0/0"},
+				},
+			},
+			{
+				Protocol:  "udp",
 				PortRange: "26656",
 				Sources: &godo.Sources{
 					Addresses: []string{"0.0.0.0/0"},

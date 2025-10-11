@@ -31,24 +31,22 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 		return nil, fmt.Errorf("could not cast digitalocean specific config: %w", err)
 	}
 
-	imageId, err := strconv.ParseInt(doConfig["image_id"], 10, 64)
-
+	imageID, err := strconv.ParseInt(doConfig["image_id"], 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse image ID: %w", err)
 	}
 
-	var userDataCommands []string
-	userDataCommands = append(userDataCommands,
-		p.tailscaleSettings.GetCommand(fmt.Sprintf("%s-%s", p.GetState().PetriTag, definition.Name)))
+	userDataCommands := []string{
+		p.tailscaleSettings.GetCommand(fmt.Sprintf("%s-%s", p.GetState().PetriTag, definition.Name)),
+	}
 
 	if p.telemetrySettings != nil {
-		telemetryCommand, err := p.telemetrySettings.GetCommand(p.GetState().Name, definition.Name)
-
+		telemetryCommands, err := p.telemetrySettings.GetCommand(p.GetState().Name, definition.Name)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format telemetry user data: %w", err)
 		}
 
-		userDataCommands = append(userDataCommands, telemetryCommand...)
+		userDataCommands = append(userDataCommands, telemetryCommands...)
 	}
 
 	state := p.GetState()
@@ -61,7 +59,7 @@ func (p *Provider) CreateDroplet(ctx context.Context, definition provider.TaskDe
 		Size:    doConfig["size"],
 		SSHKeys: []godo.DropletCreateSSHKey{{ID: 50241382}},
 		Image: godo.DropletCreateImage{
-			ID: int(imageId),
+			ID: int(imageID),
 		},
 		Tags:     tags,
 		UserData: formatUserData(userDataCommands),

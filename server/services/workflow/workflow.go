@@ -166,6 +166,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 90*time.Minute)
 	defer cancel()
+
 	workflowRun, err := s.temporalClient.ExecuteWorkflow(ctxWithTimeout, options, testnet.Workflow, workflowReq)
 	if err != nil {
 		s.logger.Error("executing workflow", zap.Error(err))
@@ -189,9 +190,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 		s.logger.Error("creating workflow record", zap.Error(err))
 	}
 
-	return &pb.WorkflowResponse{
-		WorkflowId: workflowID,
-	}, nil
+	return &pb.WorkflowResponse{WorkflowId: workflowID}, nil
 }
 
 func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (*pb.Workflow, error) {

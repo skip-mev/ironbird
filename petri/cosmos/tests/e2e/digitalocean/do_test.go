@@ -84,26 +84,39 @@ func TestDOE2E(t *testing.T) {
 		flag.Parse()
 	}
 
-	var restoredProvider provider.ProviderI
-	providerTornDown := false
+	var (
+		envDOToken              = os.Getenv("DIGITALOCEAN_TOKEN")
+		envTailscaleNodeAuthKey = os.Getenv("TS_NODE_AUTH_KEY")
+		envTailscaleServerOAuth = os.Getenv("TS_SERVER_OAUTH_SECRET")
+	)
 
-	ctx := context.Background()
-	logger, _ := zap.NewDevelopment()
-
-	doToken := os.Getenv("DIGITALOCEAN_TOKEN")
-
-	nodeAuthKey := os.Getenv("TS_NODE_AUTH_KEY")
-	tsServerOauthSecret := os.Getenv("TS_SERVER_OAUTH_SECRET")
-	tailscaleSettings, err := digitalocean.SetupTailscale(ctx, tsServerOauthSecret,
-		nodeAuthKey, "ironbird-tests", []string{"ironbird-e2e"}, []string{"ironbird-e2e"})
-	if err != nil {
-		panic(err)
+	if envDOToken == "" {
+		t.Skip("Skipping DigitalOcean E2E tests because DIGITALOCEAN_TOKEN is not set")
 	}
-	providerName := util.RandomString(5)
 
-	p, err := digitalocean.NewProvider(ctx, providerName, doToken, tailscaleSettings, digitalocean.WithLogger(logger))
+	var (
+		ctx              = context.Background()
+		restoredProvider = provider.ProviderI(nil)
+		providerTornDown = false
+		providerName     = util.RandomString(5)
+
+		logger, _ = zap.NewDevelopment()
+	)
+
+	tailscaleSettings, err := digitalocean.SetupTailscale(
+		ctx,
+		envTailscaleServerOAuth,
+		envTailscaleNodeAuthKey,
+		"ironbird-tests",
+		[]string{"ironbird-e2e"},
+		[]string{"ironbird-e2e"},
+	)
+
+	require.NoError(t, err, "failed to setup Tailscale")
+
+	p, err := digitalocean.NewProvider(ctx, providerName, envDOToken, tailscaleSettings, digitalocean.WithLogger(logger))
 	defer func() {
-		if restoredProvider != nil {
+		if restoredProvider != nil || providerTornDown {
 			return
 		}
 
@@ -121,7 +134,8 @@ func TestDOE2E(t *testing.T) {
 	// Restore provider before creating second half of chains
 	serializedProvider, err := p.SerializeProvider(ctx)
 	require.NoError(t, err)
-	restoredProvider, err = digitalocean.RestoreProvider(ctx, serializedProvider, doToken, tailscaleSettings, digitalocean.WithLogger(logger))
+
+	restoredProvider, err = digitalocean.RestoreProvider(ctx, serializedProvider, envDOToken, tailscaleSettings, digitalocean.WithLogger(logger))
 	require.NoError(t, err)
 	defer func() {
 		if providerTornDown {

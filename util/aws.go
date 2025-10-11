@@ -14,10 +14,16 @@ func FetchDockerRepoToken(ctx context.Context, awsCfg aws.Config) (string, error
 	})
 
 	token, err := ecrClient.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
-	if err != nil {
-		return "", err
-	} else if len(token.AuthorizationData) == 0 {
+
+	switch {
+	case err != nil:
+		return "", fmt.Errorf("failed to get authorization token: %w", err)
+	case len(token.AuthorizationData) == 0:
 		return "", fmt.Errorf("no authorization token found")
+	case token.AuthorizationData[0].AuthorizationToken == nil:
+		return "", fmt.Errorf("no authorization token found")
+	case len(*token.AuthorizationData[0].AuthorizationToken) == 0:
+		return "", fmt.Errorf("empty authorization token found")
 	}
 
 	return *token.AuthorizationData[0].AuthorizationToken, nil

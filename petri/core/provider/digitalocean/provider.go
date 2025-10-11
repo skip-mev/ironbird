@@ -195,6 +195,9 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 	var registryAuth string
 	if provider.IsECRImage(definition.Image.Image) {
 		registryAuth = doConfig["docker_auth"]
+		if registryAuth == "" {
+			return nil, fmt.Errorf("digitalocean: docker_auth is required for ECR images")
+		}
 	}
 	if err != nil {
 		p.logger.Info("image not found, pulling", zap.String("image", definition.Image.Image))
@@ -363,50 +366,63 @@ func (p *Provider) initializeDeserializedTask(task *Task) error {
 }
 
 func (p *Provider) Teardown(ctx context.Context) error {
-	p.logger.Info("tearing down DigitalOcean provider")
+	p.logger.Info("Tearing down DigitalOcean provider")
 
 	if err := p.teardownTasks(ctx); err != nil {
-		return err
+		return fmt.Errorf("failed to teardown tasks: %w", err)
 	}
 
 	if err := p.teardownFirewall(ctx); err != nil {
-		return err
+		return fmt.Errorf("failed to teardown firewall: %w", err)
 	}
 
 	if err := p.teardownTag(ctx); err != nil {
-		return err
+		return fmt.Errorf("failed to teardown tag: %w", err)
 	}
 
 	if err := p.teardownDomains(ctx); err != nil {
-		return err
+		return fmt.Errorf("failed to teardown domains: %w", err)
 	}
+
+	p.logger.Info("DigitalOcean provider teared down")
 
 	return nil
 }
 
 func (p *Provider) teardownTasks(ctx context.Context) error {
-	return p.doClient.DeleteDropletByTag(ctx, p.GetState().PetriTag)
+	tag := p.GetState().PetriTag
+	p.logger.Info("Tearing down droplets by tag", zap.String("tag", tag))
+
+	return p.doClient.DeleteDropletByTag(ctx, tag)
 }
 
 func (p *Provider) teardownFirewall(ctx context.Context) error {
-	_, err := p.doClient.GetFirewall(ctx, p.GetState().FirewallID)
+	firewallID := p.GetState().FirewallID
+	p.logger.Info("Tearing down firewall", zap.String("firewall_id", firewallID))
+
+	_, err := p.doClient.GetFirewall(ctx, firewallID)
 
 	// firewall is already deleted at this point or we have bad state (nothing we can do in this case)
 	if errors.Is(err, ErrorResourceNotFound) {
 		return nil
 	}
 
-	return p.doClient.DeleteFirewall(ctx, p.GetState().FirewallID)
+	return p.doClient.DeleteFirewall(ctx, firewallID)
 }
 
 func (p *Provider) teardownTag(ctx context.Context) error {
-	return p.doClient.DeleteTag(ctx, p.GetState().PetriTag)
+	tag := p.GetState().PetriTag
+	p.logger.Info("Tearing down tag", zap.String("tag", tag))
+
+	return p.doClient.DeleteTag(ctx, tag)
 }
 
 func (p *Provider) teardownDomains(ctx context.Context) error {
 	if p.domain == "" {
 		return nil
 	}
+
+	p.logger.Info("Tearing down domains")
 
 	var multiErr error
 

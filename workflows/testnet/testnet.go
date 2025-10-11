@@ -41,13 +41,17 @@ var (
 )
 
 func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) {
-	workflow.GetLogger(ctx).Info("tearing down provider")
-	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+	logger := workflow.GetLogger(ctx)
+
+	logger.Info("Tearing down provider")
+	req := messages.TeardownProviderRequest{
 		RunnerType:    runnerType,
 		ProviderState: providerState,
-	}).Get(ctx, nil)
+	}
+
+	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, req).Get(ctx, nil)
 	if err != nil {
-		workflow.GetLogger(ctx).Error("failed to teardown provider", zap.Error(err))
+		logger.Error("failed to teardown provider", zap.Error(err))
 	}
 }
 
@@ -83,18 +87,33 @@ func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflow
 
 func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messages.TestnetWorkflowResponse, error) {
 	if err := req.Validate(); err != nil {
-		return "", temporal.NewApplicationErrorWithOptions("invalid workflow options", err.Error(),
-			temporal.ApplicationErrorOptions{NonRetryable: true})
+		errOpts := temporal.ApplicationErrorOptions{
+			Cause:        err,
+			NonRetryable: true,
+		}
+
+		return "", temporal.NewApplicationErrorWithOptions("invalid workflow options", "error_validation", errOpts)
 	}
 
-	runID := workflow.GetInfo(ctx).WorkflowExecution.RunID
-	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
-	runName := fmt.Sprintf("ib-%s", util.RandomString(6))
-	workflow.GetLogger(ctx).Info("run info", zap.String("run_id", runID), zap.String("run_name", runName), zap.Any("req", req))
+	var (
+		workflowInfo = workflow.GetInfo(ctx)
+		logger       = workflow.GetLogger(ctx)
+
+		// todo: this is not deterministic according to Temporal logic - replace.
+		runName = fmt.Sprintf("ib-%s", util.RandomString(6))
+		runID   = workflowInfo.WorkflowExecution.RunID
+	)
+
+	logger.Info(
+		"Workflow info",
+		zap.String("run_id", runID),
+		zap.String("run_name", runName),
+		zap.Any("request", req),
+	)
+
 	ctx = workflow.WithActivityOptions(ctx, defaultWorkflowOptions)
 
-	var buildResult messages.BuildDockerImageResponse
-	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, messages.BuildDockerImageRequest{
+	buildDockerReq := messages.BuildDockerImageRequest{
 		Repo:         req.Repo,
 		SHA:          req.SHA,
 		CosmosSdkSha: req.CosmosSdkSha,
@@ -104,39 +123,85 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 			Image:   req.ChainConfig.Image,
 			Version: req.ChainConfig.Version,
 		},
-	}).Get(ctx, &buildResult)
+	}
+
+	var buildDockerRes messages.BuildDockerImageResponse
+
+	// exec blocking
+	err := workflow.ExecuteActivity(ctx, builderActivities.BuildDockerImage, buildDockerReq).Get(ctx, &buildDockerRes)
 	if err != nil {
 		return "", err
 	}
 
-	if err := startWorkflow(ctx, req, runName, buildResult, workflowID); err != nil {
-		if temporal.IsCanceledError(err) {
-			workflow.GetLogger(ctx).Info("testnet workflow was cancelled, completing gracefully")
-			return "", nil
-		}
-		workflow.GetLogger(ctx).Error("testnet workflow failed", zap.Error(err))
-		return "", err
-	}
+	err = startWorkflow(ctx, req, runName, buildDockerRes)
 
-	return "", nil
+	switch {
+	case temporal.IsCanceledError(err):
+		logger.Info("testnet workflow was cancelled, completing gracefully")
+		return "", nil
+	case err != nil:
+		logger.Error("testnet workflow failed", zap.Error(err))
+		return "", err
+	default:
+		logger.Info("testnet workflow completed successfully")
+		return "", nil
+	}
 }
 
-func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
-	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
-	var providerState, chainState []byte
-	workflow.GetLogger(ctx).Info("launching testnet", zap.Any("req", req))
+type testnetResult struct {
+	ChainState    []byte
+	ProviderState []byte
+	Nodes         []*pb.Node
+	Validators    []*pb.Node
+}
+
+func launchTestnet(
+	ctx workflow.Context,
+	req messages.TestnetWorkflowRequest,
+	runName string,
+	buildResult messages.BuildDockerImageResponse,
+) (*testnetResult, error) {
+	logger := workflow.GetLogger(ctx)
+	logger.Info("launching testnet", zap.Any("req", req))
 
 	var createProviderResp messages.CreateProviderResponse
-	if err := workflow.ExecuteActivity(ctx, testnetActivities.CreateProvider, messages.CreateProviderRequest{
+	createProviderReq := messages.CreateProviderRequest{
 		RunnerType: req.RunnerType,
 		Name:       runName,
-	}).Get(ctx, &createProviderResp); err != nil {
-		return nil, nil, nil, nil, err
 	}
 
-	providerState = createProviderResp.ProviderState
+	err := workflow.
+		ExecuteActivity(ctx, testnetActivities.CreateProvider, createProviderReq).
+		Get(ctx, &createProviderResp)
 
-	var testnetResp messages.LaunchTestnetResponse
+	if err != nil {
+		return nil, err
+	}
+
+	var launchTestnetResp messages.LaunchTestnetResponse
+	launchTestnetReq := messages.LaunchTestnetRequest{
+		Image:         buildResult.FQDNTag,
+		ProviderState: createProviderResp.ProviderState,
+
+		Name:                  req.ChainConfig.Name,
+		Repo:                  req.Repo,
+		SHA:                   req.SHA,
+		IsEvmChain:            req.IsEvmChain,
+		BaseImage:             req.ChainConfig.Image,
+		GenesisModifications:  req.ChainConfig.GenesisModifications,
+		RunnerType:            req.RunnerType,
+		NumOfValidators:       req.ChainConfig.NumOfValidators,
+		NumOfNodes:            req.ChainConfig.NumOfNodes,
+		RegionConfigs:         req.ChainConfig.RegionConfigs,
+		CustomAppConfig:       req.ChainConfig.CustomAppConfig,
+		CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
+		CustomClientConfig:    req.ChainConfig.CustomClientConfig,
+		SetSeedNode:           req.ChainConfig.SetSeedNode,
+		SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+		NumWallets:            req.NumWallets,
+		BaseMnemonic:          req.BaseMnemonic,
+	}
+
 	activityOptions := workflow.ActivityOptions{
 		//HeartbeatTimeout:    time.Hour * 1,
 		StartToCloseTimeout: time.Hour * 24 * 365,
@@ -145,40 +210,29 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		},
 	}
 
-	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
-		messages.LaunchTestnetRequest{
-			Name:                  req.ChainConfig.Name,
-			Repo:                  req.Repo,
-			SHA:                   req.SHA,
-			IsEvmChain:            req.IsEvmChain,
-			Image:                 buildResult.FQDNTag,
-			BaseImage:             req.ChainConfig.Image,
-			GenesisModifications:  req.ChainConfig.GenesisModifications,
-			RunnerType:            req.RunnerType,
-			NumOfValidators:       req.ChainConfig.NumOfValidators,
-			NumOfNodes:            req.ChainConfig.NumOfNodes,
-			RegionConfigs:         req.ChainConfig.RegionConfigs,
-			CustomAppConfig:       req.ChainConfig.CustomAppConfig,
-			CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
-			CustomClientConfig:    req.ChainConfig.CustomClientConfig,
-			SetSeedNode:           req.ChainConfig.SetSeedNode,
-			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
-			ProviderState:         providerState,
-			NumWallets:            req.NumWallets,
-			BaseMnemonic:          req.BaseMnemonic,
-		}).Get(ctx, &testnetResp); err != nil {
-		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
-		if compressErr != nil {
-			workflow.GetLogger(ctx).Error("failed to compress provider state for cleanup", zap.Error(compressErr))
-			return nil, providerState, nil, nil, err
+	err = workflow.ExecuteActivity(
+		workflow.WithActivityOptions(ctx, activityOptions),
+		testnetActivities.LaunchTestnet,
+		launchTestnetReq,
+	).Get(ctx, &launchTestnetResp)
+
+	if err != nil {
+		providerState := launchTestnetReq.ProviderState
+		compressedProviderState, errCompress := ironbirdutil.CompressData(providerState)
+		if errCompress != nil {
+			logger.Error("Failed to compress provider state for cleanup", zap.Error(errCompress))
+			return &testnetResult{ProviderState: providerState}, err
 		}
-		return nil, compressedProviderState, nil, nil, err
+
+		return &testnetResult{ProviderState: compressedProviderState}, err
 	}
 
-	chainState = testnetResp.ChainState
-	providerState = testnetResp.ProviderState
-
-	return chainState, providerState, testnetResp.Nodes, testnetResp.Validators, nil
+	return &testnetResult{
+		ChainState:    launchTestnetResp.ChainState,
+		ProviderState: launchTestnetResp.ProviderState,
+		Nodes:         launchTestnetResp.Nodes,
+		Validators:    launchTestnetResp.Validators,
+	}, nil
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
@@ -278,32 +332,52 @@ func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chai
 	return nil, nil
 }
 
-func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string, buildResult messages.BuildDockerImageResponse, workflowID string) error {
-	var providerState []byte
-	cleanupCtx, _ := workflow.NewDisconnectedContext(ctx)
-	defer func() {
-		if len(providerState) != 0 {
-			teardownProvider(cleanupCtx, req.RunnerType, providerState)
-		}
-	}()
+func startWorkflow(
+	ctx workflow.Context,
+	req messages.TestnetWorkflowRequest,
+	runName string,
+	buildResult messages.BuildDockerImageResponse,
+) error {
+	logger := workflow.GetLogger(ctx)
 
-	chainState, providerState, nodes, validators, err := launchTestnet(ctx, req, runName, buildResult)
+	testnet, err := launchTestnet(ctx, req, runName, buildResult)
+
+	// we might cleanup even if err != nil
+	if testnet != nil && len(testnet.ProviderState) > 0 {
+		cleanupCtx, cancelCleanupCtx := workflow.NewDisconnectedContext(ctx)
+		defer func() {
+			if len(testnet.ProviderState) > 0 {
+				teardownProvider(cleanupCtx, req.RunnerType, testnet.ProviderState)
+			}
+			cancelCleanupCtx()
+		}()
+	}
+
 	if err != nil {
 		return err
 	}
 
 	if req.LaunchLoadBalancer {
-		providerState, err = launchLoadBalancer(ctx, req, providerState, nodes, validators)
+		alteredState, err := launchLoadBalancer(ctx, req, testnet.ProviderState, testnet.Nodes, testnet.Validators)
 		if err != nil {
 			return err
 		}
+
+		testnet.ProviderState = alteredState
 	}
 
 	shutdownSelector := workflow.NewSelector(ctx)
+
 	// 1. load test selector
-	loadTestFuture, err := runLoadTest(ctx, req, chainState, providerState, shutdownSelector)
+	loadTestFuture, err := runLoadTest(
+		ctx,
+		req,
+		testnet.ChainState,
+		testnet.ProviderState,
+		shutdownSelector,
+	)
 	if err != nil {
-		workflow.GetLogger(ctx).Error("load test initiation failed", zap.Error(err))
+		logger.Error("load test initiation failed", zap.Error(err))
 	}
 
 	waitForTestnetCompletion(ctx, req, shutdownSelector)
@@ -313,17 +387,18 @@ func startWorkflow(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 	// If we have a loadtest running and the duration timer expired (not cancelled),
 	// wait for the loadtest to complete before allowing teardown
 	if loadTestFuture != nil && !temporal.IsCanceledError(ctx.Err()) {
-		workflow.GetLogger(ctx).Info("testnet duration expired but loadtest is still running, waiting for completion")
+		logger.Info("testnet duration expired but loadtest is still running, waiting for completion")
 		err = loadTestFuture.Get(ctx, nil) // Wait for loadtest to complete
 		if err != nil {
-			workflow.GetLogger(ctx).Error("failed to wait for load test future", zap.Error(err))
+			logger.Error("failed to wait for load test future", zap.Error(err))
 			return err
 		}
-		workflow.GetLogger(ctx).Info("loadtest completed, proceeding with teardown")
+
+		logger.Info("loadtest completed, proceeding with teardown")
 	}
 
 	if ctx.Err() != nil && temporal.IsCanceledError(ctx.Err()) {
-		workflow.GetLogger(ctx).Info("workflow was cancelled, completing gracefully")
+		logger.Info("workflow was cancelled, completing gracefully")
 		return nil
 	}
 
