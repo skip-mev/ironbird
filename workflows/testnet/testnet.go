@@ -217,7 +217,7 @@ func launchTestnet(
 	).Get(ctx, &launchTestnetResp)
 
 	if err != nil {
-		providerState := launchTestnetResp.ProviderState
+		providerState := launchTestnetReq.ProviderState
 		compressedProviderState, errCompress := ironbirdutil.CompressData(providerState)
 		if errCompress != nil {
 			logger.Error("Failed to compress provider state for cleanup", zap.Error(errCompress))
