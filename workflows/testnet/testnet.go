@@ -41,13 +41,17 @@ var (
 )
 
 func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) {
-	workflow.GetLogger(ctx).Info("tearing down provider")
-	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, messages.TeardownProviderRequest{
+	logger := workflow.GetLogger(ctx)
+
+	logger.Info("Tearing down provider")
+	req := messages.TeardownProviderRequest{
 		RunnerType:    runnerType,
 		ProviderState: providerState,
-	}).Get(ctx, nil)
+	}
+
+	err := workflow.ExecuteActivity(ctx, testnetActivities.TeardownProvider, req).Get(ctx, nil)
 	if err != nil {
-		workflow.GetLogger(ctx).Error("failed to teardown provider", zap.Error(err))
+		logger.Error("failed to teardown provider", zap.Error(err))
 	}
 }
 
@@ -158,45 +162,31 @@ func launchTestnet(
 	buildResult messages.BuildDockerImageResponse,
 ) (*testnetResult, error) {
 	logger := workflow.GetLogger(ctx)
-
 	logger.Info("launching testnet", zap.Any("req", req))
 
-	var (
-		providerState      []byte
-		createProviderResp messages.CreateProviderResponse
-		createProviderReq  = messages.CreateProviderRequest{
-			RunnerType: req.RunnerType,
-			Name:       runName,
-		}
-	)
+	var createProviderResp messages.CreateProviderResponse
+	createProviderReq := messages.CreateProviderRequest{
+		RunnerType: req.RunnerType,
+		Name:       runName,
+	}
 
-	err := workflow.ExecuteActivity(
-		ctx,
-		testnetActivities.CreateProvider,
-		createProviderReq,
-	).Get(ctx, &createProviderResp)
+	err := workflow.
+		ExecuteActivity(ctx, testnetActivities.CreateProvider, createProviderReq).
+		Get(ctx, &createProviderResp)
 
 	if err != nil {
 		return nil, err
 	}
 
-	providerState = createProviderResp.ProviderState
-
-	var testnetResp messages.LaunchTestnetResponse
-	activityOptions := workflow.ActivityOptions{
-		//HeartbeatTimeout:    time.Hour * 1,
-		StartToCloseTimeout: time.Hour * 24 * 365,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 1,
-		},
-	}
-
+	var launchTestnetResp messages.LaunchTestnetResponse
 	launchTestnetReq := messages.LaunchTestnetRequest{
+		Image:         buildResult.FQDNTag,
+		ProviderState: createProviderResp.ProviderState,
+
 		Name:                  req.ChainConfig.Name,
 		Repo:                  req.Repo,
 		SHA:                   req.SHA,
 		IsEvmChain:            req.IsEvmChain,
-		Image:                 buildResult.FQDNTag,
 		BaseImage:             req.ChainConfig.Image,
 		GenesisModifications:  req.ChainConfig.GenesisModifications,
 		RunnerType:            req.RunnerType,
@@ -208,32 +198,40 @@ func launchTestnet(
 		CustomClientConfig:    req.ChainConfig.CustomClientConfig,
 		SetSeedNode:           req.ChainConfig.SetSeedNode,
 		SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
-		ProviderState:         providerState,
 		NumWallets:            req.NumWallets,
 		BaseMnemonic:          req.BaseMnemonic,
+	}
+
+	activityOptions := workflow.ActivityOptions{
+		//HeartbeatTimeout:    time.Hour * 1,
+		StartToCloseTimeout: time.Hour * 24 * 365,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts: 1,
+		},
 	}
 
 	err = workflow.ExecuteActivity(
 		workflow.WithActivityOptions(ctx, activityOptions),
 		testnetActivities.LaunchTestnet,
 		launchTestnetReq,
-	).Get(ctx, &testnetResp)
+	).Get(ctx, &launchTestnetResp)
 
 	if err != nil {
-		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
-		if compressErr != nil {
-			logger.Error("failed to compress provider state for cleanup", zap.Error(compressErr))
+		providerState := launchTestnetResp.ProviderState
+		compressedProviderState, errCompress := ironbirdutil.CompressData(providerState)
+		if errCompress != nil {
+			logger.Error("Failed to compress provider state for cleanup", zap.Error(errCompress))
 			return &testnetResult{ProviderState: providerState}, err
 		}
 
-		return &testnetResult{ChainState: compressedProviderState}, err
+		return &testnetResult{ProviderState: compressedProviderState}, err
 	}
 
 	return &testnetResult{
-		ChainState:    testnetResp.ChainState,
-		ProviderState: testnetResp.ProviderState,
-		Nodes:         testnetResp.Nodes,
-		Validators:    testnetResp.Validators,
+		ChainState:    launchTestnetResp.ChainState,
+		ProviderState: launchTestnetResp.ProviderState,
+		Nodes:         launchTestnetResp.Nodes,
+		Validators:    launchTestnetResp.Validators,
 	}, nil
 }
 
