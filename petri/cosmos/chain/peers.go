@@ -73,7 +73,7 @@ func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, isDocker bool) ([]an
 		// causes issues go-libp2p connection (tailscale's IP are fetched via peerHostExternal)
 		// Thus, we use VMs private IPs.
 		//
-		// TODO: come up with a better solution that doesn't use Tailscale, but supports multiple regions.
+		// TODO: STACK-1615: come up with a better solution that doesn't use Tailscale, but supports multiple regions.
 		resolveHost = peerHostPrivate
 	}
 
