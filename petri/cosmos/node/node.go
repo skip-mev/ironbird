@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto"
 	tmjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/p2p"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
@@ -181,17 +182,35 @@ func (n *Node) Height(ctx context.Context) (uint64, error) {
 
 // NodeId returns the node's p2p ID
 func (n *Node) NodeId(ctx context.Context) (string, error) {
+	nk, err := n.nodeKey(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return string(nk.ID()), nil
+}
+
+func (n *Node) PubKey(ctx context.Context) (crypto.PubKey, error) {
+	nk, err := n.nodeKey(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return nk.PubKey(), nil
+}
+
+func (n *Node) nodeKey(ctx context.Context) (p2p.NodeKey, error) {
 	j, err := n.ReadFile(ctx, "config/node_key.json")
 	if err != nil {
-		return "", fmt.Errorf("getting node_key.json content: %w", err)
+		return p2p.NodeKey{}, fmt.Errorf("getting node_key.json content: %w", err)
 	}
 
 	var nk p2p.NodeKey
 	if err := tmjson.Unmarshal(j, &nk); err != nil {
-		return "", fmt.Errorf("unmarshaling node_key.json: %w", err)
+		return p2p.NodeKey{}, fmt.Errorf("unmarshaling node_key.json: %w", err)
 	}
 
-	return string(nk.ID()), nil
+	return nk, nil
 }
 
 // BinCommand returns a command that can be used to run a binary on the node
