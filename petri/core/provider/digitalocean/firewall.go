@@ -32,6 +32,13 @@ func (p *Provider) createFirewall(ctx context.Context) (*godo.Firewall, error) {
 					Addresses: []string{"0.0.0.0/0"},
 				},
 			},
+			{
+				Protocol:  "udp",
+				PortRange: "26656",
+				Sources: &godo.Sources{
+					Addresses: []string{"0.0.0.0/0"},
+				},
+			},
 		},
 		OutboundRules: []godo.OutboundRule{
 			{

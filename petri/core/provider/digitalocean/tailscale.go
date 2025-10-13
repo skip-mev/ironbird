@@ -117,7 +117,7 @@ func GenerateTailscaleAuthKey(ctx context.Context, oauthSecret string, tags []st
 	if err != nil {
 		return "", err
 	}
-	
+
 	tsClient := &tailscale.Client{
 		APIKey:  "-",
 		HTTP:    credentials.Client(ctx),

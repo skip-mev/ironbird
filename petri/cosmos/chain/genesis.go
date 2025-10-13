@@ -1,9 +1,9 @@
 package chain
 
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/tidwall/sjson"
+	"github.com/tidwall/sjson"
 )
 
 // GenesisKV is used in ModifyGenesis to specify which keys have to be modified
@@ -23,24 +23,24 @@ var _ GenesisModifier = ModifyGenesis(nil)
 
 // NewGenesisKV is a function for creating a GenesisKV object
 func NewGenesisKV(key string, value interface{}) GenesisKV {
-    return GenesisKV{
-        Key:   key,
-        Value: value,
-    }
+	return GenesisKV{
+		Key:   key,
+		Value: value,
+	}
 }
 
 // ModifyGenesis is a function that is a GenesisModifier and takes in GenesisKV
 // to specify which fields of the genesis file should be modified
 func ModifyGenesis(genesisKV []GenesisKV) func([]byte) ([]byte, error) {
-    return func(genbz []byte) ([]byte, error) {
-        out := genbz
-        var err error
-        for idx, kv := range genesisKV {
-            out, err = sjson.SetBytes(out, kv.Key, kv.Value)
-            if err != nil {
-                return nil, fmt.Errorf("failed to set value (index:%d) in genesis json: %v", idx, err)
-            }
-        }
-        return out, nil
-    }
+	return func(genbz []byte) ([]byte, error) {
+		out := genbz
+		var err error
+		for idx, kv := range genesisKV {
+			out, err = sjson.SetBytes(out, kv.Key, kv.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to set value (index:%d) in genesis json: %v", idx, err)
+			}
+		}
+		return out, nil
+	}
 }

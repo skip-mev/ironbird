@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/rpc/client/http"
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/types"
@@ -65,6 +66,10 @@ func (m MockNode) DownloadDir(ctx context.Context, s string, s2 string) error {
 
 func (m MockNode) GetIP(ctx context.Context) (string, error) {
 	return m.IP, nil
+}
+
+func (m MockNode) GetPrivateIP(ctx context.Context) (string, error) {
+	return m.GetIP(ctx)
 }
 
 func (m MockNode) GetExternalAddress(ctx context.Context, s string) (string, error) {
@@ -163,6 +168,11 @@ func (m MockNode) SetupValidator(context.Context, types.WalletConfig, []sdk.Coin
 }
 
 func (m MockNode) NodeId(ctx context.Context) (string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MockNode) PubKey(ctx context.Context) (crypto.PubKey, error) {
 	//TODO implement me
 	panic("implement me")
 }

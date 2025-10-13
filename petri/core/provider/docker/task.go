@@ -131,6 +131,11 @@ func (t *Task) GetIP(ctx context.Context) (string, error) {
 	return ip, nil
 }
 
+// GetPrivateIP returns node's private IP address
+func (t *Task) GetPrivateIP(ctx context.Context) (string, error) {
+	return t.GetIP(ctx)
+}
+
 func (t *Task) WaitForStatus(ctx context.Context, interval time.Duration, desiredStatus provider.TaskStatus) error {
 	for {
 		select {

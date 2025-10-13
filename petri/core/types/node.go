@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/cometbft/cometbft/crypto"
 	rpchttp "github.com/cometbft/cometbft/rpc/client/http"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"google.golang.org/grpc"
@@ -92,6 +93,9 @@ type NodeI interface {
 	// SetSeedMode will configure this node to operate in seed mode
 	SetSeedMode(ctx context.Context) error
 
+	// PubKey returns the public key of the node
+	PubKey(context.Context) (crypto.PubKey, error)
+
 	// NodeId returns the p2p peer ID of the node
 	NodeId(context.Context) (string, error)
 
@@ -99,7 +103,11 @@ type NodeI interface {
 	GetDefinition() provider.TaskDefinition
 
 	// GetIP returns the IP address of the node
+	// todo: STACK-1616: refactor to GetIP(ctx, type=[private, tailscale, public, ...])
 	GetIP(context.Context) (string, error)
+
+	// GetPrivateIP returns node's private IP address
+	GetPrivateIP(context.Context) (string, error)
 
 	// Serialize serializes the node
 	Serialize(context.Context, provider.ProviderI) ([]byte, error)
