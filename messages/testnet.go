@@ -16,10 +16,10 @@ const (
 	TaskQueue               = "TESTNET_TASK_QUEUE"
 )
 
-var (
-	DigitalOceanDefaultOpts = map[string]string{"region": "nyc1", "size": "s-4vcpu-8gb",
-		"image_id": "199449450"}
-)
+var DigitalOceanDefaultOpts = map[string]string{
+	"region": "nyc1", "size": "c-16",
+	"image_id": "199449450",
+}
 
 type RunnerType string
 
