@@ -86,6 +86,14 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
    */
   cometbftSha = "";
 
+  /**
+   * Optional: provider specific configuration. 
+   * Each key overrides the default value for the provider.
+   *
+   * @generated from field: map<string, string> provider_config = 16;
+   */
+  providerConfig: { [key: string]: string } = {};
+
   constructor(data?: PartialMessage<CreateWorkflowRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -108,6 +116,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
     { no: 13, name: "base_mnemonic", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 14, name: "cosmos_sdk_sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 15, name: "cometbft_sha", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "provider_config", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateWorkflowRequest {

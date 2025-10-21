@@ -61,8 +61,9 @@ type LaunchTestnetRequest struct {
 	SetPersistentPeers bool
 	SetSeedNode        bool
 
-	BaseMnemonic string
-	NumWallets   int
+	BaseMnemonic           string
+	NumWallets             int
+	ProviderSpecificConfig map[string]string
 }
 
 type LaunchTestnetResponse struct {
@@ -88,12 +89,13 @@ type TestnetWorkflowRequest struct {
 	EthereumLoadTestSpec *ctlttypes.LoadTestSpec
 	CosmosLoadTestSpec   *ctlttypes.LoadTestSpec
 
-	LongRunningTestnet bool
-	LaunchLoadBalancer bool
-	TestnetDuration    string
-	NumWallets         int
-	BaseMnemonic       string
-	CatalystVersion    string
+	LongRunningTestnet     bool
+	LaunchLoadBalancer     bool
+	TestnetDuration        string
+	NumWallets             int
+	BaseMnemonic           string
+	CatalystVersion        string
+	ProviderSpecificConfig map[string]string
 }
 
 func (r TestnetWorkflowRequest) Validate() error {

@@ -123,6 +123,12 @@ export const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowReque
     grpcRequest.encodedLoadTestSpec = convertLoadTestSpecToYaml(request.LoadTestSpec);
   }
 
+  // Set provider config if available
+  const providerConfig = request.ProviderConfig || (request as any).provider_config;
+  if (providerConfig) {
+    grpcRequest.providerConfig = providerConfig;
+  }
+
   return grpcRequest;
 };
 

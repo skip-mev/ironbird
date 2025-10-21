@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	pb "github.com/skip-mev/ironbird/server/proto"
 
@@ -20,8 +21,6 @@ import (
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/provider/digitalocean"
 	"github.com/skip-mev/ironbird/petri/core/provider/docker"
-
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	petritypes "github.com/skip-mev/ironbird/petri/core/types"
@@ -128,8 +127,8 @@ func (a *Activity) TeardownProvider(ctx context.Context, req messages.TeardownPr
 	}
 
 	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, decompressedProviderState, util.ProviderOptions{
-		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
-
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings,
+	})
 	if err != nil {
 		return messages.TeardownProviderResponse{}, err
 	}
@@ -171,8 +170,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	startTime := time.Now()
 
 	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
-		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
-
+		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings,
+	})
 	if err != nil {
 		return
 	}
@@ -198,6 +197,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 		if dockerAuth != "" {
 			definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
+		}
+		for k, v := range req.ProviderSpecificConfig {
+			definition.ProviderSpecificConfig[k] = v
 		}
 		return definition
 	}
@@ -314,7 +316,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 }
 
 func constructChainConfig(req messages.LaunchTestnetRequest,
-	chains types.Chains) (petritypes.ChainConfig, petritypes.WalletConfig) {
+	chains types.Chains,
+) (petritypes.ChainConfig, petritypes.WalletConfig) {
 	chainImage := chains[req.BaseImage]
 
 	config := petritypes.ChainConfig{

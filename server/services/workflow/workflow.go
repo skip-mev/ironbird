@@ -56,18 +56,19 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 	}
 
 	workflowReq := messages.TestnetWorkflowRequest{
-		Repo:               req.Repo,
-		SHA:                req.Sha,
-		CosmosSdkSha:       req.CosmosSdkSha,
-		CometBFTSha:        req.CometbftSha,
-		IsEvmChain:         req.IsEvmChain,
-		RunnerType:         messages.RunnerType(req.RunnerType),
-		LongRunningTestnet: req.LongRunningTestnet,
-		LaunchLoadBalancer: req.LaunchLoadBalancer,
-		TestnetDuration:    req.TestnetDuration,
-		NumWallets:         int(req.NumWallets),
-		BaseMnemonic:       req.BaseMnemonic,
-		CatalystVersion:    req.CatalystVersion,
+		Repo:                   req.Repo,
+		SHA:                    req.Sha,
+		CosmosSdkSha:           req.CosmosSdkSha,
+		CometBFTSha:            req.CometbftSha,
+		IsEvmChain:             req.IsEvmChain,
+		RunnerType:             messages.RunnerType(req.RunnerType),
+		LongRunningTestnet:     req.LongRunningTestnet,
+		LaunchLoadBalancer:     req.LaunchLoadBalancer,
+		TestnetDuration:        req.TestnetDuration,
+		NumWallets:             int(req.NumWallets),
+		BaseMnemonic:           req.BaseMnemonic,
+		CatalystVersion:        req.CatalystVersion,
+		ProviderSpecificConfig: req.ProviderConfig,
 	}
 
 	if req.ChainConfig != nil {
@@ -314,6 +315,7 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 		BaseMnemonic:       workflow.Config.BaseMnemonic,
 		CatalystVersion:    workflow.Config.CatalystVersion,
 		ChainConfig:        chainConfig,
+		ProviderConfig:     workflow.Config.ProviderSpecificConfig,
 	}
 
 	if workflow.Config.EthereumLoadTestSpec != nil {
@@ -755,16 +757,17 @@ func (s *Service) GetTemplateRunHistory(ctx context.Context, req *pb.GetTemplate
 
 func (s *Service) convertProtoToWorkflowRequest(req *pb.CreateWorkflowRequest) messages.TestnetWorkflowRequest {
 	workflowReq := messages.TestnetWorkflowRequest{
-		Repo:               req.Repo,
-		SHA:                req.Sha,
-		CosmosSdkSha:       req.CosmosSdkSha,
-		CometBFTSha:        req.CometbftSha,
-		IsEvmChain:         req.IsEvmChain,
-		RunnerType:         messages.RunnerType(req.RunnerType),
-		LongRunningTestnet: req.LongRunningTestnet,
-		LaunchLoadBalancer: req.LaunchLoadBalancer,
-		TestnetDuration:    req.TestnetDuration,
-		NumWallets:         int(req.NumWallets),
+		Repo:                   req.Repo,
+		SHA:                    req.Sha,
+		CosmosSdkSha:           req.CosmosSdkSha,
+		CometBFTSha:            req.CometbftSha,
+		IsEvmChain:             req.IsEvmChain,
+		RunnerType:             messages.RunnerType(req.RunnerType),
+		LongRunningTestnet:     req.LongRunningTestnet,
+		LaunchLoadBalancer:     req.LaunchLoadBalancer,
+		TestnetDuration:        req.TestnetDuration,
+		NumWallets:             int(req.NumWallets),
+		ProviderSpecificConfig: req.ProviderConfig,
 	}
 
 	if req.ChainConfig != nil {
@@ -834,6 +837,7 @@ func (s *Service) convertWorkflowRequestToProto(req messages.TestnetWorkflowRequ
 		LaunchLoadBalancer: req.LaunchLoadBalancer,
 		TestnetDuration:    req.TestnetDuration,
 		NumWallets:         int32(req.NumWallets),
+		ProviderConfig:     req.ProviderSpecificConfig,
 	}
 
 	chainConfig := &pb.ChainConfig{

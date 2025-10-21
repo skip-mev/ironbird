@@ -108,7 +108,8 @@ func CreateChain(ctx context.Context, logger *zap.Logger, infraProvider provider
 }
 
 func createRegionalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, infraProvider provider.ProviderI,
-	config petritypes.ChainConfig, opts petritypes.ChainOptions) ([]petritypes.NodeI, []petritypes.NodeI, error) {
+	config petritypes.ChainConfig, opts petritypes.ChainOptions,
+) ([]petritypes.NodeI, []petritypes.NodeI, error) {
 	var eg errgroup.Group
 	validators := make([]petritypes.NodeI, 0)
 	nodes := make([]petritypes.NodeI, 0)
@@ -173,7 +174,8 @@ func createRegionalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, 
 }
 
 func createLocalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, infraProvider provider.ProviderI,
-	config petritypes.ChainConfig, opts petritypes.ChainOptions) ([]petritypes.NodeI, []petritypes.NodeI, error) {
+	config petritypes.ChainConfig, opts petritypes.ChainOptions,
+) ([]petritypes.NodeI, []petritypes.NodeI, error) {
 	var eg errgroup.Group
 	validators := make([]petritypes.NodeI, 0)
 	nodes := make([]petritypes.NodeI, 0)
@@ -232,8 +234,10 @@ func createRegionalNodeOptions(baseOpts petritypes.NodeOptions, region petritype
 			definition.ProviderSpecificConfig = make(map[string]string)
 		}
 		definition.ProviderSpecificConfig["region"] = region.Name
-		definition.ProviderSpecificConfig["size"] = "s-4vcpu-8gb"
 		definition.ProviderSpecificConfig["image_id"] = "199449450"
+		if _, ok := definition.ProviderSpecificConfig["size"]; !ok {
+			definition.ProviderSpecificConfig["size"] = "s-4vcpu-8gb"
+		}
 		return definition
 	}
 
@@ -253,7 +257,8 @@ func createRegionalNodeOptions(baseOpts petritypes.NodeOptions, region petritype
 
 // RestoreChain restores a Chain object from a serialized state
 func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provider.ProviderI, state []byte,
-	nodeRestore petritypes.NodeRestorer, walletConfig petritypes.WalletConfig) (*Chain, error) {
+	nodeRestore petritypes.NodeRestorer, walletConfig petritypes.WalletConfig,
+) (*Chain, error) {
 	var packagedState PackagedState
 
 	if err := json.Unmarshal(state, &packagedState); err != nil {
@@ -273,7 +278,6 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 		eg.Go(func() error {
 			i := i
 			v, err := nodeRestore(ctx, logger, vs, infraProvider)
-
 			if err != nil {
 				return err
 			}
@@ -287,7 +291,6 @@ func RestoreChain(ctx context.Context, logger *zap.Logger, infraProvider provide
 		eg.Go(func() error {
 			i := i
 			v, err := nodeRestore(ctx, logger, ns, infraProvider)
-
 			if err != nil {
 				return err
 			}
@@ -326,7 +329,6 @@ func (c *Chain) Height(ctx context.Context) (uint64, error) {
 	node := c.GetFullNode()
 
 	client, err := node.GetTMClient(ctx)
-
 	if err != nil {
 		return 0, err
 	}
@@ -1031,7 +1033,6 @@ func configureNode(
 			seeds,
 			persistentPeers,
 		)
-
 		if err != nil {
 			return fmt.Errorf("writeLibP2PAddressBook: %w", err)
 		}

@@ -88,6 +88,7 @@ export interface TestnetWorkflowRequest {
   TestnetDuration: string;
   NumWallets: number;
   CatalystVersion?: string;
+  ProviderConfig?: Record<string, string>;
 }
 
 export interface Node {
