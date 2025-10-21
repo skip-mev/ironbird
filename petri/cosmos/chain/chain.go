@@ -107,8 +107,14 @@ func CreateChain(ctx context.Context, logger *zap.Logger, infraProvider provider
 	return &chain, nil
 }
 
-func createRegionalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, infraProvider provider.ProviderI,
-	config petritypes.ChainConfig, opts petritypes.ChainOptions) ([]petritypes.NodeI, []petritypes.NodeI, error) {
+func createRegionalNodes(
+	ctx context.Context,
+	logger *zap.Logger,
+	chain *Chain,
+	infraProvider provider.ProviderI,
+	config petritypes.ChainConfig,
+	opts petritypes.ChainOptions,
+) ([]petritypes.NodeI, []petritypes.NodeI, error) {
 	var eg errgroup.Group
 	validators := make([]petritypes.NodeI, 0)
 	nodes := make([]petritypes.NodeI, 0)
@@ -226,28 +232,51 @@ func createLocalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, inf
 	return validators, nodes, nil
 }
 
-func createRegionalNodeOptions(baseOpts petritypes.NodeOptions, region petritypes.RegionConfig) petritypes.NodeOptions {
-	applyRegionConfig := func(definition provider.TaskDefinition) provider.TaskDefinition {
-		if definition.ProviderSpecificConfig == nil {
-			definition.ProviderSpecificConfig = make(map[string]string)
+// createRegionalNodeOptions ensures that the node definition includes DO region config
+func createRegionalNodeOptions(
+	baseOpts petritypes.NodeOptions,
+	region petritypes.RegionConfig,
+) petritypes.NodeOptions {
+	applyRegionConfig := func(def provider.TaskDefinition) provider.TaskDefinition {
+		if def.ProviderSpecificConfig == nil {
+			def.ProviderSpecificConfig = make(map[string]string)
 		}
-		definition.ProviderSpecificConfig["region"] = region.Name
-		definition.ProviderSpecificConfig["size"] = "s-4vcpu-8gb"
-		definition.ProviderSpecificConfig["image_id"] = "199449450"
-		return definition
+
+		props := map[string]string{
+			"region":   region.Name,
+			"image_id": petritypes.DigitalOceanImageID,
+			"size":     petritypes.DigitalOceanDefaultMachineType,
+		}
+
+		for key, value := range props {
+			// don't override if already set
+			if _, alreadyExists := def.ProviderSpecificConfig[key]; alreadyExists {
+				continue
+			}
+
+			def.ProviderSpecificConfig[key] = value
+		}
+
+		return def
 	}
 
 	if baseOpts.NodeDefinitionModifier == nil {
-		baseOpts.NodeDefinitionModifier = func(definition provider.TaskDefinition, nodeConfig petritypes.NodeConfig) provider.TaskDefinition {
+		wrapper := func(definition provider.TaskDefinition, _ petritypes.NodeConfig) provider.TaskDefinition {
 			return applyRegionConfig(definition)
 		}
-	} else {
-		originalModifier := baseOpts.NodeDefinitionModifier
-		baseOpts.NodeDefinitionModifier = func(definition provider.TaskDefinition, nodeConfig petritypes.NodeConfig) provider.TaskDefinition {
-			definition = originalModifier(definition, nodeConfig)
-			return applyRegionConfig(definition)
-		}
+
+		baseOpts.NodeDefinitionModifier = wrapper
+
+		return baseOpts
 	}
+
+	originalModifier := baseOpts.NodeDefinitionModifier
+
+	baseOpts.NodeDefinitionModifier = func(definition provider.TaskDefinition, nodeConfig petritypes.NodeConfig) provider.TaskDefinition {
+		definition = originalModifier(definition, nodeConfig)
+		return applyRegionConfig(definition)
+	}
+
 	return baseOpts
 }
 

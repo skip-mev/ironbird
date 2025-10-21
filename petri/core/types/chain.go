@@ -26,6 +26,11 @@ const (
 	Docker       = "Docker"
 )
 
+const (
+	DigitalOceanImageID            = "199449450"
+	DigitalOceanDefaultMachineType = "s-4vcpu-8gb"
+)
+
 // GenesisModifier is a function that takes in genesis bytes and returns modified genesis bytes
 type GenesisModifier func([]byte) ([]byte, error)
 
