@@ -124,7 +124,7 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 	}
 
 	p.logger.Info(
-		"creating droplet",
+		"Creating droplet",
 		zap.String("name", definition.Name),
 		zap.Any("config", definition.ProviderSpecificConfig),
 	)
