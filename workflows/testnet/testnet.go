@@ -21,24 +21,24 @@ import (
 	"go.uber.org/zap"
 )
 
-var testnetActivities *testnet.Activity
-var loadTestActivities *loadtest.Activity
-var builderActivities *builder.Activity
-var loadBalancerActivities *loadbalancer.Activity
+var (
+	testnetActivities      *testnet.Activity
+	loadTestActivities     *loadtest.Activity
+	builderActivities      *builder.Activity
+	loadBalancerActivities *loadbalancer.Activity
+)
 
 const (
 	defaultRuntime  = time.Minute * 2
 	loadTestTimeout = time.Hour
 )
 
-var (
-	defaultWorkflowOptions = workflow.ActivityOptions{
-		StartToCloseTimeout: time.Hour * 1,
-		RetryPolicy: &temporal.RetryPolicy{
-			MaximumAttempts: 1,
-		},
-	}
-)
+var defaultWorkflowOptions = workflow.ActivityOptions{
+	StartToCloseTimeout: time.Hour * 1,
+	RetryPolicy: &temporal.RetryPolicy{
+		MaximumAttempts: 1,
+	},
+}
 
 func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, providerState []byte) {
 	workflow.GetLogger(ctx).Info("tearing down provider")
@@ -52,7 +52,8 @@ func teardownProvider(ctx workflow.Context, runnerType messages.RunnerType, prov
 }
 
 func waitForTestnetCompletion(ctx workflow.Context, req messages.TestnetWorkflowRequest,
-	selector workflow.Selector) {
+	selector workflow.Selector,
+) {
 	logger := workflow.GetLogger(ctx)
 	// 2. Long-running testnet does not end
 	if req.LongRunningTestnet {
@@ -122,7 +123,8 @@ func Workflow(ctx workflow.Context, req messages.TestnetWorkflowRequest) (messag
 }
 
 func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, runName string,
-	buildResult messages.BuildDockerImageResponse) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
+	buildResult messages.BuildDockerImageResponse,
+) ([]byte, []byte, []*pb.Node, []*pb.Node, error) {
 	var providerState, chainState []byte
 	workflow.GetLogger(ctx).Info("launching testnet", zap.Any("req", req))
 
@@ -138,7 +140,7 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	var testnetResp messages.LaunchTestnetResponse
 	activityOptions := workflow.ActivityOptions{
-		//HeartbeatTimeout:    time.Hour * 1,
+		// HeartbeatTimeout:    time.Hour * 1,
 		StartToCloseTimeout: time.Hour * 24 * 365,
 		RetryPolicy: &temporal.RetryPolicy{
 			MaximumAttempts: 1,
@@ -147,25 +149,26 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 
 	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
 		messages.LaunchTestnetRequest{
-			Name:                  req.ChainConfig.Name,
-			Repo:                  req.Repo,
-			SHA:                   req.SHA,
-			IsEvmChain:            req.IsEvmChain,
-			Image:                 buildResult.FQDNTag,
-			BaseImage:             req.ChainConfig.Image,
-			GenesisModifications:  req.ChainConfig.GenesisModifications,
-			RunnerType:            req.RunnerType,
-			NumOfValidators:       req.ChainConfig.NumOfValidators,
-			NumOfNodes:            req.ChainConfig.NumOfNodes,
-			RegionConfigs:         req.ChainConfig.RegionConfigs,
-			CustomAppConfig:       req.ChainConfig.CustomAppConfig,
-			CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
-			CustomClientConfig:    req.ChainConfig.CustomClientConfig,
-			SetSeedNode:           req.ChainConfig.SetSeedNode,
-			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
-			ProviderState:         providerState,
-			NumWallets:            req.NumWallets,
-			BaseMnemonic:          req.BaseMnemonic,
+			Name:                   req.ChainConfig.Name,
+			Repo:                   req.Repo,
+			SHA:                    req.SHA,
+			IsEvmChain:             req.IsEvmChain,
+			Image:                  buildResult.FQDNTag,
+			BaseImage:              req.ChainConfig.Image,
+			GenesisModifications:   req.ChainConfig.GenesisModifications,
+			RunnerType:             req.RunnerType,
+			NumOfValidators:        req.ChainConfig.NumOfValidators,
+			NumOfNodes:             req.ChainConfig.NumOfNodes,
+			RegionConfigs:          req.ChainConfig.RegionConfigs,
+			CustomAppConfig:        req.ChainConfig.CustomAppConfig,
+			CustomConsensusConfig:  req.ChainConfig.CustomConsensusConfig,
+			CustomClientConfig:     req.ChainConfig.CustomClientConfig,
+			SetSeedNode:            req.ChainConfig.SetSeedNode,
+			SetPersistentPeers:     req.ChainConfig.SetPersistentPeers,
+			ProviderState:          providerState,
+			NumWallets:             req.NumWallets,
+			BaseMnemonic:           req.BaseMnemonic,
+			ProviderSpecificConfig: req.ProviderSpecificConfig,
 		}).Get(ctx, &testnetResp); err != nil {
 		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
 		if compressErr != nil {
@@ -182,7 +185,8 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 }
 
 func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowRequest, providerState []byte,
-	nodes []*pb.Node, validators []*pb.Node) ([]byte, error) {
+	nodes []*pb.Node, validators []*pb.Node,
+) ([]byte, error) {
 	logger := workflow.GetLogger(ctx)
 	workflowID := workflow.GetInfo(ctx).WorkflowExecution.ID
 
@@ -218,7 +222,8 @@ func launchLoadBalancer(ctx workflow.Context, req messages.TestnetWorkflowReques
 }
 
 func runLoadTest(ctx workflow.Context, req messages.TestnetWorkflowRequest, chainState, providerState []byte,
-	selector workflow.Selector) (workflow.Future, error) {
+	selector workflow.Selector,
+) (workflow.Future, error) {
 	if req.EthereumLoadTestSpec != nil {
 		var loadTestResp messages.RunLoadTestResponse
 		f := workflow.ExecuteActivity(

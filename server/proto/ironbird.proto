@@ -46,6 +46,9 @@ message CreateWorkflowRequest {
     string cosmos_sdk_sha = 14;
     // Optional: cometbft version/SHA for EVM builds with replacements
     string cometbft_sha = 15;
+    // Optional: provider specific configuration.
+    // Each key overrides the default value for the provider.
+    map<string, string> provider_config = 16;
 }
 
 message GenesisKV {

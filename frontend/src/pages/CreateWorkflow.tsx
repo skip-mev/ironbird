@@ -1050,6 +1050,7 @@ const CreateWorkflow = () => {
       TestnetDuration: raw.testnet_duration || raw.TestnetDuration || '',
       NumWallets: raw.num_wallets || raw.NumWallets || 2500,
       CatalystVersion: raw.catalyst_version || raw.CatalystVersion || '',
+      ProviderConfig: raw.provider_config || raw.ProviderConfig || {},
     };
   };
 
