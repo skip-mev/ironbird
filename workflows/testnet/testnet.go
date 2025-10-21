@@ -145,28 +145,38 @@ func launchTestnet(ctx workflow.Context, req messages.TestnetWorkflowRequest, ru
 		},
 	}
 
-	if err := workflow.ExecuteActivity(workflow.WithActivityOptions(ctx, activityOptions), testnetActivities.LaunchTestnet,
-		messages.LaunchTestnetRequest{
-			Name:                  req.ChainConfig.Name,
-			Repo:                  req.Repo,
-			SHA:                   req.SHA,
-			IsEvmChain:            req.IsEvmChain,
-			Image:                 buildResult.FQDNTag,
-			BaseImage:             req.ChainConfig.Image,
-			GenesisModifications:  req.ChainConfig.GenesisModifications,
-			RunnerType:            req.RunnerType,
-			NumOfValidators:       req.ChainConfig.NumOfValidators,
-			NumOfNodes:            req.ChainConfig.NumOfNodes,
-			RegionConfigs:         req.ChainConfig.RegionConfigs,
-			CustomAppConfig:       req.ChainConfig.CustomAppConfig,
-			CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
-			CustomClientConfig:    req.ChainConfig.CustomClientConfig,
-			SetSeedNode:           req.ChainConfig.SetSeedNode,
-			SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
-			ProviderState:         providerState,
-			NumWallets:            req.NumWallets,
-			BaseMnemonic:          req.BaseMnemonic,
-		}).Get(ctx, &testnetResp); err != nil {
+	launchTestnetReq := messages.LaunchTestnetRequest{
+		Name:                  req.ChainConfig.Name,
+		Repo:                  req.Repo,
+		SHA:                   req.SHA,
+		IsEvmChain:            req.IsEvmChain,
+		Image:                 buildResult.FQDNTag,
+		BaseImage:             req.ChainConfig.Image,
+		GenesisModifications:  req.ChainConfig.GenesisModifications,
+		RunnerType:            req.RunnerType,
+		NumOfValidators:       req.ChainConfig.NumOfValidators,
+		NumOfNodes:            req.ChainConfig.NumOfNodes,
+		RegionConfigs:         req.ChainConfig.RegionConfigs,
+		CustomAppConfig:       req.ChainConfig.CustomAppConfig,
+		CustomConsensusConfig: req.ChainConfig.CustomConsensusConfig,
+		CustomClientConfig:    req.ChainConfig.CustomClientConfig,
+		CustomProviderConfig:  req.ChainConfig.CustomProviderConfig,
+		SetSeedNode:           req.ChainConfig.SetSeedNode,
+		SetPersistentPeers:    req.ChainConfig.SetPersistentPeers,
+		ProviderState:         providerState,
+		NumWallets:            req.NumWallets,
+		BaseMnemonic:          req.BaseMnemonic,
+	}
+
+	err := workflow.
+		ExecuteActivity(
+			workflow.WithActivityOptions(ctx, activityOptions),
+			testnetActivities.LaunchTestnet,
+			launchTestnetReq,
+		).
+		Get(ctx, &testnetResp)
+
+	if err != nil {
 		compressedProviderState, compressErr := ironbirdutil.CompressData(providerState)
 		if compressErr != nil {
 			workflow.GetLogger(ctx).Error("failed to compress provider state for cleanup", zap.Error(compressErr))

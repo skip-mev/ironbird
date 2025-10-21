@@ -82,6 +82,7 @@ func (s *Service) CreateWorkflow(ctx context.Context, req *pb.CreateWorkflowRequ
 			CustomAppConfig:       s.parseJSONConfig(req.ChainConfig.CustomAppConfig, "custom_app_config"),
 			CustomConsensusConfig: s.parseJSONConfig(req.ChainConfig.CustomConsensusConfig, "custom_consensus_config"),
 			CustomClientConfig:    s.parseJSONConfig(req.ChainConfig.CustomClientConfig, "custom_client_config"),
+			CustomProviderConfig:  s.parseJSONConfig(req.ChainConfig.CustomProviderConfig, "custom_provider_config"),
 		}
 
 		if req.ChainConfig.RegionConfigs != nil {

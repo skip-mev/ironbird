@@ -106,6 +106,7 @@ type ChainsConfig struct {
 	CustomAppConfig       map[string]interface{}    `yaml:"custom_app_config"`
 	CustomConsensusConfig map[string]interface{}    `yaml:"custom_consensus_config"`
 	CustomClientConfig    map[string]interface{}    `yaml:"custom_client_config"`
+	CustomProviderConfig  map[string]interface{}    `yaml:"custom_provider_config"`
 	SetSeedNode           bool                      `yaml:"set_seed_node"`
 	SetPersistentPeers    bool                      `yaml:"set_persistent_peers"`
 }

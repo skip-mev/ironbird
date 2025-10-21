@@ -170,11 +170,20 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
 	startTime := time.Now()
 
-	p, err := util.RestoreProvider(ctx, logger, req.RunnerType, req.ProviderState, util.ProviderOptions{
-		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings})
+	p, err := util.RestoreProvider(
+		ctx,
+		logger,
+		req.RunnerType,
+		req.ProviderState,
+		util.ProviderOptions{
+			DOToken:           a.DOToken,
+			TailscaleSettings: a.TailscaleSettings,
+			TelemetrySettings: a.TelemetrySettings,
+		},
+	)
 
 	if err != nil {
-		return
+		return messages.LaunchTestnetResponse{}, fmt.Errorf("failed to restore provider: %w", err)
 	}
 
 	nodeOptions := petritypes.NodeOptions{}
@@ -192,20 +201,41 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
-	nodeOptions.NodeDefinitionModifier = func(definition provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
-		if definition.ProviderSpecificConfig == nil {
-			definition.ProviderSpecificConfig = make(map[string]string)
+	nodeOptions.NodeDefinitionModifier = func(def provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
+		if len(def.ProviderSpecificConfig) == 0 {
+			def.ProviderSpecificConfig = make(map[string]string)
 		}
+
 		if dockerAuth != "" {
-			definition.ProviderSpecificConfig["docker_auth"] = dockerAuth
+			def.ProviderSpecificConfig["docker_auth"] = dockerAuth
 		}
-		return definition
+
+		for key := range req.CustomProviderConfig {
+			// override only if key is not already set
+			if _, alreadySet := def.ProviderSpecificConfig[key]; alreadySet {
+				continue
+			}
+
+			// allow strings only
+			strVal, ok := req.CustomProviderConfig[key].(string)
+			if !ok {
+				continue
+			}
+
+			def.ProviderSpecificConfig[key] = strVal
+		}
+
+		return def
 	}
 
 	chainConfig, walletConfig := constructChainConfig(req, a.Chains)
 	logger.Info("creating chain", zap.Any("chain_config", chainConfig))
+
 	chain, chainErr := petrichain.CreateChain(
-		ctx, logger, p, chainConfig,
+		ctx,
+		logger,
+		p,
+		chainConfig,
 		petritypes.ChainOptions{
 			NodeCreator:  node.CreateNode,
 			NodeOptions:  nodeOptions,
