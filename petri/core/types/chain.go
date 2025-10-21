@@ -27,7 +27,9 @@ const (
 )
 
 const (
-	DigitalOceanImageID            = "199449450"
+	DigitalOceanImageID = "199449450"
+
+	// DigitalOceanDefaultMachineType @see https://slugs.do-api.dev
 	DigitalOceanDefaultMachineType = "s-4vcpu-8gb"
 )
 

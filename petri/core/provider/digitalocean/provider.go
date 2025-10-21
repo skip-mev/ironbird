@@ -123,7 +123,11 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 		return nil, fmt.Errorf("could not cast digitalocean specific config: %w", err)
 	}
 
-	p.logger.Info("creating droplet", zap.String("name", definition.Name))
+	p.logger.Info(
+		"creating droplet",
+		zap.String("name", definition.Name),
+		zap.Any("config", definition.ProviderSpecificConfig),
+	)
 
 	droplet, err := p.CreateDroplet(ctx, definition)
 	if err != nil {

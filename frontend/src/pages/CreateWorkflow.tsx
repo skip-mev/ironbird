@@ -995,6 +995,7 @@ const CreateWorkflow = () => {
         AppConfig: parseJsonConfig(raw.chain_config?.custom_app_config) || raw.ChainConfig?.AppConfig,
         ConsensusConfig: parseJsonConfig(raw.chain_config?.custom_consensus_config) || raw.ChainConfig?.ConsensusConfig,
         ClientConfig: parseJsonConfig(raw.chain_config?.custom_client_config) || raw.ChainConfig?.ClientConfig,
+        ProviderConfig: parseJsonConfig(raw.chain_config?.custom_provider_config) || raw.ChainConfig?.ProviderConfig,
         SetSeedNode: raw.chain_config?.set_seed_node ?? raw.ChainConfig?.SetSeedNode ?? false,
         SetPersistentPeers: raw.chain_config?.set_persistent_peers ?? raw.ChainConfig?.SetPersistentPeers ?? false,
       },

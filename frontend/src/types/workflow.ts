@@ -17,9 +17,10 @@ export interface ChainConfig {
   NumOfValidators?: number;
   GenesisModifications: GenesisModification[];
   RegionConfigs?: RegionConfig[];
-  AppConfig?: Record<string, any>;       
-  ConsensusConfig?: Record<string, any>; 
+  AppConfig?: Record<string, any>;
+  ConsensusConfig?: Record<string, any>;
   ClientConfig?: Record<string, any>;
+  ProviderConfig?: Record<string, any>;
   SetSeedNode?: boolean;
   SetPersistentPeers?: boolean;
 }

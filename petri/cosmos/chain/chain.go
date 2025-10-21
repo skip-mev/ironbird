@@ -233,10 +233,7 @@ func createLocalNodes(ctx context.Context, logger *zap.Logger, chain *Chain, inf
 }
 
 // createRegionalNodeOptions ensures that the node definition includes DO region config
-func createRegionalNodeOptions(
-	baseOpts petritypes.NodeOptions,
-	region petritypes.RegionConfig,
-) petritypes.NodeOptions {
+func createRegionalNodeOptions(baseOpts petritypes.NodeOptions, region petritypes.RegionConfig) petritypes.NodeOptions {
 	applyRegionConfig := func(def provider.TaskDefinition) provider.TaskDefinition {
 		if def.ProviderSpecificConfig == nil {
 			def.ProviderSpecificConfig = make(map[string]string)
@@ -261,8 +258,8 @@ func createRegionalNodeOptions(
 	}
 
 	if baseOpts.NodeDefinitionModifier == nil {
-		wrapper := func(definition provider.TaskDefinition, _ petritypes.NodeConfig) provider.TaskDefinition {
-			return applyRegionConfig(definition)
+		wrapper := func(def provider.TaskDefinition, _ petritypes.NodeConfig) provider.TaskDefinition {
+			return applyRegionConfig(def)
 		}
 
 		baseOpts.NodeDefinitionModifier = wrapper
@@ -272,9 +269,9 @@ func createRegionalNodeOptions(
 
 	originalModifier := baseOpts.NodeDefinitionModifier
 
-	baseOpts.NodeDefinitionModifier = func(definition provider.TaskDefinition, nodeConfig petritypes.NodeConfig) provider.TaskDefinition {
-		definition = originalModifier(definition, nodeConfig)
-		return applyRegionConfig(definition)
+	baseOpts.NodeDefinitionModifier = func(def provider.TaskDefinition, nodeConfig petritypes.NodeConfig) provider.TaskDefinition {
+		def = originalModifier(def, nodeConfig)
+		return applyRegionConfig(def)
 	}
 
 	return baseOpts

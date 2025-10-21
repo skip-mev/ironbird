@@ -63,7 +63,8 @@ export const convertToGrpcCreateWorkflowRequest = (request: TestnetWorkflowReque
     setPersistentPeers: chainConfigData.SetPersistentPeers || chainConfigData.set_persistent_peers || false,
     customAppConfig: chainConfigData.AppConfig ? JSON.stringify(chainConfigData.AppConfig) : (chainConfigData.custom_app_config || ""),
     customConsensusConfig: chainConfigData.ConsensusConfig ? JSON.stringify(chainConfigData.ConsensusConfig) : (chainConfigData.custom_consensus_config || ""),
-    customClientConfig: chainConfigData.ClientConfig ? JSON.stringify(chainConfigData.ClientConfig) : (chainConfigData.custom_client_config || "")
+    customClientConfig: chainConfigData.ClientConfig ? JSON.stringify(chainConfigData.ClientConfig) : (chainConfigData.custom_client_config || ""),
+    customProviderConfig: chainConfigData.ProviderConfig ? JSON.stringify(chainConfigData.ProviderConfig) : (chainConfigData.custom_provider_config || "")
   });
 
   // Add genesis modifications if available

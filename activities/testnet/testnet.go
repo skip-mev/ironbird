@@ -201,6 +201,8 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		}
 	}
 
+	logger.Info("Custom provider config", zap.Any("customProviderConfig", req.CustomProviderConfig))
+
 	nodeOptions.NodeDefinitionModifier = func(def provider.TaskDefinition, config petritypes.NodeConfig) provider.TaskDefinition {
 		if len(def.ProviderSpecificConfig) == 0 {
 			def.ProviderSpecificConfig = make(map[string]string)
@@ -210,14 +212,9 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 			def.ProviderSpecificConfig["docker_auth"] = dockerAuth
 		}
 
-		for key := range req.CustomProviderConfig {
-			// override only if key is not already set
-			if _, alreadySet := def.ProviderSpecificConfig[key]; alreadySet {
-				continue
-			}
-
+		for key, value := range req.CustomProviderConfig {
 			// allow strings only
-			strVal, ok := req.CustomProviderConfig[key].(string)
+			strVal, ok := value.(string)
 			if !ok {
 				continue
 			}
