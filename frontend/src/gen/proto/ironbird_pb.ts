@@ -264,6 +264,11 @@ export class ChainConfig extends Message<ChainConfig> {
   customClientConfig = "";
 
   /**
+   * @generated from field: string custom_provider_config = 13;
+   */
+  customProviderConfig = "";
+
+  /**
    * @generated from field: bool set_seed_node = 9;
    */
   setSeedNode = false;
@@ -299,6 +304,7 @@ export class ChainConfig extends Message<ChainConfig> {
     { no: 6, name: "custom_app_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "custom_consensus_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 8, name: "custom_client_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "custom_provider_config", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "set_seed_node", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 10, name: "set_persistent_peers", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 11, name: "region_configs", kind: "message", T: RegionConfig, repeated: true },
