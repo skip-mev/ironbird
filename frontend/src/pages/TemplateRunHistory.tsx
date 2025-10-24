@@ -169,7 +169,7 @@ const TemplateRunHistory = () => {
               <StatGroup>
                 <Stat>
                   <StatLabel>Total Runs</StatLabel>
-                  <StatNumber>{data.count}</StatNumber>
+                  <StatNumber>{data.returnedCount}</StatNumber>
                 </Stat>
                 <Stat>
                   <StatLabel>Successful</StatLabel>

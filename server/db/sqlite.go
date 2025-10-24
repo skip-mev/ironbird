@@ -14,6 +14,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/mattn/go-sqlite3"
+	"go.temporal.io/api/enums/v1"
 	"go.uber.org/zap"
 )
 
@@ -22,6 +23,7 @@ type DB interface {
 	GetWorkflow(workflowID string) (*Workflow, error)
 	UpdateWorkflow(workflowID string, update WorkflowUpdate) error
 	ListWorkflows(limit, offset int) ([]Workflow, error)
+	CountWorkflows() (int, error)
 	DeleteWorkflow(workflowID string) error
 
 	CreateWorkflowTemplate(template *WorkflowTemplate) error
@@ -334,14 +336,17 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Show all workflows, sorted by status (running first) then by created_at
 	query := `
 		SELECT id, workflow_id, nodes, validators, loadbalancers, wallets, monitoring_links, status, config, 
 		    load_test_spec, provider, template_id, run_name, created_at, updated_at
 		FROM workflows
-		ORDER BY created_at DESC
+		ORDER BY 
+			CASE WHEN status = ? THEN 0 ELSE 1 END,
+			created_at DESC 
 		LIMIT ? OFFSET ?`
 
-	rows, err := s.db.QueryContext(ctx, query, limit, offset)
+	rows, err := s.db.QueryContext(ctx, query, int32(enums.WORKFLOW_EXECUTION_STATUS_RUNNING), limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workflows: %w", err)
 	}
@@ -417,6 +422,21 @@ func (s *SQLiteDB) ListWorkflows(limit, offset int) ([]Workflow, error) {
 	}
 
 	return workflows, nil
+}
+
+func (s *SQLiteDB) CountWorkflows() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT COUNT(*) FROM workflows`
+	
+	var count int
+	err := s.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count workflows: %w", err)
+	}
+
+	return count, nil
 }
 
 func (s *SQLiteDB) DeleteWorkflow(workflowID string) error {

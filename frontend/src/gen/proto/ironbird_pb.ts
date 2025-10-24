@@ -87,7 +87,7 @@ export class CreateWorkflowRequest extends Message<CreateWorkflowRequest> {
   cometbftSha = "";
 
   /**
-   * Optional: provider specific configuration. 
+   * Optional: provider specific configuration.
    * Each key overrides the default value for the provider.
    *
    * @generated from field: map<string, string> provider_config = 16;
@@ -964,9 +964,14 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
   workflows: WorkflowSummary[] = [];
 
   /**
-   * @generated from field: int32 count = 2;
+   * @generated from field: int32 returned_count = 2;
    */
-  count = 0;
+  returnedCount = 0;
+
+  /**
+   * @generated from field: int32 total = 3;
+   */
+  total = 0;
 
   constructor(data?: PartialMessage<WorkflowListResponse>) {
     super();
@@ -977,7 +982,8 @@ export class WorkflowListResponse extends Message<WorkflowListResponse> {
   static readonly typeName = "skip.ironbird.WorkflowListResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "workflows", kind: "message", T: WorkflowSummary, repeated: true },
-    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "returned_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowListResponse {
@@ -1375,9 +1381,9 @@ export class WorkflowTemplateListResponse extends Message<WorkflowTemplateListRe
   templates: WorkflowTemplateSummary[] = [];
 
   /**
-   * @generated from field: int32 count = 2;
+   * @generated from field: int32 returned_count = 2;
    */
-  count = 0;
+  returnedCount = 0;
 
   constructor(data?: PartialMessage<WorkflowTemplateListResponse>) {
     super();
@@ -1388,7 +1394,7 @@ export class WorkflowTemplateListResponse extends Message<WorkflowTemplateListRe
   static readonly typeName = "skip.ironbird.WorkflowTemplateListResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "templates", kind: "message", T: WorkflowTemplateSummary, repeated: true },
-    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "returned_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): WorkflowTemplateListResponse {
@@ -1607,9 +1613,9 @@ export class TemplateRunHistoryResponse extends Message<TemplateRunHistoryRespon
   runs: TemplateRun[] = [];
 
   /**
-   * @generated from field: int32 count = 2;
+   * @generated from field: int32 returned_count = 2;
    */
-  count = 0;
+  returnedCount = 0;
 
   constructor(data?: PartialMessage<TemplateRunHistoryResponse>) {
     super();
@@ -1620,7 +1626,7 @@ export class TemplateRunHistoryResponse extends Message<TemplateRunHistoryRespon
   static readonly typeName = "skip.ironbird.TemplateRunHistoryResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "runs", kind: "message", T: TemplateRun, repeated: true },
-    { no: 2, name: "count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "returned_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): TemplateRunHistoryResponse {

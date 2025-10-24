@@ -334,9 +334,20 @@ func (s *Service) GetWorkflow(ctx context.Context, req *pb.GetWorkflowRequest) (
 }
 
 func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsRequest) (*pb.WorkflowListResponse, error) {
-	s.logger.Info("ListWorkflows request received", zap.Int32("limit", req.Limit), zap.Int32("offset", req.Offset))
+	s.logger.Info("ListWorkflows request received",
+		zap.Int32("limit", req.Limit),
+		zap.Int32("offset", req.Offset))
 
-	workflows, err := s.db.ListWorkflows(int(req.Limit), int(req.Offset))
+	limit := int(req.Limit)
+	offset := int(req.Offset)
+
+	totalCount, err := s.db.CountWorkflows()
+	if err != nil {
+		s.logger.Error("failed to count workflows", zap.Error(err))
+		return nil, fmt.Errorf("failed to count workflows: %w", err)
+	}
+
+	workflows, err := s.db.ListWorkflows(limit, offset)
 	if err != nil {
 		s.logger.Error("failed to list workflows", zap.Error(err))
 		return nil, fmt.Errorf("failed to list workflows: %w", err)
@@ -344,12 +355,14 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 
 	s.logger.Info("Retrieved workflows from database",
 		zap.Int("count", len(workflows)),
-		zap.Int("requested_limit", int(req.Limit)),
-		zap.Int("requested_offset", int(req.Offset)),
+		zap.Int("total_count", totalCount),
+		zap.Int("requested_limit", limit),
+		zap.Int("requested_offset", offset),
 	)
 
 	response := &pb.WorkflowListResponse{
-		Count: int32(len(workflows)),
+		ReturnedCount: int32(len(workflows)),
+		Total:         int32(totalCount),
 	}
 
 	for _, workflow := range workflows {
@@ -368,7 +381,9 @@ func (s *Service) ListWorkflows(ctx context.Context, req *pb.ListWorkflowsReques
 		})
 	}
 
-	s.logger.Info("Returning ListWorkflows response", zap.Int32("totalCount", response.Count))
+	s.logger.Info("Returning ListWorkflows response",
+		zap.Int32("returnedCount", response.ReturnedCount),
+		zap.Int32("total", response.Total))
 
 	return response, nil
 }
@@ -647,8 +662,8 @@ func (s *Service) ListWorkflowTemplates(ctx context.Context, req *pb.ListWorkflo
 	}
 
 	return &pb.WorkflowTemplateListResponse{
-		Templates: protoTemplates,
-		Count:     int32(len(protoTemplates)),
+		Templates:     protoTemplates,
+		ReturnedCount: int32(len(protoTemplates)),
 	}, nil
 }
 
@@ -750,8 +765,8 @@ func (s *Service) GetTemplateRunHistory(ctx context.Context, req *pb.GetTemplate
 	}
 
 	return &pb.TemplateRunHistoryResponse{
-		Runs:  protoRuns,
-		Count: int32(len(protoRuns)),
+		Runs:          protoRuns,
+		ReturnedCount: int32(len(protoRuns)),
 	}, nil
 }
 

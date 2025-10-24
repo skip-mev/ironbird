@@ -160,7 +160,8 @@ message UpdateWorkflowDataRequest {
 
 message WorkflowListResponse {
     repeated WorkflowSummary workflows = 1;
-    int32 count = 2;
+    int32 returned_count = 2;
+    int32 total = 3;
 }
 
 message WorkflowTemplate {
@@ -209,7 +210,7 @@ message WorkflowTemplateSummary {
 
 message WorkflowTemplateListResponse {
     repeated WorkflowTemplateSummary templates = 1;
-    int32 count = 2;
+    int32 returned_count = 2;
 }
 
 message ExecuteWorkflowTemplateRequest {
@@ -239,5 +240,5 @@ message GetTemplateRunHistoryRequest {
 
 message TemplateRunHistoryResponse {
     repeated TemplateRun runs = 1;
-    int32 count = 2;
+    int32 returned_count = 2;
 }

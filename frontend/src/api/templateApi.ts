@@ -106,7 +106,7 @@ export const templateApi = {
     return convertFromProtoTemplate(response);
   },
 
-  listTemplates: async (limit?: number, offset?: number): Promise<{templates: WorkflowTemplateSummary[], count: number}> => {
+  listTemplates: async (limit?: number, offset?: number): Promise<{templates: WorkflowTemplateSummary[], returnedCount: number}> => {
     const response = await grpcWorkflowApi.listWorkflowTemplates(limit, offset);
     
     const templates: WorkflowTemplateSummary[] = (response.templates || []).map((template: any) => ({
@@ -118,7 +118,7 @@ export const templateApi = {
 
     return {
       templates,
-      count: response.count || 0,
+      returnedCount: response.returnedCount || 0,
     };
   },
 
@@ -160,7 +160,7 @@ export const templateApi = {
 
     return {
       runs,
-      count: response.count || 0,
+      returnedCount: response.returnedCount || 0,
     };
   },
 };

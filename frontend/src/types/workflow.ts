@@ -176,5 +176,5 @@ export interface TemplateRun {
 
 export interface TemplateRunHistoryResponse {
   runs: TemplateRun[];
-  count: number;
+  returnedCount: number;
 }

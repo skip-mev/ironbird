@@ -206,7 +206,7 @@ const TemplateList = () => {
       ) : (
         <Box>
           <Text mb={4} color="textSecondary">
-            Found {data.count} template{data.count !== 1 ? 's' : ''}
+            Found {data.returnedCount} template{data.returnedCount !== 1 ? 's' : ''}
           </Text>
           
           <TableContainer 

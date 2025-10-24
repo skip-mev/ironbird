@@ -20,24 +20,25 @@ import {
   TableContainer,
   HStack,
   IconButton,
-  Tooltip, Checkbox,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useQuery } from '@tanstack/react-query';
 import { workflowApi } from '../api/workflowApi';
-import { ViewIcon, RepeatIcon } from '@chakra-ui/icons';
-import {useState} from "react";
+import { ViewIcon, RepeatIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
+import { useState } from "react";
 
 const WorkflowList = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 50;
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['workflows'],
-    queryFn: workflowApi.listWorkflows,
+    queryKey: ['workflows', currentPage],
+    queryFn: () => workflowApi.listWorkflows(pageSize, (currentPage - 1) * pageSize),
     refetchInterval: 10000, // Refetch every 10 seconds
   });
-
-  const [showNonRunning, setShowNonRunning] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -142,10 +143,8 @@ const WorkflowList = () => {
       ) : (
         <Box>
           <Text mb={4} color="textSecondary">
-            Found {data.Count} workflow{data.Count !== 1 ? 's' : ''}
+            Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, data.Total)} of {data.Total} workflow{data.Total !== 1 ? 's' : ''}
           </Text>
-
-          <Checkbox isChecked={showNonRunning} onChange={(e) => setShowNonRunning(e.target.checked)} mb={4}>Show non-running workflows</Checkbox>
           
           <TableContainer 
             bg="surface" 
@@ -167,7 +166,7 @@ const WorkflowList = () => {
                 </Tr>
               </Thead>
               <Tbody>
-                {data.Workflows.filter((workflow) => (workflow.Status == "running" || showNonRunning)).map((workflow) => (
+                {data.Workflows.map((workflow) => (
                   <Tr key={workflow.WorkflowID}>
                     <Td>
                       <Text 
@@ -244,6 +243,32 @@ const WorkflowList = () => {
               </Tbody>
             </Table>
           </TableContainer>
+
+          <HStack justify="space-between" mt={4}>
+            <Text fontSize="sm" color="textSecondary">
+              Page {currentPage} of {Math.ceil(data.Total / pageSize)}
+            </Text>
+            <HStack>
+              <IconButton
+                aria-label="Previous page"
+                icon={<ChevronLeftIcon />}
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                isDisabled={currentPage === 1}
+                colorScheme="brand"
+                variant="outline"
+                size="sm"
+              />
+              <IconButton
+                aria-label="Next page"
+                icon={<ChevronRightIcon />}
+                onClick={() => setCurrentPage(currentPage + 1)}
+                isDisabled={currentPage >= Math.ceil(data.Total / pageSize)}
+                colorScheme="brand"
+                variant="outline"
+                size="sm"
+              />
+            </HStack>
+          </HStack>
         </Box>
       )}
     </Box>
