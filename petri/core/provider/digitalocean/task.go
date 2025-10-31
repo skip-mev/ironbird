@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/crypto/ssh"
-
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	dockerclient "github.com/docker/docker/client"
@@ -39,7 +37,6 @@ type Task struct {
 
 	removeTask        provider.RemoveTaskFunc
 	logger            *zap.Logger
-	sshClient         *ssh.Client
 	doClient          DoClient
 	dockerClient      clients.DockerClient
 	tailscaleSettings TailscaleSettings
