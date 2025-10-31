@@ -20,6 +20,7 @@ type DoClient interface {
 	// Firewall operations
 	CreateFirewall(ctx context.Context, req *godo.FirewallRequest) (*godo.Firewall, error)
 	GetFirewall(ctx context.Context, firewallID string) (*godo.Firewall, error)
+	ListFirewalls(ctx context.Context, opts *godo.ListOptions) ([]godo.Firewall, error)
 	DeleteFirewall(ctx context.Context, firewallID string) error
 
 	// Domain operations
@@ -34,6 +35,7 @@ type DoClient interface {
 
 	// Tag operations
 	CreateTag(ctx context.Context, req *godo.TagCreateRequest) (*godo.Tag, error)
+	ListTags(ctx context.Context, opts *godo.ListOptions) ([]godo.Tag, error)
 	DeleteTag(ctx context.Context, tag string) error
 }
 
@@ -115,6 +117,14 @@ func (c *godoClient) CreateFirewall(ctx context.Context, req *godo.FirewallReque
 	return firewall, nil
 }
 
+func (c *godoClient) ListFirewalls(ctx context.Context, opts *godo.ListOptions) ([]godo.Firewall, error) {
+	firewalls, res, err := c.Firewalls.List(ctx, opts)
+	if err := checkResponse(res, err); err != nil {
+		return nil, err
+	}
+	return firewalls, nil
+}
+
 func (c *godoClient) DeleteFirewall(ctx context.Context, firewallID string) error {
 	res, err := c.Firewalls.Delete(ctx, firewallID)
 	return checkResponse(res, err)
@@ -181,6 +191,14 @@ func (c *godoClient) CreateTag(ctx context.Context, req *godo.TagCreateRequest) 
 		return nil, err
 	}
 	return tag, nil
+}
+
+func (c *godoClient) ListTags(ctx context.Context, opts *godo.ListOptions) ([]godo.Tag, error) {
+	tags, res, err := c.Tags.List(ctx, opts)
+	if err := checkResponse(res, err); err != nil {
+		return nil, err
+	}
+	return tags, nil
 }
 
 func (c *godoClient) DeleteTag(ctx context.Context, tag string) error {

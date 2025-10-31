@@ -943,3 +943,60 @@ func (_c *MockDoClient_ListFirewalls_Call) RunAndReturn(run func(ctx context.Con
 	_c.Call.Return(run)
 	return _c
 }
+
+// ListTags provides a mock function for the type MockDoClient
+func (_mock *MockDoClient) ListTags(ctx context.Context, opts *godo.ListOptions) ([]godo.Tag, error) {
+	ret := _mock.Called(ctx, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTags")
+	}
+
+	var r0 []godo.Tag
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *godo.ListOptions) ([]godo.Tag, error)); ok {
+		return returnFunc(ctx, opts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *godo.ListOptions) []godo.Tag); ok {
+		r0 = returnFunc(ctx, opts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]godo.Tag)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, *godo.ListOptions) error); ok {
+		r1 = returnFunc(ctx, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockDoClient_ListTags_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListTags'
+type MockDoClient_ListTags_Call struct {
+	*mock.Call
+}
+
+// ListTags is a helper method to define mock.On call
+//   - ctx
+//   - opts
+func (_e *MockDoClient_Expecter) ListTags(ctx interface{}, opts interface{}) *MockDoClient_ListTags_Call {
+	return &MockDoClient_ListTags_Call{Call: _e.mock.On("ListTags", ctx, opts)}
+}
+
+func (_c *MockDoClient_ListTags_Call) Run(run func(ctx context.Context, opts *godo.ListOptions)) *MockDoClient_ListTags_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*godo.ListOptions))
+	})
+	return _c
+}
+
+func (_c *MockDoClient_ListTags_Call) Return(tags []godo.Tag, err error) *MockDoClient_ListTags_Call {
+	_c.Call.Return(tags, err)
+	return _c
+}
+
+func (_c *MockDoClient_ListTags_Call) RunAndReturn(run func(ctx context.Context, opts *godo.ListOptions) ([]godo.Tag, error)) *MockDoClient_ListTags_Call {
+	_c.Call.Return(run)
+	return _c
+}

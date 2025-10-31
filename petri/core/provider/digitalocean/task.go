@@ -190,10 +190,16 @@ func (t *Task) WriteFile(ctx context.Context, relPath string, content []byte) er
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	defer os.Remove(tmpPath)
+	defer func() {
+		if err := os.Remove(tmpPath); err != nil {
+			t.logger.Warn("failed to remove temp file", zap.String("path", tmpPath), zap.Error(err))
+		}
+	}()
 
 	if _, err := tmpFile.Write(content); err != nil {
-		tmpFile.Close()
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			t.logger.Warn("failed to close temp file", zap.String("path", tmpPath), zap.Error(closeErr))
+		}
 		return fmt.Errorf("failed to write to temp file: %w", err)
 	}
 	if err := tmpFile.Close(); err != nil {
@@ -238,8 +244,14 @@ func (t *Task) ReadFile(ctx context.Context, relPath string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to create temp file: %w", err)
 	}
 	tmpPath := tmpFile.Name()
-	tmpFile.Close()
-	defer os.Remove(tmpPath)
+	if err := tmpFile.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close temp file: %w", err)
+	}
+	defer func() {
+		if err := os.Remove(tmpPath); err != nil {
+			t.logger.Warn("failed to remove temp file", zap.String("path", tmpPath), zap.Error(err))
+		}
+	}()
 
 	tailscaleIP, err := t.getTailscaleIp(ctx)
 	if err != nil {
