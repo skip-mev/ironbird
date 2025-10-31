@@ -31,7 +31,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.13.7
 	github.com/prometheus/client_golang v1.22.0
-	github.com/skip-mev/catalyst v0.0.0-beta.13
+	github.com/skip-mev/catalyst v0.0.0-beta.15
 	github.com/spf13/afero v1.12.0
 	github.com/stretchr/testify v1.10.0
 	github.com/tidwall/sjson v1.2.5
