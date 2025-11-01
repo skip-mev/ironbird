@@ -9,7 +9,6 @@ import (
 
 	"github.com/digitalocean/godo"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/ssh"
 
 	"github.com/skip-mev/ironbird/petri/core/provider"
 	"github.com/skip-mev/ironbird/petri/core/provider/clients"
@@ -139,32 +138,4 @@ func (t *Task) GetDroplet(ctx context.Context) (*godo.Droplet, error) {
 		return nil, err
 	}
 	return t.doClient.GetDroplet(ctx, dropletId)
-}
-
-func (t *Task) getDropletSSHClient(ctx context.Context) (*ssh.Client, error) {
-	if t.sshClient != nil {
-		status, _, err := t.sshClient.SendRequest("ping", true, []byte("ping"))
-
-		if err == nil && status {
-			return t.sshClient, nil
-		}
-	}
-
-	ip, err := t.GetIP(ctx)
-
-	if err != nil {
-		return nil, err
-	}
-
-	sshConfig := &ssh.ClientConfig{
-		User:            "root",
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	client, err := SSHDialWithCustomDial(ctx, "tcp", fmt.Sprintf("%s:22", ip), sshConfig, t.DialContext())
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }

@@ -5,19 +5,16 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/exec"
 	"path"
 	"sync"
 	"time"
-
-	"golang.org/x/crypto/ssh"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/pkg/sftp"
-	"github.com/spf13/afero"
-	"github.com/spf13/afero/sftpfs"
 	"go.uber.org/zap"
 
 	"github.com/skip-mev/ironbird/petri/core/provider"
@@ -40,7 +37,6 @@ type Task struct {
 
 	removeTask        provider.RemoveTaskFunc
 	logger            *zap.Logger
-	sshClient         *ssh.Client
 	doClient          DoClient
 	dockerClient      clients.DockerClient
 	tailscaleSettings TailscaleSettings
@@ -189,33 +185,52 @@ func (t *Task) GetStatus(ctx context.Context) (provider.TaskStatus, error) {
 func (t *Task) WriteFile(ctx context.Context, relPath string, content []byte) error {
 	absPath := path.Join("/docker_volumes", relPath)
 
-	sshClient, err := t.getDropletSSHClient(ctx)
+	tmpFile, err := os.CreateTemp("", "rsync-writefile-*")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer func() {
+		if err := os.Remove(tmpPath); err != nil {
+			t.logger.Warn("failed to remove temp file", zap.String("path", tmpPath), zap.Error(err))
+		}
+	}()
+
+	if _, err := tmpFile.Write(content); err != nil {
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			t.logger.Warn("failed to close temp file", zap.String("path", tmpPath), zap.Error(closeErr))
+		}
+		return fmt.Errorf("failed to write to temp file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temp file: %w", err)
 	}
 
-	defer sshClient.Close()
-
-	sftpClient, err := sftp.NewClient(sshClient)
-	if err != nil {
-		return err
+	if err := os.Chmod(tmpPath, 0644); err != nil {
+		return fmt.Errorf("failed to set temp file permissions: %w", err)
 	}
 
-	defer sftpClient.Close()
-
-	err = sftpClient.MkdirAll(path.Dir(absPath))
-	if err != nil {
-		return err
+	mkdirCmd := []string{"mkdir", "-p", path.Dir(absPath)}
+	if _, _, exitCode, err := t.RunCommand(ctx, mkdirCmd); err != nil || exitCode != 0 {
+		return fmt.Errorf("failed to create directory (exit code %d): %w", exitCode, err)
 	}
 
-	file, err := sftpClient.Create(absPath)
+	tailscaleIP, err := t.getTailscaleIp(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get tailscale IP: %w", err)
 	}
 
-	_, err = file.Write(content)
-	if err != nil {
-		return err
+	rsyncArgs := []string{
+		"-Wp", // whole-file mode + preserve permissions
+		"--inplace",
+		"-e", "tailscale ssh",
+		tmpPath,
+		fmt.Sprintf("root@%s:%s", tailscaleIP, absPath),
+	}
+
+	cmd := exec.CommandContext(ctx, "rsync", rsyncArgs...)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("rsync failed: %w (output: %s)", err, string(output))
 	}
 
 	return nil
@@ -224,25 +239,41 @@ func (t *Task) WriteFile(ctx context.Context, relPath string, content []byte) er
 func (t *Task) ReadFile(ctx context.Context, relPath string) ([]byte, error) {
 	absPath := path.Join("/docker_volumes", relPath)
 
-	sshClient, err := t.getDropletSSHClient(ctx)
+	tmpFile, err := os.CreateTemp("", "rsync-readfile-*")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	if err := tmpFile.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close temp file: %w", err)
+	}
+	defer func() {
+		if err := os.Remove(tmpPath); err != nil {
+			t.logger.Warn("failed to remove temp file", zap.String("path", tmpPath), zap.Error(err))
+		}
+	}()
+
+	tailscaleIP, err := t.getTailscaleIp(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tailscale IP: %w", err)
 	}
 
-	defer sshClient.Close()
-
-	sftpClient, err := sftp.NewClient(sshClient)
-	if err != nil {
-		return nil, err
+	rsyncArgs := []string{
+		"-Wz", // whole-file mode + compression
+		"--inplace",
+		"-e", "tailscale ssh",
+		fmt.Sprintf("root@%s:%s", tailscaleIP, absPath),
+		tmpPath,
 	}
 
-	defer sftpClient.Close()
+	cmd := exec.CommandContext(ctx, "rsync", rsyncArgs...)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("rsync failed: %w (output: %s)", err, string(output))
+	}
 
-	fs := sftpfs.New(sftpClient)
-
-	content, err := afero.ReadFile(fs, absPath)
+	content, err := os.ReadFile(tmpPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read temp file: %w", err)
 	}
 
 	return content, nil

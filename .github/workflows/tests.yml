@@ -25,6 +25,10 @@ jobs:
       TS_SERVER_OAUTH_SECRET: ${{ secrets.TS_SERVER_OAUTH_SECRET }}
     steps:
       - uses: actions/checkout@v3
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TS_CI_AUTH_KEY }}
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
@@ -125,6 +129,10 @@ jobs:
       TS_SERVER_OAUTH_SECRET: ${{ secrets.TS_SERVER_OAUTH_SECRET }}
     steps:
       - uses: actions/checkout@v3
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          authkey: ${{ secrets.TS_CI_AUTH_KEY }}
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
