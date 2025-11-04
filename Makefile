@@ -143,13 +143,6 @@ govulncheck: tidy ## Run the govulncheck
 ###                           Starting Services                             ###
 ###############################################################################
 
-start-buildkit: ## Start the buildkit container
-	docker run -d --name buildkitd --privileged -p 1234:1234 \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v buildkitd:/var/lib/buildkit \
-		-v ~/.docker/config.json:/root/.docker/config.json \
-		moby/buildkit:latest --addr tcp://0.0.0.0:1234
-
 start-temporal: ## Start the Temporal server
 	temporal server start-dev
 
@@ -162,36 +155,24 @@ start-frontend: ## Start the frontend
 start-backend: ## Start the backend
 	go run ./server/cmd/main.go
 
-.PHONY: start-cleanup
 start-cleanup:
 	go run ./cmd/cleanup/main.go --dry-run
 
+start-buildkit: ## Start the buildkit container
+	docker run --rm --name buildkitd --privileged -p 1234:1234 \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v buildkitd:/var/lib/buildkit \
+		-v ~/.docker/config.json:/root/.docker/config.json \
+		moby/buildkit:latest --addr tcp://0.0.0.0:1234
+
 local-docker: ## Start IronBird for local Docker workflows (no cloud dependencies)
-	@echo "🚀 Starting IronBird in Local Docker Mode"
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo ""
-	
-	@# Create .env if it doesn't exist
-	@if [ ! -f .env ]; then \
-		echo "# Environment file for IronBird" > .env; \
-		echo "✓ Created empty .env file"; \
-	fi
-	
-	@echo "✓ REGISTRY_MODE=local (using local Docker daemon)"
-	@echo "✓ No cloud dependencies required"
-	@echo "✓ Images will be built and loaded into local Docker daemon"
-	@echo ""
-	@echo "Starting services..."
-	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo ""
-	
-	@set -a && source .env && export REGISTRY_MODE=local && mprocs -c mprocs.yaml
+	export REGISTRY_MODE=local && goreman -logtime=false -exit-on-error=true start
 
 local-full: ## Start IronBird for DigitalOcean workflows (requires AWS, Tailscale, DigitalOcean)
 	@echo "🚀 Starting IronBird in Full Mode (DigitalOcean)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	
+
 	@# Check .env exists
 	@if [ ! -f .env ]; then \
 		echo "❌ ERROR: .env file not found"; \
@@ -205,7 +186,7 @@ local-full: ## Start IronBird for DigitalOcean workflows (requires AWS, Tailscal
 		echo "Then fill in the required values"; \
 		exit 1; \
 	fi
-	
+
 	@# Check AWS credentials
 	@if [ -z "$${AWS_SESSION_TOKEN-}" ]; then \
 		echo "❌ ERROR: AWS credentials not found"; \
@@ -218,7 +199,7 @@ local-full: ## Start IronBird for DigitalOcean workflows (requires AWS, Tailscal
 		echo "   aws-vault exec skip-dev-admin -- make local-full"; \
 		exit 1; \
 	fi
-	
+
 	@echo "✓ REGISTRY_MODE=ecr (using AWS ECR)"
 	@echo "✓ AWS credentials configured"
 	@echo "✓ Environment variables loaded from .env"
@@ -226,12 +207,12 @@ local-full: ## Start IronBird for DigitalOcean workflows (requires AWS, Tailscal
 	@echo "Starting services..."
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
-	
-	@set -a && source .env && export REGISTRY_MODE=ecr && mprocs -c mprocs.yaml
+
+	export REGISTRY_MODE=ecr && goreman start
 
 local: local-docker ## Alias for local-docker (default: local Docker mode)
 
-.PHONY: start-buildkit start-temporal start-worker start-frontend start-backend local local-docker local-full
+.PHONY: start-buildkit start-temporal start-worker start-frontend start-backend start-cleanup local local-docker local-full
 
 ###############################################################################
 ###                           First time setup                             ###
@@ -239,7 +220,8 @@ local: local-docker ## Alias for local-docker (default: local Docker mode)
 
 install-deps: ## Install the dependencies
 	@echo "📦 Installing dependencies via Homebrew..."
-	@brew install docker docker-compose awscli aws-vault openssl make temporal mprocs || echo "⚠️  Some packages may already be installed"
+	@brew install docker docker-compose awscli aws-vault openssl make temporal || echo "⚠️  Some packages may already be installed"
+	@go install github.com/mattn/goreman@latest
 	@echo "✅ All dependencies installed!"
 	@echo ""
 

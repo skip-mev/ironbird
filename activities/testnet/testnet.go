@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	pb "github.com/skip-mev/ironbird/server/proto"
 
 	evmhd "github.com/cosmos/evm/crypto/hd"
@@ -166,6 +167,8 @@ func (a *Activity) updateWorkflowData(ctx context.Context, workflowID string, no
 func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnetRequest) (resp messages.LaunchTestnetResponse, err error) {
 	logger, _ := zap.NewDevelopment()
 
+	logger.Info("Launching testnet", zap.Any("request", req))
+
 	workflowID := activity.GetInfo(ctx).WorkflowExecution.ID
 	startTime := time.Now()
 
@@ -173,7 +176,7 @@ func (a *Activity) LaunchTestnet(ctx context.Context, req messages.LaunchTestnet
 		DOToken: a.DOToken, TailscaleSettings: a.TailscaleSettings, TelemetrySettings: a.TelemetrySettings,
 	})
 	if err != nil {
-		return
+		return messages.LaunchTestnetResponse{}, errors.Wrap(err, "unable to restore provider")
 	}
 
 	nodeOptions := petritypes.NodeOptions{}

@@ -85,7 +85,7 @@ func (a *Activity) createRepositoryIfNotExists(ctx context.Context) error {
 	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 
 	if err != nil {
-		return fmt.Errorf("failed to fetch STS identity: %w", err)
+		return fmt.Errorf("createRepositoryIfNotExists: failed to fetch STS identity: %w", err)
 	}
 
 	ecrClient := ecr.NewFromConfig(*a.AwsConfig, func(options *ecr.Options) {
@@ -184,7 +184,7 @@ func (a *Activity) imageExistsInECR(ctx context.Context, tag string) (bool, erro
 	stsClient := sts.NewFromConfig(*a.AwsConfig)
 	stsIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch STS identity: %w", err)
+		return false, fmt.Errorf("imageExistsInECR: failed to fetch STS identity: %w", err)
 	}
 
 	ecrClient := ecr.NewFromConfig(*a.AwsConfig, func(options *ecr.Options) {
@@ -219,7 +219,7 @@ func (a *Activity) BuildDockerImage(ctx context.Context, req messages.BuildDocke
 	var err error
 	if a.Registry.Type == "ecr" {
 		if err := a.createRepositoryIfNotExists(ctx); err != nil {
-			return messages.BuildDockerImageResponse{}, err
+			return messages.BuildDockerImageResponse{}, fmt.Errorf("failed to create repository: %w", err)
 		}
 
 		exists, err := a.imageExistsInECR(ctx, tag)

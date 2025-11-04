@@ -96,7 +96,7 @@ For running local Docker workflows with **zero cloud dependencies**:
 make first-time-setup
 ```
 
-This installs required dependencies (Docker, Temporal, mprocs, etc.) and generates SSL certificates.
+This installs required dependencies (Docker, Temporal, etc.) and generates SSL certificates.
 
 #### 2. Start IronBird
 
