@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types/image"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
+
+	"github.com/docker/docker/api/types/image"
+	"github.com/pborman/uuid"
 
 	"go.uber.org/zap"
 
@@ -69,7 +71,7 @@ func (t *Task) WriteTar(ctx context.Context, relPath string, localTarPath string
 
 	const mountPath = "/mnt/dockervolume"
 
-	containerName := fmt.Sprintf("petri-writefile-%d", time.Now().UnixNano())
+	containerName := fmt.Sprintf("petri-writefile-%s", uuid.New())
 
 	if err := t.dockerClient.ImagePull(ctx, t.logger, state.BuilderImageName, image.PullOptions{}); err != nil {
 		return err
@@ -190,7 +192,7 @@ func (t *Task) WriteFile(ctx context.Context, relPath string, content []byte) er
 
 	const mountPath = "/mnt/dockervolume"
 
-	containerName := fmt.Sprintf("petri-writefile-%d", time.Now().UnixNano())
+	containerName := fmt.Sprintf("petri-writefile-%s", uuid.New())
 
 	if err := t.dockerClient.ImagePull(ctx, t.logger, state.BuilderImageName, image.PullOptions{}); err != nil {
 		return err
@@ -321,7 +323,7 @@ func (t *Task) ReadFile(ctx context.Context, relPath string) ([]byte, error) {
 
 	const mountPath = "/mnt/dockervolume"
 
-	containerName := fmt.Sprintf("petri-getfile-%d", time.Now().UnixNano())
+	containerName := fmt.Sprintf("petri-getfile-%s", uuid.New())
 
 	if err := t.dockerClient.ImagePull(ctx, t.logger, state.BuilderImageName, image.PullOptions{}); err != nil {
 		return nil, err

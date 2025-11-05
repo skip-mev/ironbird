@@ -59,9 +59,11 @@ func main() {
 	defer c.Close()
 
 	activeRegistry := cfg.Builder.GetActiveRegistry()
-	logger.Info("Using registry configuration",
+	logger.Info(
+		"Using registry configuration",
 		zap.String("mode", activeRegistry.Type),
-		zap.String("image_name", activeRegistry.ImageName))
+		zap.String("image_name", activeRegistry.ImageName),
+	)
 
 	var awsConfig *aws.Config
 	if activeRegistry.Type == "ecr" {
