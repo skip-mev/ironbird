@@ -76,8 +76,8 @@ func CreateNode(ctx context.Context, logger *zap.Logger, infraProvider provider.
 			chainConfig.AdditionalStartFlags...),
 		DataDir: chainConfig.HomeDir,
 		Environment: map[string]string{
-			"GODEBUG":                        "blockprofilerate=1",
-			"OTEL_EXPERIMENTAL_CONFIG_FILE=": "/etc/otel.yaml",
+			"GODEBUG":                       "blockprofilerate=1",
+			"OTEL_EXPERIMENTAL_CONFIG_FILE": "/etc/otel.yaml",
 		},
 	}
 
