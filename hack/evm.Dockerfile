@@ -47,6 +47,7 @@ ARG IMG_TAG
 COPY evmd-entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 COPY --from=evmd-builder  /src/app/build/evmd /usr/bin/evmd
+# 9464: Cosmos SDK (otel) prometheus metrics port
 EXPOSE 26656 26657 1317 9090 26660 8545 8100 9464
 USER nonroot
 WORKDIR /home/nonroot
