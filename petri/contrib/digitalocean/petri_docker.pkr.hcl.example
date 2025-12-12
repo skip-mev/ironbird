@@ -97,4 +97,8 @@ build {
         destination = "/etc/sysctl.d/enabled_ipv4_forwarding.conf"
     }
 
+    provisioner "file" {
+        source = "files/otel.yaml"
+        destination = "/etc/otel.yaml"
+    }
 }

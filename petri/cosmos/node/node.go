@@ -70,12 +70,15 @@ func CreateNode(ctx context.Context, logger *zap.Logger, infraProvider provider.
 	def := provider.TaskDefinition{
 		Name:  nodeConfig.Name,
 		Image: chainConfig.Image,
-		Ports: append([]string{"9090", "26656", "26657", "26660", "1317"}, chainConfig.AdditionalPorts...),
+		Ports: append([]string{"9464", "9090", "26656", "26657", "26660", "1317"}, chainConfig.AdditionalPorts...),
 		Entrypoint: append(
 			append(entrypoint, "--home", chainConfig.HomeDir, "start"),
 			chainConfig.AdditionalStartFlags...),
-		DataDir:     chainConfig.HomeDir,
-		Environment: map[string]string{"GODEBUG": "blockprofilerate=1"},
+		DataDir: chainConfig.HomeDir,
+		Environment: map[string]string{
+			"GODEBUG":                       "blockprofilerate=1",
+			"OTEL_EXPERIMENTAL_CONFIG_FILE": "/etc/otel.yaml",
+		},
 	}
 
 	if opts.NodeDefinitionModifier != nil {
