@@ -14,7 +14,7 @@ source "digitalocean" "petri" {
     size = "s-1vcpu-1gb"
     ssh_username = "root"
     snapshot_name = "petri-ubuntu-24-04-x64-telemetry"
-    snapshot_regions = [<regions>]
+    snapshot_regions = ["ams3", "fra1", "nyc1", "sfo2", "sgp1"]
 }
 
 build {
@@ -67,6 +67,9 @@ build {
             "chmod 777 /docker_volumes",
             "chown root:docker /docker_volumes",
             "sudo sed -i.bak 's/^CUSTOM_ARGS.*/CUSTOM_ARGS=\"--stability.level experimental\"/' /etc/default/alloy",
+
+            # Set file descriptor limit
+            "ulimit -n 99999",
 
             # SSH - disable password authentication
             "sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config",
