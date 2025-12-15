@@ -234,7 +234,7 @@ func createRegionalNodeOptions(baseOpts petritypes.NodeOptions, region petritype
 			definition.ProviderSpecificConfig = make(map[string]string)
 		}
 		definition.ProviderSpecificConfig["region"] = region.Name
-		definition.ProviderSpecificConfig["image_id"] = "209661897"
+		definition.ProviderSpecificConfig["image_id"] = "210084437"
 		if _, ok := definition.ProviderSpecificConfig["size"]; !ok {
 			definition.ProviderSpecificConfig["size"] = "s-4vcpu-8gb"
 		}
