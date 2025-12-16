@@ -137,7 +137,9 @@ func generateLoadTestSpec(ctx context.Context, logger *zap.Logger, chain PetriCh
 	loadTestSpec.ChainID = chainID
 
 	loadTestSpec.BaseMnemonic = baseMnemonic
-	loadTestSpec.NumWallets = numWallets
+	if loadTestSpec.NumWallets == 0 {
+		loadTestSpec.NumWallets = numWallets
+	}
 
 	err := loadTestSpec.Validate()
 	if err != nil {
