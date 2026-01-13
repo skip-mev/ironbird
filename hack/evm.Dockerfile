@@ -20,19 +20,19 @@ RUN git clone $CHAIN_SRC /src/app && \
 
 WORKDIR /src/app/evmd
 RUN if [ -n "$REPLACE_CMD" ]; then \
-        go mod tidy && \
-        echo "After go mod tidy, applying replace commands:" && \
-        echo "$REPLACE_CMD" > replace_cmd.sh && \
-        chmod +x replace_cmd.sh && \
-        sh replace_cmd.sh && \
-        echo "Final go.mod:" && \
-        cat go.mod && \
-        echo "Updating go.sum with replaced modules:" && \
-        go get ./... && \
-        echo "Done updating go.sum"; \
-    else \
-        go mod tidy; \
-    fi
+  go mod tidy && \
+  echo "After go mod tidy, applying replace commands:" && \
+  echo "$REPLACE_CMD" > replace_cmd.sh && \
+  chmod +x replace_cmd.sh && \
+  sh replace_cmd.sh && \
+  echo "Final go.mod:" && \
+  cat go.mod && \
+  echo "Updating go.sum with replaced modules:" && \
+  go get ./... && \
+  echo "Done updating go.sum"; \
+  else \
+  go mod tidy; \
+  fi
 WORKDIR /src/app
 
 RUN make build
@@ -44,6 +44,7 @@ RUN addgroup -g 1025 nonroot
 RUN adduser -D nonroot -u 1025 -G nonroot
 RUN mkdir -p /home/nonroot && chown nonroot:nonroot /home/nonroot
 ARG IMG_TAG
+COPY otel.yaml /etc/otel.yaml
 COPY evmd-entrypoint.sh /usr/bin/entrypoint.sh
 RUN chmod +x /usr/bin/entrypoint.sh
 COPY --from=evmd-builder  /src/app/build/evmd /usr/bin/evmd

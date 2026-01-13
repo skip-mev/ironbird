@@ -57,6 +57,7 @@ chains:
     dockerfile: "./hack/evm.Dockerfile"
     additional_files:
     - "./hack/evmd-entrypoint.sh"
+    - "./hack/otel.yaml"
     gid: "1025"
     uid: "1025"
     binary_name: "/usr/bin/evmd"
