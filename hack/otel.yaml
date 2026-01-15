@@ -1,3 +1,4 @@
+file_format: "1.0-rc.3"
 resource:
   attributes:
     - name: service.name
