@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pelletier/go-toml/v2"
 	"github.com/skip-mev/ironbird/petri/cosmos/node"
 	"github.com/skip-mev/ironbird/petri/cosmos/wallet"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -1022,60 +1021,54 @@ func configureNode(
 		return err
 	}
 
-	useLibP2P, addressBookFile := chainConfig.UseLibP2P()
-	if useLibP2P {
-		logger.Info("Using lib-p2p!", zap.String("address_book_file", addressBookFile))
-		err = writeLibP2PAddressBook(
+	if chainConfig.UseLibP2P() {
+		logger.Info("Using lib-p2p, setting bootstrap_peers in config.toml")
+		bootstrapPeers, err := composeLibP2PBootstrapPeers(
 			ctx,
 			node,
-			addressBookFile,
 			useExternalAddress,
 			seeds,
 			persistentPeers,
 		)
+
 		if err != nil {
-			return fmt.Errorf("writeLibP2PAddressBook: %w", err)
+			return fmt.Errorf("failed to compose lib-p2p bootstrap peers: %w", err)
+		}
+
+		if err := node.SetLibP2PBootstrapPeers(ctx, bootstrapPeers); err != nil {
+			return fmt.Errorf("failed to set lib-p2p bootstrap peers: %w", err)
 		}
 	}
 
 	return nil
 }
 
-// writes libp2p address book to the node's address book file
-func writeLibP2PAddressBook(
+// composeLibP2PBootstrapPeers creates lib-p2p bootstrap peers from the given peer sets.
+// @see https://github.com/cometbft/cometbft/blob/6837f04ce6c122a1c575f5281c8ba171df8dd9d4/config/config.go#L631
+func composeLibP2PBootstrapPeers(
 	ctx context.Context,
 	node petritypes.NodeI,
-	addressBookFile string,
 	useExternalAddress bool,
 	peerSets ...PeerSet,
-) error {
-	peers := []any{}
+) ([]map[string]any, error) {
+	var (
+		peers    = []map[string]any{}
+		isDocker = !useExternalAddress
+	)
 
-	isDocker := !useExternalAddress
-
-	// combine all the peer sets into list of peers
+	// combine all the peer sets into list of bootstrap peers
 	for _, peerSet := range peerSets {
 		if peerSet.Empty() {
 			continue
 		}
 
-		elements, err := peerSet.AsLibP2PAddressBook(ctx, isDocker)
+		elements, err := peerSet.AsLibP2PBootstrapPeers(ctx, isDocker)
 		if err != nil {
-			return fmt.Errorf("failed to get libp2p address book for peer set: %w", err)
+			return nil, fmt.Errorf("failed to get libp2p bootstrap peers for peer set: %w", err)
 		}
 
 		peers = append(peers, elements...)
 	}
 
-	// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L12
-	addressBook := map[string]any{
-		"peers": peers,
-	}
-
-	raw, err := toml.Marshal(addressBook)
-	if err != nil {
-		return fmt.Errorf("failed to marshal address book {%+v}: %w", addressBook, err)
-	}
-
-	return node.WriteFile(ctx, addressBookFile, raw)
+	return peers, nil
 }

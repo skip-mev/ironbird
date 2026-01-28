@@ -59,11 +59,12 @@ func (ps *PeerSet) AsCometPeerString(ctx context.Context, useExternal bool) (str
 	return strings.Join(peerStrings, ","), nil
 }
 
-// AsLibP2PAddressBook returns a map of node IDs to addresses of chain nodes.
-// Format it [{host: "1.2.3.4:26656", id: "<lib-p2p-peer-id>"}, {...}, ...]
-// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/lp2p/addressbook.go#L16
-func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, isDocker bool) ([]any, error) {
-	peers := make([]any, 0, len(ps.peers))
+// AsLibP2PBootstrapPeers returns a list of bootstrap peers for libp2p config.
+// Format: [{host: "1.2.3.4:26656", id: "<lib-p2p-peer-id>", persistent: true}, {...}, ...]
+// All peers are marked as persistent.
+// @see https://github.com/cometbft/cometbft/blob/main/config/config.go LibP2PBootstrapPeer struct
+func (ps *PeerSet) AsLibP2PBootstrapPeers(ctx context.Context, isDocker bool) ([]map[string]any, error) {
+	peers := make([]map[string]any, 0, len(ps.peers))
 
 	resolveHost := peerHostInternal
 	if !isDocker {
@@ -88,9 +89,10 @@ func (ps *PeerSet) AsLibP2PAddressBook(ctx context.Context, isDocker bool) ([]an
 			return nil, errors.Wrap(err, "peer id")
 		}
 
-		peers = append(peers, map[string]string{
-			"host": host,
-			"id":   peerID.String(),
+		peers = append(peers, map[string]any{
+			"host":       host,
+			"id":         peerID.String(),
+			"persistent": true,
 		})
 	}
 

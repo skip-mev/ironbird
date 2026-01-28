@@ -88,6 +88,11 @@ type NodeI interface {
 	// SetPersistentPeers takes in a comma-delimited peer string (nodeid1@host1:port1,nodeid2@host2:port2) and writes it
 	// to the consensus config file on the node
 	SetPersistentPeers(context.Context, string) error
+
+	// SetLibP2PBootstrapPeers takes in a list of bootstrap peers and writes them to the libp2p config section of the 
+	// consensus config file on the node
+	SetLibP2PBootstrapPeers(context.Context, []map[string]any) error
+
 	// SetSeedNode will set a full node (or validator if no nodes exist) as seed for the network
 	SetSeedNode(ctx context.Context, seedNode string) error
 	// SetSeedMode will configure this node to operate in seed mode
