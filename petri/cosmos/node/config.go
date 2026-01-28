@@ -282,6 +282,34 @@ func (n *Node) SetPersistentPeers(ctx context.Context, peers string) error {
 	)
 }
 
+// SetLibP2PBootstrapPeers will set the node's libp2p bootstrap peers in the CometBFT config
+// @see https://github.com/cometbft/cometbft/blob/6837f04ce6c122a1c575f5281c8ba171df8dd9d4/config/config.go#L631
+func (n *Node) SetLibP2PBootstrapPeers(ctx context.Context, peers []map[string]any) error {
+	// sanity checks
+	for _, bp := range peers {
+		if _, ok := bp["host"]; !ok {
+			return fmt.Errorf("bootstrap peer missing host: %v", bp)
+		}
+		if _, ok := bp["id"]; !ok {
+			return fmt.Errorf("bootstrap peer missing id: %v", bp)
+		}
+	}
+
+	consensusSubConfig := map[string]any{
+		"p2p": map[string]any{
+			"libp2p": map[string]any{
+				"bootstrap_peers": peers,
+			},
+		},
+	}
+
+	return n.ModifyTomlConfigFile(
+		ctx,
+		"config/config.toml",
+		consensusSubConfig,
+	)
+}
+
 // SetSeedNode will set a given node as seed for the network
 func (n *Node) SetSeedNode(ctx context.Context, seedNode string) error {
 	cometBftConfig := make(map[string]interface{})

@@ -147,6 +147,11 @@ func (m MockNode) SetPersistentPeers(ctx context.Context, s string) error {
 	panic("implement me")
 }
 
+func (m MockNode) SetLibP2PBootstrapPeers(ctx context.Context, peers []map[string]any) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m MockNode) SetSeedNode(ctx context.Context, seedNode string) error {
 	//TODO implement me
 	panic("implement me")

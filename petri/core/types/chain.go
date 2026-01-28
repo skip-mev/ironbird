@@ -227,36 +227,32 @@ func (c ChainConfig) ValidateBasic(providerType string) error {
 	return nil
 }
 
-func (c ChainConfig) UseLibP2P() (enabled bool, addressBookFile string) {
+// UseLibP2P returns true if libp2p is enabled in the custom consensus config.
+// Bootstrap peers are now configured inline in config.toml under [p2p.libp2p].
+func (c ChainConfig) UseLibP2P() bool {
 	if len(c.CustomConsensusConfig) == 0 {
-		return false, ""
+		return false
 	}
 
 	if _, ok := c.CustomConsensusConfig["p2p"]; !ok {
-		return false, ""
+		return false
 	}
 
 	p2p, ok := c.CustomConsensusConfig["p2p"].(map[string]any)
 	if !ok {
-		return false, ""
+		return false
 	}
 
-	// https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/config/config.go#L594
+	// https://github.com/cometbft/cometbft/blob/main/config/config.go LibP2PConfig
 	libp2p, ok := p2p["libp2p"].(map[string]any)
 	if !ok {
-		return false, ""
+		return false
 	}
 
-	enabled, ok = libp2p["enabled"].(bool)
+	enabled, ok := libp2p["enabled"].(bool)
 	if !ok {
-		return false, ""
+		return false
 	}
 
-	addressBookFile, ok = libp2p["address_book_file"].(string)
-	if !ok {
-		// @see https://github.com/cometbft/cometbft/blob/608fe92cbc3774c6cdf36c59c56b6c8362489ef1/config/config.go#L69
-		addressBookFile = "config/addressbook.toml"
-	}
-
-	return enabled, addressBookFile
+	return enabled
 }
