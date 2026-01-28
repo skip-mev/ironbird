@@ -8,7 +8,7 @@ meter_provider:
   readers:
     - pull:
         exporter:
-          prometheus: # pushes directly to prometheus backend. 
+          prometheus/development: # pushes directly to prometheus backend. 
             host: 0.0.0.0
             port: 9464
             with_resource_constant_labels:
