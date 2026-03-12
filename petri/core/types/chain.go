@@ -14,6 +14,9 @@ import (
 var (
 	validRegions = map[string]bool{
 		"nyc1": true,
+		"nyc2": true,
+		"nyc3": true,
+		"atl1": true,
 		"sfo2": true,
 		"ams3": true,
 		"fra1": true,
@@ -42,7 +45,7 @@ func (r RegionConfig) ValidateBasic() error {
 	}
 
 	if !validRegions[r.Name] {
-		return fmt.Errorf("region '%s' is not supported. Valid regions are: nyc1, sfo2, ams3, fra1, sgp1", r.Name)
+		return fmt.Errorf("region '%s' is not supported. Valid regions are: nyc1, nyc2, nyc3, atl1, sfo2, ams3, fra1, sgp1", r.Name)
 	}
 
 	if r.NumValidators < 0 {
