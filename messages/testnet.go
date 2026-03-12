@@ -17,7 +17,7 @@ const (
 )
 
 var DigitalOceanDefaultOpts = map[string]string{
-	"region": "nyc1", "size": "c-16",
+	"region": "nyc3", "size": "c-16",
 	"image_id": "199449450",
 }
 
