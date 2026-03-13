@@ -5,12 +5,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types/image"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/docker/docker/api/types/image"
 
 	"go.uber.org/zap"
 
@@ -52,6 +54,13 @@ func (p *Provider) DestroyVolume(ctx context.Context, id string) error {
 	p.logger.Info("destroying volume", zap.String("id", id))
 
 	return p.dockerClient.VolumeRemove(ctx, id, true)
+}
+
+func isNoSuchContainerErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "no such container")
 }
 
 func (t *Task) WriteTar(ctx context.Context, relPath string, localTarPath string) error {
@@ -158,6 +167,10 @@ func (t *Task) WriteTar(ctx context.Context, relPath string, localTarPath string
 	case <-ctx.Done():
 		return ctx.Err()
 	case err := <-errCh:
+		if isNoSuchContainerErr(err) {
+			autoRemoved = true
+			return nil
+		}
 		return err
 	case res := <-waitCh:
 		autoRemoved = true
@@ -292,6 +305,10 @@ func (t *Task) WriteFile(ctx context.Context, relPath string, content []byte) er
 	case <-ctx.Done():
 		return ctx.Err()
 	case err := <-errCh:
+		if isNoSuchContainerErr(err) {
+			autoRemoved = true
+			return nil
+		}
 		return err
 	case res := <-waitCh:
 		autoRemoved = true
@@ -556,6 +573,10 @@ func (p *Provider) SetVolumeOwner(ctx context.Context, volumeName, uid, gid stri
 	case <-ctx.Done():
 		return ctx.Err()
 	case err := <-errCh:
+		if isNoSuchContainerErr(err) {
+			autoRemoved = true
+			return nil
+		}
 		return err
 	case res := <-waitCh:
 		autoRemoved = true
