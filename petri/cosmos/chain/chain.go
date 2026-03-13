@@ -939,7 +939,11 @@ func buildAccounts(walletCfg petritypes.WalletConfig, baseMnemonic string, start
 	accounts := make([]Account, 0, numAdditionalAccs)
 	for i := range numAdditionalAccs {
 		keyName := fmt.Sprintf("additionalaccount%d", i)
-		w, err := wallet.NewWallet(keyName, baseMnemonic, fmt.Sprintf("%d", i), walletCfg)
+		passphrase := fmt.Sprintf("%d", i)
+		if i == 0 {
+			passphrase = ""
+		}
+		w, err := wallet.NewWallet(keyName, baseMnemonic, passphrase, walletCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create wallet %d: %w", i+1, err)
 		}
