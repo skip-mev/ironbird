@@ -155,7 +155,7 @@ func (p *Provider) CreateTask(ctx context.Context, definition provider.TaskDefin
 		tailscaleSettings: p.tailscaleSettings,
 	}
 
-	if err := util.WaitForCondition(ctx, 240*time.Second, 1*time.Second, func() (bool, error) {
+	if err := util.WaitForCondition(ctx, 15*time.Minute, 5*time.Second, func() (bool, error) {
 		self, err := task.getTailscalePeer(ctx)
 
 		if err != nil {
